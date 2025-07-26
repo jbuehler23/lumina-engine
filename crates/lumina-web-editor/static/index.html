@@ -2398,12 +2398,13 @@
             }
         }
         
-function generateGameHTML() {
+        function generateGameHTML() {
     const gameData = generateGameData();
     const safeProjectName = String(currentProject.name).replace(/`/g, '\\`');
     const safeGameData = JSON.stringify(gameData).replace(/`/g, '\\`');
     const safeProjectAssets = JSON.stringify(projectAssets).replace(/`/g, '\\`');
 
+    // Ensure the template literal is properly closed with a backtick
     return `<!DOCTYPE html>
 <html>
 <head>
@@ -2555,7 +2556,8 @@ function generateGameHTML() {
         window.addEventListener('load', initGame);
     </script>
 </body>
-</html>`;
+</html>
+`;
 }
         
         function generateGameData() {
