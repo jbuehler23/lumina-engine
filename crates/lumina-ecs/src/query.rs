@@ -21,7 +21,7 @@ impl<T: Component> Query for With<T> {
         }
     }
     
-    fn get(&self, _entity: Entity) -> Option<Self::Item> {
+    fn get(&self, entity: Entity) -> Option<Self::Item> {
         None
     }
 }
@@ -39,7 +39,7 @@ impl<T: Component> Query for WithMut<T> {
         }
     }
     
-    fn get(&self, _entity: Entity) -> Option<Self::Item> {
+    fn get(&self, entity: Entity) -> Option<Self::Item> {
         None
     }
 }
