@@ -1,0 +1,56 @@
+[package]
+name = "lumina-ui"
+version = "0.1.0"
+edition = "2021"
+description = "Pure Rust UI framework for Lumina Engine with WGPU-based rendering"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["wgpu-backend"]
+wgpu-backend = ["wgpu", "winit"]
+web = ["wasm-bindgen", "web-sys", "js-sys"]
+
+[dependencies]
+# Core dependencies
+lumina-core = { path = "../lumina-core" }
+lumina-ecs = { path = "../lumina-ecs" }
+
+# Graphics and rendering
+wgpu = { workspace = true, optional = true }
+winit = { workspace = true, optional = true }
+bytemuck = { workspace = true }
+
+# Math and utilities
+glam = { workspace = true }
+serde = { workspace = true }
+uuid = { workspace = true }
+
+# Font rendering
+fontdue = { workspace = true }
+ttf-parser = { workspace = true }
+
+# Image handling
+image = { workspace = true }
+
+# Async runtime
+futures = { workspace = true }
+pollster = { workspace = true }
+
+# Web support (conditional)
+wasm-bindgen = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+
+# Utility
+thiserror = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+env_logger = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = { workspace = true }
+wee_alloc = { workspace = true }

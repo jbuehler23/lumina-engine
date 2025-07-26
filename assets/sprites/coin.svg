@@ -1,0 +1,26 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Coin sprite with golden color -->
+  <defs>
+    <radialGradient id="coinGradient" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#FFA500;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B8860B;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="coinInner" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" style="stop-color:#FFFF99;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFD700;stop-opacity:0.8" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Outer coin circle -->
+  <circle cx="12" cy="12" r="11" fill="url(#coinGradient)" stroke="#8B4513" stroke-width="1"/>
+  
+  <!-- Inner highlight -->
+  <circle cx="12" cy="12" r="8" fill="url(#coinInner)" opacity="0.7"/>
+  
+  <!-- Dollar sign -->
+  <text x="12" y="17" font-family="serif" font-size="12" font-weight="bold" text-anchor="middle" fill="#8B4513">$</text>
+  
+  <!-- Highlight shine -->
+  <ellipse cx="9" cy="8" rx="2" ry="3" fill="#FFFFFF" opacity="0.6" transform="rotate(-30 9 8)"/>
+</svg>

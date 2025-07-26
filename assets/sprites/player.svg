@@ -1,0 +1,29 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Player character - simple robot-like design -->
+  <defs>
+    <linearGradient id="playerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E5C8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Body -->
+  <rect x="8" y="12" width="16" height="16" rx="2" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+  
+  <!-- Head -->
+  <circle cx="16" cy="8" r="6" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+  
+  <!-- Eyes -->
+  <circle cx="13" cy="7" r="1.5" fill="#FFFFFF"/>
+  <circle cx="19" cy="7" r="1.5" fill="#FFFFFF"/>
+  <circle cx="13" cy="7" r="0.8" fill="#1A2332"/>
+  <circle cx="19" cy="7" r="0.8" fill="#1A2332"/>
+  
+  <!-- Arms -->
+  <rect x="4" y="14" width="4" height="8" rx="1" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+  <rect x="24" y="14" width="4" height="8" rx="1" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+  
+  <!-- Legs -->
+  <rect x="10" y="28" width="4" height="4" rx="1" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+  <rect x="18" y="28" width="4" height="4" rx="1" fill="url(#playerGradient)" stroke="#1A2332" stroke-width="1"/>
+</svg>

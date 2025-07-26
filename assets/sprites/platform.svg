@@ -1,0 +1,26 @@
+<svg width="64" height="16" viewBox="0 0 64 16" xmlns="http://www.w3.org/2000/svg">
+  <!-- Platform/ground sprite -->
+  <defs>
+    <linearGradient id="platformGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B7355;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#A0875A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#654321;stop-opacity:1" />
+    </linearGradient>
+    <pattern id="grassPattern" patternUnits="userSpaceOnUse" width="8" height="4">
+      <rect width="8" height="4" fill="#7CB342"/>
+      <path d="M 1 4 L 2 2 L 3 4 M 4 4 L 5 1 L 6 4 M 6 4 L 7 3 L 8 4" stroke="#4A7C2D" stroke-width="0.5" fill="none"/>
+    </pattern>
+  </defs>
+  
+  <!-- Grass top -->
+  <rect x="0" y="0" width="64" height="4" fill="url(#grassPattern)"/>
+  
+  <!-- Dirt body -->
+  <rect x="0" y="4" width="64" height="12" fill="url(#platformGradient)" stroke="#5D4E37" stroke-width="0.5"/>
+  
+  <!-- Some texture details -->
+  <circle cx="8" cy="10" r="1" fill="#5D4E37" opacity="0.6"/>
+  <circle cx="24" cy="8" r="0.8" fill="#5D4E37" opacity="0.4"/>
+  <circle cx="40" cy="12" r="1.2" fill="#5D4E37" opacity="0.5"/>
+  <circle cx="56" cy="9" r="0.9" fill="#5D4E37" opacity="0.7"/>
+</svg>

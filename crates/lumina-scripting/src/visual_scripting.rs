@@ -281,7 +281,7 @@ impl VisualScriptExecutor {
             },
             // ... implement other node types
             _ => {
-                log::warn!("Unimplemented node type: {:?}", node.node_type);
+                println!("Unimplemented node type: {:?}", node.node_type);
             }
         }
     }

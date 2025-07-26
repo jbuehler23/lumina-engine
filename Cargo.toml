@@ -8,6 +8,7 @@ members = [
     "crates/lumina-physics",
     "crates/lumina-scripting",
     "crates/lumina-editor",
+    "crates/lumina-ui",
     "crates/lumina-web-editor",
     "examples/basic-game",
     "examples/platformer",
@@ -58,6 +59,19 @@ tauri = { version = "1.5", features = ["api-all"] }
 image = "0.24"
 gltf = "1.4"
 tobj = "4.0"
+
+# UI and text rendering
+fontdue = "0.7"
+ttf-parser = "0.20"
+futures = "0.3"
+pollster = "0.3"
+
+# Web support
+wasm-bindgen = "0.2"
+web-sys = "0.3"
+js-sys = "0.3"
+console_error_panic_hook = "0.1"
+wee_alloc = "0.4"
 
 [package]
 name = "lumina-engine"

@@ -24,30 +24,61 @@ Transform Lumina Engine into the most accessible game creation platform, enablin
 
 ---
 
-## 🚀 Next Development Phases
+## 🚀 ARCHITECTURAL PIVOT: UI-First Engine Development
 
-### 📅 Phase 1: Web Editor Foundation ✅ ~90% COMPLETE
-**Goal: Basic drag-and-drop game creation in browser** ✅ ACHIEVED
+**New Vision**: Build a unified UI system in pure Rust that serves both as the engine's UI framework AND the editor interface. This eliminates HTML/JavaScript complexity while enabling true dogfooding.
 
-#### Month 1: Infrastructure ✅ COMPLETE
-- [x] **Web Backend**: Rust server with project management API ✅
-- [x] **Frontend Framework**: HTML5/JavaScript editor with Canvas rendering ✅
-- [x] **Project System**: Browser-based project creation and management ✅
-- [x] **Basic Scene Editor**: Drag-and-drop game object placement ✅
-- [x] **Asset Pipeline**: Basic asset handling infrastructure ✅
+### 📅 Phase 1: Lumina UI Framework Foundation (Weeks 1-2)
+**Goal: Core UI system that works across all platforms**
 
-#### Month 2: Visual Interface ✅ COMPLETE
-- [x] **Property Inspector**: Form-based component editing ✅
-- [x] **Asset Browser**: Basic asset management (needs UI polish) ⚠️
-- [x] **Hierarchy Panel**: Tree view of game objects ✅
-- [x] **Live Preview**: Real-time game testing with 60fps ✅
-- [x] **Template System**: 5 complete game templates (platformer, top-down, puzzle, shooter, blank) ✅
+#### Week 1: Core Widget System
+- [ ] **UI Renderer**: WGPU-based immediate-mode UI renderer
+- [ ] **Basic Widgets**: Button, Panel, Text, TextInput components
+- [ ] **Layout Engine**: Flexbox-inspired layout system
+- [ ] **Input Handling**: Unified mouse/keyboard/touch input
+- [ ] **Theme System**: Basic styling and color schemes
 
-#### Month 3: Polish & Testing ⚠️ IN PROGRESS
-- [x] **User Interface Polish**: Drag-and-drop, object selection, real-time feedback ✅
-- [ ] **Error Handling**: Clear error messages for common mistakes ⚠️ 70% complete
-- [x] **Performance**: 60fps in browser, ~2 second load times ✅
-- [ ] **Beta Testing**: Ready for beta testing ⚠️ Needs visual script editor completion
+#### Week 2: Advanced Components  
+- [ ] **Canvas Widget**: Interactive drawing surface for scene editing
+- [ ] **Tree View**: Hierarchical data display (for scene objects)
+- [ ] **Property Grid**: Key-value editing interface
+- [ ] **Dialog System**: Modal dialogs, file pickers, confirmations
+- [ ] **Animation System**: Smooth transitions and micro-interactions
+
+### 📅 Phase 2: Editor Application (Weeks 3-4)
+**Goal: Full-featured editor built with Lumina UI**
+
+#### Week 3: Core Editor Features
+- [ ] **Scene Editor**: Visual scene manipulation using Canvas widget
+- [ ] **Property Inspector**: Object property editing with Property Grid
+- [ ] **Asset Browser**: File system integration with thumbnails
+- [ ] **Project Management**: Create, save, load projects
+- [ ] **Template System**: Project templates using engine systems
+
+#### Week 4: Advanced Editor Features
+- [ ] **Visual Script Editor**: Node-based scripting interface
+- [ ] **Live Preview**: Real-time game testing within editor
+- [ ] **Export System**: Game packaging and distribution
+- [ ] **Undo/Redo**: Command pattern for editor actions
+- [ ] **Multi-window**: Dockable panels and workspace management
+
+### 📅 Phase 3: Web Platform (Week 5)
+**Goal: Same editor compiled to WebAssembly**
+
+- [ ] **WASM Compilation**: Editor compiles to web without changes
+- [ ] **Canvas Integration**: Render to HTML5 canvas
+- [ ] **File System API**: Browser file access for projects
+- [ ] **URL Sharing**: Share projects via encoded URLs
+- [ ] **Progressive Loading**: Efficient asset streaming
+
+### 📅 Phase 4: Polish & Distribution (Week 6)
+**Goal: Production-ready tooling**
+
+- [ ] **Performance Optimization**: 60fps on older hardware
+- [ ] **Accessibility**: Keyboard navigation, screen readers
+- [ ] **Documentation**: Comprehensive user guides
+- [ ] **Example Projects**: Showcase games and tutorials
+- [ ] **Beta Testing**: Community feedback and iteration
 - [ ] **Documentation**: Getting started guide and tutorials ⚠️ In progress
 
 **Success Metrics:**
