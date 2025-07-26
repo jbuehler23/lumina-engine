@@ -13,3 +13,4 @@ serde.workspace = true
 smallvec.workspace = true
 parking_lot.workspace = true
 rayon.workspace = true
+log.workspace = true

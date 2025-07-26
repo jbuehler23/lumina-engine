@@ -6,6 +6,7 @@ pub mod math;
 pub mod memory;
 pub mod time;
 pub mod utils;
+// Visual scripting now lives in lumina-scripting crate
 
 pub use app::*;
 pub use engine::*;
@@ -15,6 +16,8 @@ pub use math::*;
 pub use memory::*;
 pub use time::*;
 pub use utils::*;
+// Re-export visual scripting from lumina-scripting
+pub use lumina_scripting::*;
 
 // Re-export MouseButton from event module for convenience
 pub use event::MouseButton;

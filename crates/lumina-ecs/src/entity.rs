@@ -62,9 +62,9 @@ impl EntityManager {
         alive.iter_set_bits().count()
     }
 
-    pub fn iter_alive(&self) -> impl Iterator<Item = Entity> + '_ {
+    pub fn iter_alive(&self) -> Vec<Entity> {
         let alive = self.alive_entities.read();
-        alive.iter_set_bits().map(|index| Entity::new(index as u32))
+        alive.iter_set_bits().map(|index| Entity::new(index as u32)).collect()
     }
 
     pub fn clear(&self) {
@@ -84,7 +84,6 @@ impl Default for EntityManager {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct EntityBuilder {
     entity: Entity,
     components: Vec<Box<dyn FnOnce(&crate::World) + Send>>,

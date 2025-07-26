@@ -1,4 +1,4 @@
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::RwLock;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 
@@ -19,22 +19,32 @@ impl ResourceManager {
         resources.insert(type_id, Box::new(RwLock::new(resource)));
     }
 
-    pub fn get<T: Send + Sync + 'static>(&self) -> Option<RwLockReadGuard<T>> {
+    pub fn with_resource<T: Send + Sync + 'static, R>(&self, f: impl FnOnce(Option<&T>) -> R) -> R {
         let type_id = TypeId::of::<T>();
         let resources = self.resources.read();
         
-        resources.get(&type_id)
-            .and_then(|resource| resource.downcast_ref::<RwLock<T>>())
-            .map(|lock| lock.read())
+        match resources.get(&type_id)
+            .and_then(|resource| resource.downcast_ref::<RwLock<T>>()) {
+            Some(lock) => {
+                let guard = lock.read();
+                f(Some(&*guard))
+            }
+            None => f(None),
+        }
     }
 
-    pub fn get_mut<T: Send + Sync + 'static>(&self) -> Option<RwLockWriteGuard<T>> {
+    pub fn with_resource_mut<T: Send + Sync + 'static, R>(&self, f: impl FnOnce(Option<&mut T>) -> R) -> R {
         let type_id = TypeId::of::<T>();
         let resources = self.resources.read();
         
-        resources.get(&type_id)
-            .and_then(|resource| resource.downcast_ref::<RwLock<T>>())
-            .map(|lock| lock.write())
+        match resources.get(&type_id)
+            .and_then(|resource| resource.downcast_ref::<RwLock<T>>()) {
+            Some(lock) => {
+                let mut guard = lock.write();
+                f(Some(&mut *guard))
+            }
+            None => f(None),
+        }
     }
 
     pub fn remove<T: Send + Sync + 'static>(&self) -> Option<T> {

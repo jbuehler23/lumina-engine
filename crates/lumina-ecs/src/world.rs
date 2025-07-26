@@ -1,5 +1,4 @@
 use crate::{Component, ComponentManager, Entity, EntityBuilder, EntityManager, ResourceManager};
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::Arc;
 
 pub struct World {
@@ -47,7 +46,7 @@ impl World {
         }
     }
 
-    pub fn get_component<T: Component>(&self, entity: Entity) -> Option<&T> {
+    pub fn get_component<T: Component + Clone>(&self, entity: Entity) -> Option<T> {
         if self.entities.is_alive(entity) {
             self.components.get_component(entity)
         } else {
@@ -55,11 +54,19 @@ impl World {
         }
     }
 
-    pub fn get_component_mut<T: Component>(&self, entity: Entity) -> Option<&mut T> {
+    pub fn with_component<T: Component, R>(&self, entity: Entity, f: impl FnOnce(Option<&T>) -> R) -> R {
         if self.entities.is_alive(entity) {
-            self.components.get_component_mut(entity)
+            self.components.with_component(entity, f)
         } else {
-            None
+            f(None)
+        }
+    }
+
+    pub fn with_component_mut<T: Component, R>(&self, entity: Entity, f: impl FnOnce(Option<&mut T>) -> R) -> R {
+        if self.entities.is_alive(entity) {
+            self.components.with_component_mut(entity, f)
+        } else {
+            f(None)
         }
     }
 
@@ -79,12 +86,12 @@ impl World {
         self.resources.add(resource);
     }
 
-    pub fn get_resource<T: Send + Sync + 'static>(&self) -> Option<RwLockReadGuard<T>> {
-        self.resources.get()
+    pub fn with_resource<T: Send + Sync + 'static, R>(&self, f: impl FnOnce(Option<&T>) -> R) -> R {
+        self.resources.with_resource(f)
     }
 
-    pub fn get_resource_mut<T: Send + Sync + 'static>(&self) -> Option<RwLockWriteGuard<T>> {
-        self.resources.get_mut()
+    pub fn with_resource_mut<T: Send + Sync + 'static, R>(&self, f: impl FnOnce(Option<&mut T>) -> R) -> R {
+        self.resources.with_resource_mut(f)
     }
 
     pub fn remove_resource<T: Send + Sync + 'static>(&self) -> Option<T> {
@@ -95,25 +102,27 @@ impl World {
         self.resources.has::<T>()
     }
 
-    pub fn query<T: Component>(&self) -> impl Iterator<Item = (Entity, &T)> {
-        self.components.get_storage::<T>()
-            .into_iter()
-            .flat_map(|storage| storage.iter())
-            .filter(|(entity, _)| self.entities.is_alive(*entity))
-    }
-
-    pub fn query_mut<T: Component>(&self) -> QueryMut<T> {
-        QueryMut {
-            world: self,
-            _phantom: std::marker::PhantomData,
-        }
+    pub fn query<T: Component + Clone>(&self) -> Vec<(Entity, T)> {
+        let mut results = Vec::new();
+        self.components.with_storage::<T, _>(|storage_opt| {
+            if let Some(storage) = storage_opt {
+                storage.with_iter(|iter| {
+                    for (&entity, component) in iter {
+                        if self.entities.is_alive(entity) {
+                            results.push((entity, component.clone()));
+                        }
+                    }
+                });
+            }
+        });
+        results
     }
 
     pub fn entity_count(&self) -> usize {
         self.entities.alive_count()
     }
 
-    pub fn iter_entities(&self) -> impl Iterator<Item = Entity> + '_ {
+    pub fn iter_entities(&self) -> Vec<Entity> {
         self.entities.iter_alive()
     }
 
@@ -142,19 +151,3 @@ impl Default for World {
     }
 }
 
-pub struct QueryMut<'a, T: Component> {
-    world: &'a World,
-    _phantom: std::marker::PhantomData<T>,
-}
-
-impl<'a, T: Component> QueryMut<'a, T> {
-    pub fn iter_mut(&self) -> impl Iterator<Item = (Entity, &mut T)> {
-        unsafe {
-            let components = &*self.world.components as *const ComponentManager as *mut ComponentManager;
-            (*components).get_storage::<T>()
-                .unwrap()
-                .iter_mut()
-                .filter(|(entity, _)| self.world.entities.is_alive(*entity))
-        }
-    }
-}

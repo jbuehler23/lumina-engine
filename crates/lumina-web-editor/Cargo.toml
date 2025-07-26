@@ -1,6 +1,45 @@
 [package]
 name = "lumina-web-editor"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "Web-based editor for Lumina Engine"
 
 [dependencies]
+lumina-core = { path = "../lumina-core" }
+lumina-ecs = { path = "../lumina-ecs" }
+
+# Web server framework
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# WebSocket support
+tokio-tungstenite = "0.21"
+futures = "0.3"
+
+# File handling
+tokio-util = { version = "0.7", features = ["io"] }
+mime_guess = "2.0"
+
+# Logging
+log.workspace = true
+env_logger.workspace = true
+
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# UUID for project IDs
+uuid.workspace = true
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+[[bin]]
+name = "lumina-web-editor"
+path = "src/main.rs"

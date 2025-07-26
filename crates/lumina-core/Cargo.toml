@@ -16,6 +16,7 @@ glam.workspace = true
 parking_lot.workspace = true
 rayon.workspace = true
 smallvec.workspace = true
+lumina-scripting = { path = "../lumina-scripting" }
 
 [features]
 default = ["logging"]

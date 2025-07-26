@@ -1,14 +1,8 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Lumina Engine Scripting System
+//! 
+//! This crate provides visual scripting and other scripting functionality
+//! for the Lumina game engine.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod visual_scripting;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use visual_scripting::*;

@@ -1,14 +1,23 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+pub mod project;
+pub mod websocket;
+pub mod api;
+
+pub use project::*;
+pub use websocket::*;
+
+/// Main application state shared across all handlers
+#[derive(Clone)]
+pub struct AppState {
+    pub project_manager: Arc<RwLock<project::ProjectManager>>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            project_manager: Arc::new(RwLock::new(project::ProjectManager::new())),
+        }
     }
 }

@@ -1,25 +1,22 @@
 use lumina_core::{
     app::{App, AppRunner},
     engine::{Engine, EngineConfig},
-    input::{Key, MouseButton},
-    math::{Transform2D, Vec2},
+    input::Key,
+    math::Vec2,
     Result,
 };
-use lumina_ecs::{Component, EcsSystemRunner, World, make_system};
+use lumina_ecs::{EcsSystemRunner, World, make_system};
 
 #[derive(Debug, Clone)]
 struct Position(Vec2);
-impl Component for Position {}
 
 #[derive(Debug, Clone)]
 struct Velocity(Vec2);
-impl Component for Velocity {}
 
 #[derive(Debug, Clone)]
 struct Player {
     speed: f32,
 }
-impl Component for Player {}
 
 struct BasicGameApp {
     ecs: Option<EcsSystemRunner>,
@@ -76,29 +73,32 @@ fn player_movement_system(world: &World, context: &lumina_core::engine::SystemCo
     let time = context.time.read();
     let dt = time.delta_seconds();
     
-    for (entity, (player, velocity)) in world.query::<Player>()
-        .zip(world.query_mut::<Velocity>().iter_mut())
-    {
-        let mut vel = Vec2::ZERO;
-        
-        if input.is_key_pressed(&Key::W) || input.is_key_pressed(&Key::ArrowUp) {
-            vel.y -= 1.0;
-        }
-        if input.is_key_pressed(&Key::S) || input.is_key_pressed(&Key::ArrowDown) {
-            vel.y += 1.0;
-        }
-        if input.is_key_pressed(&Key::A) || input.is_key_pressed(&Key::ArrowLeft) {
-            vel.x -= 1.0;
-        }
-        if input.is_key_pressed(&Key::D) || input.is_key_pressed(&Key::ArrowRight) {
-            vel.x += 1.0;
-        }
-        
-        if vel.length() > 0.0 {
-            vel = vel.normalize() * player.speed;
-        }
-        
-        velocity.0 = vel;
+    // Simple approach - find entities with both Player and Velocity components
+    for (entity, player) in world.query::<Player>() {
+        world.with_component_mut::<Velocity, ()>(entity, |velocity_opt| {
+            if let Some(velocity) = velocity_opt {
+                let mut vel = Vec2::ZERO;
+                
+                if input.is_key_pressed(&Key::W) || input.is_key_pressed(&Key::ArrowUp) {
+                    vel.y -= 1.0;
+                }
+                if input.is_key_pressed(&Key::S) || input.is_key_pressed(&Key::ArrowDown) {
+                    vel.y += 1.0;
+                }
+                if input.is_key_pressed(&Key::A) || input.is_key_pressed(&Key::ArrowLeft) {
+                    vel.x -= 1.0;
+                }
+                if input.is_key_pressed(&Key::D) || input.is_key_pressed(&Key::ArrowRight) {
+                    vel.x += 1.0;
+                }
+                
+                if vel.length() > 0.0 {
+                    vel = vel.normalize() * player.speed;
+                }
+                
+                velocity.0 = vel;
+            }
+        });
     }
     
     Ok(())
@@ -108,10 +108,13 @@ fn movement_system(world: &World, context: &lumina_core::engine::SystemContext) 
     let time = context.time.read();
     let dt = time.delta_seconds();
     
-    for (entity, (position, velocity)) in world.query_mut::<Position>().iter_mut()
-        .zip(world.query::<Velocity>())
-    {
-        position.0 += velocity.0 * dt;
+    // Update positions based on velocities
+    for (entity, velocity) in world.query::<Velocity>() {
+        world.with_component_mut::<Position, ()>(entity, |position_opt| {
+            if let Some(position) = position_opt {
+                position.0 += velocity.0 * dt;
+            }
+        });
     }
     
     Ok(())

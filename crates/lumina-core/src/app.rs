@@ -1,4 +1,4 @@
-use crate::{engine::{Engine, EngineConfig, System, SystemContext}, Result};
+use crate::{engine::{Engine, EngineConfig, System}, Result};
 
 pub trait App {
     fn initialize(&mut self, engine: &mut Engine) -> Result<()>;

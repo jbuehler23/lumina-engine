@@ -11,50 +11,49 @@ pub trait ComponentStorage: Send + Sync {
 }
 
 pub struct TypedComponentStorage<T: Component> {
-    components: HashMap<Entity, T>,
+    components: RwLock<HashMap<Entity, T>>,
 }
 
 impl<T: Component> TypedComponentStorage<T> {
     pub fn new() -> Self {
         Self {
-            components: HashMap::new(),
+            components: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn insert(&mut self, entity: Entity, component: T) {
-        self.components.insert(entity, component);
+    pub fn insert(&self, entity: Entity, component: T) {
+        self.components.write().insert(entity, component);
     }
 
-    pub fn get(&self, entity: Entity) -> Option<&T> {
-        self.components.get(&entity)
+    pub fn get<R>(&self, entity: Entity, f: impl FnOnce(Option<&T>) -> R) -> R {
+        let components = self.components.read();
+        f(components.get(&entity))
     }
 
-    pub fn get_mut(&mut self, entity: Entity) -> Option<&mut T> {
-        self.components.get_mut(&entity)
+    pub fn get_mut<R>(&self, entity: Entity, f: impl FnOnce(Option<&mut T>) -> R) -> R {
+        let mut components = self.components.write();
+        f(components.get_mut(&entity))
     }
 
-    pub fn remove(&mut self, entity: Entity) -> Option<T> {
-        self.components.remove(&entity)
+    pub fn remove(&self, entity: Entity) -> Option<T> {
+        self.components.write().remove(&entity)
     }
 
     pub fn contains(&self, entity: Entity) -> bool {
-        self.components.contains_key(&entity)
+        self.components.read().contains_key(&entity)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Entity, &T)> {
-        self.components.iter().map(|(&entity, component)| (entity, component))
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (Entity, &mut T)> {
-        self.components.iter_mut().map(|(&entity, component)| (entity, component))
+    pub fn with_iter<R>(&self, f: impl FnOnce(std::collections::hash_map::Iter<Entity, T>) -> R) -> R {
+        let components = self.components.read();
+        f(components.iter())
     }
 
     pub fn len(&self) -> usize {
-        self.components.len()
+        self.components.read().len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.components.is_empty()
+        self.components.read().is_empty()
     }
 }
 
@@ -66,11 +65,11 @@ impl<T: Component> Default for TypedComponentStorage<T> {
 
 impl<T: Component> ComponentStorage for TypedComponentStorage<T> {
     fn remove(&mut self, entity: Entity) -> bool {
-        self.components.remove(&entity).is_some()
+        self.components.write().remove(&entity).is_some()
     }
 
     fn clear(&mut self) {
-        self.components.clear();
+        self.components.write().clear();
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -105,39 +104,53 @@ impl ComponentManager {
     pub fn add_component<T: Component>(&self, entity: Entity, component: T) {
         self.register::<T>();
         let type_id = TypeId::of::<T>();
-        let mut storages = self.storages.write();
+        let storages = self.storages.read();
         
-        if let Some(storage) = storages.get_mut(&type_id) {
-            if let Some(typed_storage) = storage.as_any_mut().downcast_mut::<TypedComponentStorage<T>>() {
+        if let Some(storage) = storages.get(&type_id) {
+            if let Some(typed_storage) = storage.as_any().downcast_ref::<TypedComponentStorage<T>>() {
                 typed_storage.insert(entity, component);
             }
         }
     }
 
-    pub fn get_component<T: Component>(&self, entity: Entity) -> Option<&T> {
+    pub fn get_component<T: Component + Clone>(&self, entity: Entity) -> Option<T> {
         let type_id = TypeId::of::<T>();
         let storages = self.storages.read();
         
         storages.get(&type_id)
             .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>())
-            .and_then(|typed_storage| typed_storage.get(entity))
+            .map(|typed_storage| typed_storage.get(entity, |opt| opt.cloned()))
+            .flatten()
     }
 
-    pub fn get_component_mut<T: Component>(&self, entity: Entity) -> Option<&mut T> {
+    pub fn with_component<T: Component, R>(&self, entity: Entity, f: impl FnOnce(Option<&T>) -> R) -> R {
         let type_id = TypeId::of::<T>();
-        let mut storages = self.storages.write();
+        let storages = self.storages.read();
         
-        storages.get_mut(&type_id)
-            .and_then(|storage| storage.as_any_mut().downcast_mut::<TypedComponentStorage<T>>())
-            .and_then(|typed_storage| typed_storage.get_mut(entity))
+        match storages.get(&type_id)
+            .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>()) {
+            Some(typed_storage) => typed_storage.get(entity, f),
+            None => f(None),
+        }
+    }
+
+    pub fn with_component_mut<T: Component, R>(&self, entity: Entity, f: impl FnOnce(Option<&mut T>) -> R) -> R {
+        let type_id = TypeId::of::<T>();
+        let storages = self.storages.read();
+        
+        match storages.get(&type_id)
+            .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>()) {
+            Some(typed_storage) => typed_storage.get_mut(entity, f),
+            None => f(None),
+        }
     }
 
     pub fn remove_component<T: Component>(&self, entity: Entity) -> Option<T> {
         let type_id = TypeId::of::<T>();
-        let mut storages = self.storages.write();
+        let storages = self.storages.read();
         
-        storages.get_mut(&type_id)
-            .and_then(|storage| storage.as_any_mut().downcast_mut::<TypedComponentStorage<T>>())
+        storages.get(&type_id)
+            .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>())
             .and_then(|typed_storage| typed_storage.remove(entity))
     }
 
@@ -158,12 +171,13 @@ impl ComponentManager {
         }
     }
 
-    pub fn get_storage<T: Component>(&self) -> Option<&TypedComponentStorage<T>> {
+    pub fn with_storage<T: Component, R>(&self, f: impl FnOnce(Option<&TypedComponentStorage<T>>) -> R) -> R {
         let type_id = TypeId::of::<T>();
         let storages = self.storages.read();
         
-        storages.get(&type_id)
-            .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>())
+        let storage = storages.get(&type_id)
+            .and_then(|storage| storage.as_any().downcast_ref::<TypedComponentStorage<T>>());
+        f(storage)
     }
 
     pub fn clear(&self) {
