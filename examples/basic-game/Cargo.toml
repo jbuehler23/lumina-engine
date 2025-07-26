@@ -1,0 +1,11 @@
+[package]
+name = "basic-game"
+version = "0.1.0"
+edition = "2021"
+description = "Basic game example for Lumina Engine"
+
+[dependencies]
+lumina-core = { path = "../../crates/lumina-core" }
+lumina-ecs = { path = "../../crates/lumina-ecs" }
+anyhow.workspace = true
+glam.workspace = true

@@ -1,0 +1,41 @@
+# Rust
+/target
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/debug/
+/release/
+/docs/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+
+# Runtime files
+*.lumina-project
+*.lumina-scene
+assets/cache/
+
+# Web editor builds
+/web-dist/
+/www/
+
+# Editor temp files
+.lumina-editor-temp/
+.lumina-cache/

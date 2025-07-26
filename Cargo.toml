@@ -1,0 +1,92 @@
+[workspace]
+members = [
+    "crates/lumina-core",
+    "crates/lumina-ecs",
+    "crates/lumina-render",
+    "crates/lumina-assets",
+    "crates/lumina-audio",
+    "crates/lumina-physics",
+    "crates/lumina-scripting",
+    "crates/lumina-editor",
+    "crates/lumina-web-editor",
+    "examples/basic-game",
+    "examples/platformer",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Core dependencies
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+smallvec = "1.11"
+parking_lot = "0.12"
+rayon = "1.8"
+
+# Math and utilities
+glam = { version = "0.24", features = ["serde"] }
+bytemuck = { version = "1.14", features = ["derive"] }
+
+# Graphics and windowing
+wgpu = "0.19"
+winit = "0.29"
+raw-window-handle = "0.6"
+
+# Audio
+rodio = "0.18"
+symphonia = { version = "0.5", features = ["all"] }
+
+# Physics
+rapier2d = "0.18"
+rapier3d = "0.18"
+
+# Scripting
+mlua = { version = "0.9", features = ["lua54", "vendored"] }
+wasmtime = "14.0"
+
+# Editor UI
+egui = "0.26"
+egui-wgpu = "0.26"
+egui-winit = "0.26"
+tauri = { version = "1.5", features = ["api-all"] }
+
+# Asset loading
+image = "0.24"
+gltf = "1.4"
+tobj = "4.0"
+
+[package]
+name = "lumina-engine"
+version = "0.1.0"
+edition = "2021"
+description = "A comprehensive game engine for rapid game development"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/lumina-engine"
+keywords = ["gamedev", "engine", "graphics", "ecs"]
+categories = ["game-development", "graphics", "multimedia"]
+
+[dependencies]
+lumina-core = { path = "crates/lumina-core" }
+lumina-ecs = { path = "crates/lumina-ecs" }
+lumina-render = { path = "crates/lumina-render" }
+lumina-assets = { path = "crates/lumina-assets" }
+lumina-audio = { path = "crates/lumina-audio" }
+lumina-physics = { path = "crates/lumina-physics" }
+lumina-scripting = { path = "crates/lumina-scripting" }
+lumina-editor = { path = "crates/lumina-editor" }
+
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+
+[[bin]]
+name = "lumina-editor"
+path = "src/editor.rs"
+
+[[bin]]
+name = "lumina-runtime"
+path = "src/runtime.rs"

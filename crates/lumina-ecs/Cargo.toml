@@ -1,0 +1,15 @@
+[package]
+name = "lumina-ecs"
+version = "0.1.0"
+edition = "2021"
+description = "Entity Component System for the Lumina game engine"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+lumina-core = { path = "../lumina-core" }
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+smallvec.workspace = true
+parking_lot.workspace = true
+rayon.workspace = true
