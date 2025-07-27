@@ -372,79 +372,34 @@ impl UiRenderer {
     }
     
     /// Draw a textured rectangle
-    pub fn draw_textured_rect(&mut self, bounds: Rect, _texture: TextureHandle, color: Vec4) {
+    pub fn draw_textured_rect(&mut self, bounds: Rect, color: Vec4) {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
     /// Draw text using proper font rendering
     pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4) {
-        // Try to use the text renderer for proper font rendering
-        let text_dimensions = self.text_renderer.measure_text(text, font, size);
-        
-        // For now, we'll use a more sophisticated placeholder until we integrate GPU text rendering
-        // This creates properly spaced text blocks that look more like actual text
-        let char_width = size * 0.5; // More realistic character width
-        let char_height = size;
-        
-        for (i, ch) in text.chars().enumerate() {
-            if ch == ' ' {
-                continue; // Skip spaces
-            }
-            
-            let char_x = position.x + (i as f32 * char_width);
-            let char_y = position.y;
-            
-            // Create character-specific styling based on the character
-            let char_color = match ch {
-                'A'..='Z' | 'a'..='z' => color, // Letters use full color
-                '0'..='9' => color * 0.9, // Numbers slightly dimmer
-                _ => color * 0.8, // Symbols dimmer
-            };
-            
-            // Draw a more realistic character representation
-            let main_rect = Rect::new(
-                char_x + char_width * 0.1,
-                char_y + char_height * 0.2,
-                char_width * 0.8,
-                char_height * 0.6
-            );
-            self.draw_rect(main_rect, char_color);
-            
-            // Add character detail based on type
-            match ch {
-                'i' | 'l' | '1' | 'I' => {
-                    // Narrow characters
-                    let narrow_rect = Rect::new(
-                        char_x + char_width * 0.4,
-                        char_y + char_height * 0.15,
-                        char_width * 0.2,
-                        char_height * 0.7
-                    );
-                    self.draw_rect(narrow_rect, char_color);
-                },
-                'w' | 'W' | 'm' | 'M' => {
-                    // Wide characters get extra width
-                    let wide_rect = Rect::new(
-                        char_x + char_width * 0.05,
-                        char_y + char_height * 0.2,
-                        char_width * 0.9,
-                        char_height * 0.6
-                    );
-                    self.draw_rect(wide_rect, char_color);
-                },
-                '.' | ',' => {
-                    // Punctuation at bottom
-                    let punct_rect = Rect::new(
-                        char_x + char_width * 0.3,
-                        char_y + char_height * 0.7,
-                        char_width * 0.4,
-                        char_height * 0.2
-                    );
-                    self.draw_rect(punct_rect, char_color);
-                },
-                _ => {
-                    // Default character representation is already drawn above
-                }
+        let mut cursor_x = position.x;
+        let cursor_y = position.y;
+
+        for ch in text.chars() {
+            // Get glyph info from TextRenderer
+            if let Some(glyph) = self.text_renderer.get_glyph(font, ch, size) {
+                // Extract metrics and texture handle before mutable borrow
+                let advance_width = glyph.metrics.advance_width;
+                let glyph_width = glyph.metrics.width as f32;
+                let glyph_height = glyph.metrics.height as f32;
+                let x_offset = glyph.metrics.xmin as f32;
+                let y_offset = glyph.metrics.ymin as f32;
+                let bounds = Rect::new(
+                    cursor_x + x_offset,
+                    cursor_y + y_offset,
+                    glyph_width,
+                    glyph_height,
+                );
+                // Draw the glyph as a textured quad
+                self.draw_textured_rect(bounds, color);
+                // Advance cursor for next glyph
+                cursor_x += advance_width;
             }
         }
     }
