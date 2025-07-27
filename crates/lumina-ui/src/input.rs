@@ -430,7 +430,8 @@ impl InputHandler {
                 }
             }
             RawInputEvent::MouseUp { button, .. } => {
-                let drag_data = if let Some(drag_state) = &self.drag_state {
+                // Take drag_state out to avoid double borrow
+                let drag_state = if let Some(drag_state) = self.drag_state.as_ref() {
                     if drag_state.button == *button {
                         Some(drag_state.data.clone())
                     } else {
@@ -439,15 +440,15 @@ impl InputHandler {
                 } else {
                     None
                 };
-                
-                if let Some(data) = drag_data {
+
+                if drag_state.is_some() {
                     if let Some(drag_end_event) = self.end_drag() {
                         events.push(drag_end_event);
-                        
+
                         // Also create a drop event with the dragged data
                         events.push(InputEvent::Drop {
                             position: self.mouse_position,
-                            data,
+                            data: drag_state.unwrap(),
                         });
                     }
                 }
