@@ -21,8 +21,7 @@ glam = { workspace = true }
 image = { workspace = true }
 
 # Font rendering
-fontdue = { workspace = true }
-ttf-parser = { workspace = true }
+cosmic-text = "0.12"
 
 # Error handling and logging
 anyhow = { workspace = true }

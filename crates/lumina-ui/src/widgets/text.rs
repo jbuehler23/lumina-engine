@@ -85,7 +85,8 @@ impl Widget for Text {
             return;
         }
         
-        let font_handle = lumina_render::FontHandle(0);
+        // Use default font (should be loaded from Inter font file)
+        let font_handle = renderer.get_default_font();
         renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, self.color);
     }
 }

@@ -28,6 +28,10 @@ pub struct UiRenderer {
     texture_pipeline: wgpu::RenderPipeline,
     /// Text renderer for proper font-based text rendering
     text_renderer: TextRenderer,
+    /// Texture bind group for glyph atlas
+    glyph_atlas_bind_group: wgpu::BindGroup,
+    /// Sampler for texture filtering
+    texture_sampler: wgpu::Sampler,
     /// Current frame's vertices
     vertices: Vec<UiVertex>,
     /// Current frame's indices
@@ -292,6 +296,44 @@ impl UiRenderer {
         // Create text renderer
         let text_renderer = TextRenderer::new(device, queue, config.format)?;
         
+        // Create texture sampler for font atlas
+        let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Font Atlas Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            compare: None,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 32.0,
+            border_color: None,
+            anisotropy_clamp: 1,
+        });
+        
+        // Create texture view for the glyph atlas
+        let glyph_atlas_texture = text_renderer.glyph_atlas().ok_or_else(|| {
+            crate::RenderError::GraphicsInit("Text renderer missing glyph atlas".to_string())
+        })?;
+        let glyph_atlas_view = glyph_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        
+        // Create bind group for glyph atlas
+        let glyph_atlas_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Glyph Atlas Bind Group"),
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&texture_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&glyph_atlas_view),
+                },
+            ],
+        });
+        
         Ok(Self {
             config,
             current_pass: None,
@@ -302,6 +344,8 @@ impl UiRenderer {
             solid_pipeline,
             texture_pipeline,
             text_renderer,
+            glyph_atlas_bind_group,
+            texture_sampler,
             vertices: Vec::new(),
             indices: Vec::new(),
             screen_size,
@@ -329,6 +373,9 @@ impl UiRenderer {
     
     /// End the current frame and submit all draw commands
     pub fn end_frame(&mut self, queue: &wgpu::Queue) {
+        // Upload any pending glyphs to the GPU atlas
+        self.upload_pending_glyphs(queue);
+        
         // Update vertex and index buffers
         if !self.vertices.is_empty() {
             queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
@@ -344,15 +391,17 @@ impl UiRenderer {
             return;
         }
         
-        // Set the pipeline and bind groups
-        render_pass.set_pipeline(&self.solid_pipeline);
-        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-        
-        // Set vertex and index buffers
+        // Set vertex and index buffers (same for both pipelines)
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         
-        // Draw all vertices
+        // For now, render everything with the texture pipeline and glyph atlas
+        // This handles both textured glyphs and solid quads (solid quads will use white texture)
+        render_pass.set_pipeline(&self.texture_pipeline);
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        render_pass.set_bind_group(1, &self.glyph_atlas_bind_group, &[]);
+        
+        // Draw all vertices with texture pipeline
         let num_indices = self.indices.len() as u32;
         if num_indices > 0 {
             render_pass.draw_indexed(0..num_indices, 0, 0..1);
@@ -361,7 +410,9 @@ impl UiRenderer {
     
     /// Draw a colored rectangle
     pub fn draw_rect(&mut self, bounds: Rect, color: Vec4) {
-        self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
+        // Use a tiny white pixel at (0,0) in the atlas for solid color rendering
+        let white_pixel_uv = 0.5 / self.text_renderer.atlas_size().0 as f32; // Half pixel size
+        self.add_quad(bounds, color, [0.0, 0.0], [white_pixel_uv, white_pixel_uv]);
     }
     
     /// Draw a rectangle with rounded corners
@@ -376,30 +427,230 @@ impl UiRenderer {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
-    /// Draw text using proper font rendering
+    /// Draw text using TTF font glyph bitmaps with GPU atlas optimization
     pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4) {
         let mut cursor_x = position.x;
         let cursor_y = position.y;
-
+        
         for ch in text.chars() {
-            // Get glyph info from TextRenderer
-            if let Some(glyph) = self.text_renderer.get_glyph(font, ch, size) {
-                // Extract metrics and texture handle before mutable borrow
-                let advance_width = glyph.metrics.advance_width;
-                let glyph_width = glyph.metrics.width as f32;
-                let glyph_height = glyph.metrics.height as f32;
-                let x_offset = glyph.metrics.xmin as f32;
-                let y_offset = glyph.metrics.ymin as f32;
-                let bounds = Rect::new(
-                    cursor_x + x_offset,
-                    cursor_y + y_offset,
-                    glyph_width,
-                    glyph_height,
-                );
-                // Draw the glyph as a textured quad
-                self.draw_textured_rect(bounds, color);
-                // Advance cursor for next glyph
+            if ch == ' ' {
+                // Space character - just advance cursor
+                let space_advance = size * 0.25; // Standard space width
+                cursor_x += space_advance;
+                continue;
+            }
+            
+            // Get the glyph from the text renderer and extract data
+            let (glyph_bitmap, glyph_metrics, texture_coords, advance_width) = if let Some(glyph) = self.text_renderer.get_glyph(font, ch, size) {
+                // Extract the data we need before any potential mutable borrows
+                let bitmap = glyph.bitmap.clone();
+                let metrics = glyph.metrics.clone();
+                let coords = glyph.texture_coords;
+                let advance = metrics.advance_width;
+                (Some(bitmap), Some(metrics), coords, advance)
+            } else {
+                (None, None, None, size * 0.5) // Fallback advance width
+            };
+            
+            if let (Some(bitmap), Some(metrics)) = (glyph_bitmap, glyph_metrics) {
+                // Use actual glyph metrics and bitmap
+                let glyph_width = metrics.width as f32;
+                let glyph_height = metrics.height as f32;
+                
+                if !bitmap.is_empty() && glyph_width > 0.0 && glyph_height > 0.0 {
+                    // Calculate glyph position based on baseline and bearing
+                    let glyph_x = cursor_x + metrics.x as f32;
+                    let glyph_y = cursor_y + (size * 0.8) - metrics.y as f32; // Adjust for baseline
+                    
+                    let glyph_bounds = Rect::new(
+                        glyph_x,
+                        glyph_y,
+                        glyph_width,
+                        glyph_height,
+                    );
+                    
+                    // Check if we have texture coordinates for GPU atlas rendering
+                    if let Some(coords) = texture_coords {
+                        // Use optimized GPU atlas rendering
+                        log::debug!("Rendering glyph '{}' using GPU atlas at coords {:?}", ch, coords);
+                        self.draw_textured_glyph(glyph_bounds, color, coords);
+                    } else {
+                        // Fallback to pixel-by-pixel rendering for now
+                        log::debug!("Rendering glyph '{}' using pixel bitmap ({}x{})", ch, metrics.width, metrics.height);
+                        self.draw_glyph_bitmap(&bitmap, glyph_bounds, color, 
+                                             metrics.width as usize, metrics.height as usize);
+                    }
+                }
+                
+                // Advance cursor by the glyph's advance width
                 cursor_x += advance_width;
+            } else {
+                // Fallback: use readable character representation if no glyph available
+                log::warn!("No glyph found for character '{}', using fallback shape", ch);
+                let char_width = size * 0.5;
+                self.draw_readable_char(ch, Vec2::new(cursor_x, cursor_y), size, color);
+                cursor_x += char_width;
+            }
+        }
+    }
+    
+    /// Draw a readable character using simple but recognizable shapes
+    fn draw_readable_char(&mut self, ch: char, position: Vec2, size: f32, color: Vec4) {
+        let char_width = size * 0.5;
+        let char_height = size * 0.8;
+        
+        // Base character rectangle
+        let base_rect = Rect::new(
+            position.x + char_width * 0.1,
+            position.y + size * 0.1,
+            char_width * 0.8,
+            char_height * 0.6,
+        );
+        
+        match ch {
+            // Draw distinctive shapes for different character types
+            'A'..='Z' => {
+                // Uppercase: full height rectangle with small top accent
+                self.draw_rect(base_rect, color);
+                let top_accent = Rect::new(
+                    position.x + char_width * 0.3,
+                    position.y,
+                    char_width * 0.4,
+                    size * 0.15,
+                );
+                self.draw_rect(top_accent, color);
+            },
+            'a'..='z' => {
+                // Lowercase: smaller rectangle
+                let lower_rect = Rect::new(
+                    position.x + char_width * 0.1,
+                    position.y + size * 0.25,
+                    char_width * 0.8,
+                    char_height * 0.5,
+                );
+                self.draw_rect(lower_rect, color);
+            },
+            '0'..='9' => {
+                // Numbers: distinctive square shape
+                let num_rect = Rect::new(
+                    position.x + char_width * 0.15,
+                    position.y + size * 0.1,
+                    char_width * 0.7,
+                    char_height * 0.7,
+                );
+                self.draw_rect(num_rect, color);
+                
+                // Add number-specific details
+                match ch {
+                    '1' => {
+                        let thin_rect = Rect::new(
+                            position.x + char_width * 0.4,
+                            position.y + size * 0.05,
+                            char_width * 0.2,
+                            char_height * 0.8,
+                        );
+                        self.draw_rect(thin_rect, color);
+                    },
+                    '0' => {
+                        // Draw as hollow rectangle
+                        let inner_rect = Rect::new(
+                            position.x + char_width * 0.25,
+                            position.y + size * 0.2,
+                            char_width * 0.5,
+                            char_height * 0.5,
+                        );
+                        // Note: We'd need a hollow rect function for this, using solid for now
+                        self.draw_rect(num_rect, color);
+                    },
+                    _ => {
+                        self.draw_rect(num_rect, color);
+                    }
+                }
+            },
+            '.' => {
+                // Period: small dot at bottom
+                let dot = Rect::new(
+                    position.x + char_width * 0.4,
+                    position.y + size * 0.7,
+                    char_width * 0.2,
+                    size * 0.15,
+                );
+                self.draw_rect(dot, color);
+            },
+            ',' => {
+                // Comma: small dot with tail
+                let dot = Rect::new(
+                    position.x + char_width * 0.4,
+                    position.y + size * 0.7,
+                    char_width * 0.2,
+                    size * 0.2,
+                );
+                self.draw_rect(dot, color);
+            },
+            ':' => {
+                // Colon: two dots
+                let top_dot = Rect::new(
+                    position.x + char_width * 0.4,
+                    position.y + size * 0.2,
+                    char_width * 0.2,
+                    size * 0.15,
+                );
+                let bottom_dot = Rect::new(
+                    position.x + char_width * 0.4,
+                    position.y + size * 0.6,
+                    char_width * 0.2,
+                    size * 0.15,
+                );
+                self.draw_rect(top_dot, color);
+                self.draw_rect(bottom_dot, color);
+            },
+            _ => {
+                // Default: draw base rectangle for other characters
+                self.draw_rect(base_rect, color);
+            }
+        }
+    }
+    
+    /// Draw a textured glyph using the font atlas texture for optimal performance
+    fn draw_textured_glyph(&mut self, bounds: Rect, color: Vec4, texture_coords: [f32; 4]) {
+        // Add a textured quad using the atlas coordinates
+        // texture_coords = [u_min, v_min, u_max, v_max] in atlas space
+        self.add_quad(bounds, color, [texture_coords[0], texture_coords[1]], [texture_coords[2], texture_coords[3]]);
+    }
+    
+    /// Upload any pending glyphs to the GPU atlas
+    fn upload_pending_glyphs(&mut self, queue: &wgpu::Queue) {
+        self.text_renderer.upload_pending_glyphs(queue);
+    }
+    
+    /// Draw glyph bitmap as individual pixels for readable text
+    fn draw_glyph_bitmap(&mut self, bitmap: &[u8], bounds: Rect, color: Vec4, width: usize, height: usize) {
+        if bitmap.is_empty() || width == 0 || height == 0 {
+            return;
+        }
+        
+        let pixel_width = bounds.size.x / width as f32;
+        let pixel_height = bounds.size.y / height as f32;
+        
+        for y in 0..height {
+            for x in 0..width {
+                let pixel_index = y * width + x;
+                if pixel_index < bitmap.len() {
+                    let alpha = bitmap[pixel_index] as f32 / 255.0;
+                    
+                    if alpha > 0.1 { // Only draw visible pixels
+                        let pixel_rect = Rect::new(
+                            bounds.position.x + x as f32 * pixel_width,
+                            bounds.position.y + y as f32 * pixel_height,
+                            pixel_width,
+                            pixel_height,
+                        );
+                        
+                        // Apply alpha to color for anti-aliasing
+                        let pixel_color = Vec4::new(color.x, color.y, color.z, color.w * alpha);
+                        self.draw_rect(pixel_rect, pixel_color);
+                    }
+                }
             }
         }
     }
@@ -528,6 +779,13 @@ impl UiRenderer {
         // Update configuration
         self.config.width = new_size.x as u32;
         self.config.height = new_size.y as u32;
+    }
+    
+    /// Get the default font handle
+    pub fn get_default_font(&self) -> FontHandle {
+        let handle = self.text_renderer.default_font().unwrap_or(FontHandle(0));
+        log::debug!("get_default_font() returning handle: {:?}", handle);
+        handle
     }
     
     /// Add a quad to the vertex buffer
