@@ -15,7 +15,7 @@ use winit::{
 
 use std::sync::Arc;
 
-use crate::panels::{MenuBar, ProjectPanel, ScenePanel, PropertiesPanel, ConsolePanel};
+use crate::panels::{MenuBar, ProjectPanel, ScenePanel, PropertiesPanel, ConsolePanel, VisualScriptingPanel};
 use crate::project::EditorProject;
 
 /// Main editor application that manages UI and rendering
@@ -47,6 +47,7 @@ pub struct EditorPanels {
     pub scene_panel: ScenePanel,
     pub properties_panel: PropertiesPanel,
     pub console_panel: ConsolePanel,
+    pub visual_scripting_panel: VisualScriptingPanel,
 }
 
 impl EditorApp {
@@ -233,9 +234,9 @@ impl EditorApp {
             label: Some("Editor Render Encoder"),
         });
         
-        // Clear the screen with editor background color
+        // Render everything in a single render pass
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Editor Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -254,10 +255,10 @@ impl EditorApp {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+            
+            // Render UI into the render pass
+            self.ui_framework.render(&mut render_pass, &self.queue);
         }
-        
-        // Render UI
-        self.ui_framework.render(&self.queue);
         
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
@@ -305,6 +306,7 @@ impl EditorPanels {
         let scene_panel = ScenePanel::new(ui)?;
         let properties_panel = PropertiesPanel::new(ui)?;
         let console_panel = ConsolePanel::new(ui)?;
+        let visual_scripting_panel = VisualScriptingPanel::new(ui)?;
         
         Ok(Self {
             menu_bar,
@@ -312,6 +314,7 @@ impl EditorPanels {
             scene_panel,
             properties_panel,
             console_panel,
+            visual_scripting_panel,
         })
     }
     
@@ -322,5 +325,6 @@ impl EditorPanels {
         self.scene_panel.update(ui);
         self.properties_panel.update(ui);
         self.console_panel.update(ui);
+        self.visual_scripting_panel.update(ui);
     }
 }

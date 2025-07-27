@@ -190,6 +190,18 @@ impl UiFramework {
         }
     }
     
+    /// Add a child widget to a parent widget
+    pub fn add_child_to_parent(&mut self, parent_id: WidgetId, child_id: WidgetId) {
+        // Add to parent widget
+        if let Some(parent_widget) = self.state.widgets.get_mut(&parent_id) {
+            parent_widget.add_child(child_id);
+        }
+        
+        // Add to hierarchy tracking
+        self.state.hierarchy.entry(parent_id).or_insert_with(Vec::new).push(child_id);
+        self.state.needs_render = true;
+    }
+    
     /// Process input events
     pub fn handle_input(&mut self, input: InputEvent) {
         match &input {
@@ -297,34 +309,51 @@ impl UiFramework {
     }
     
     /// Render the entire UI
-    pub fn render(&mut self, queue: &wgpu::Queue) {
+    pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, queue: &wgpu::Queue) {
         if !self.state.needs_render {
             return;
         }
         
-        // Clone root widgets to avoid borrow checker issues
-        let root_widgets = self.state.root_widgets.clone();
+        if self.renderer.is_none() {
+            return;
+        }
         
-        if self.renderer.is_some() {
-            // Begin rendering
-            self.renderer.as_mut().unwrap().begin_frame(queue);
-            
-            // Render root widgets
-            for root_id in root_widgets {
-                if let Some(layout) = self.state.layout_cache.get(&root_id).cloned() {
-                    if let Some(widget) = self.state.widgets.get(&root_id) {
-                        widget.render(self.renderer.as_mut().unwrap(), layout.bounds);
-                        
-                        // Render children recursively
-                        self.render_children(root_id);
+        // Clone what we need to avoid borrow checker issues
+        let root_widgets = self.state.root_widgets.clone();
+        let layout_cache = self.state.layout_cache.clone();
+        let hierarchy = self.state.hierarchy.clone();
+        
+        // Begin rendering
+        self.renderer.as_mut().unwrap().begin_frame(queue);
+        
+        // Render all widgets
+        for root_id in root_widgets {
+            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy);
+        }
+        
+        // End rendering and submit draw commands to render pass
+        let renderer = self.renderer.as_mut().unwrap();
+        renderer.end_frame(queue);
+        renderer.submit_to_render_pass(render_pass);
+        
+        self.state.needs_render = false;
+    }
+    
+    /// Render a widget and its children recursively using cached data
+    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>) {
+        if let Some(layout) = layout_cache.get(&widget_id) {
+            if let Some(widget) = self.state.widgets.get(&widget_id) {
+                if let Some(renderer) = &mut self.renderer {
+                    widget.render(renderer, layout.bounds);
+                }
+                
+                // Render children
+                if let Some(children) = hierarchy.get(&widget_id) {
+                    for &child_id in children {
+                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy);
                     }
                 }
             }
-            
-            // End rendering
-            self.renderer.as_mut().unwrap().end_frame(queue);
-            
-            self.state.needs_render = false;
         }
     }
     
@@ -365,20 +394,4 @@ impl UiFramework {
         }
     }
     
-    /// Render children of a specific widget
-    fn render_children(&mut self, widget_id: WidgetId) {
-        let children = self.state.hierarchy.get(&widget_id).cloned();
-        if let Some(children) = children {
-            for child_id in children {
-                if let Some(layout) = self.state.layout_cache.get(&child_id).cloned() {
-                    if let Some(widget) = self.state.widgets.get(&child_id) {
-                        widget.render(self.renderer.as_mut().unwrap(), layout.bounds);
-                        
-                        // Recursively render grandchildren
-                        self.render_children(child_id);
-                    }
-                }
-            }
-        }
-    }
 }

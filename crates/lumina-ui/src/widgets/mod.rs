@@ -61,6 +61,10 @@ pub struct WidgetStyle {
     pub opacity: Option<f32>,
     /// Drop shadow
     pub shadow: Option<Shadow>,
+    /// Widget position (x, y)
+    pub position: Option<[f32; 2]>,
+    /// Widget size (width, height)
+    pub size: Option<[f32; 2]>,
 }
 
 /// Padding values for a widget
@@ -127,6 +131,8 @@ impl Default for WidgetStyle {
             font_family: None,
             opacity: None,
             shadow: None,
+            position: None,
+            size: None,
         }
     }
 }

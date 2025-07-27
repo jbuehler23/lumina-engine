@@ -172,10 +172,39 @@ impl UiRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/texture.wgsl").into()),
         });
         
+        // Create texture bind group layout
+        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("UI Texture Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+            ],
+        });
+
         // Create pipeline layouts
         let solid_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("UI Solid Pipeline Layout"),
             bind_group_layouts: &[&uniform_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+        
+        let texture_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("UI Texture Pipeline Layout"),
+            bind_group_layouts: &[&uniform_bind_group_layout, &texture_bind_group_layout],
             push_constant_ranges: &[],
         });
         
@@ -217,7 +246,7 @@ impl UiRenderer {
         
         let texture_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("UI Texture Pipeline"),
-            layout: Some(&solid_pipeline_layout),
+            layout: Some(&texture_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &texture_shader,
                 entry_point: "vs_main",
@@ -300,6 +329,27 @@ impl UiRenderer {
         }
         if !self.indices.is_empty() {
             queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&self.indices));
+        }
+    }
+    
+    /// Submit the rendered UI to a render pass
+    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        if self.vertices.is_empty() || self.indices.is_empty() {
+            return;
+        }
+        
+        // Set the pipeline and bind groups
+        render_pass.set_pipeline(&self.solid_pipeline);
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        
+        // Set vertex and index buffers
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        
+        // Draw all vertices
+        let num_indices = self.indices.len() as u32;
+        if num_indices > 0 {
+            render_pass.draw_indexed(0..num_indices, 0, 0..1);
         }
     }
     
