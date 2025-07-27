@@ -371,9 +371,22 @@ impl UiRenderer {
     }
     
     /// Draw text
-    pub fn draw_text(&mut self, _text: &str, _position: Vec2, _font: FontHandle, _size: f32, _color: Vec4) {
-        // TODO: Implement text rendering
-        // This will delegate to text renderer
+    pub fn draw_text(&mut self, text: &str, position: Vec2, _font: FontHandle, size: f32, color: Vec4) {
+        // Simple text rendering using rectangles for each character
+        // This is a placeholder implementation until proper font rendering is added
+        let char_width = size * 0.6;
+        let char_height = size;
+        
+        for (i, _char) in text.chars().enumerate() {
+            let char_x = position.x + (i as f32 * char_width);
+            let char_y = position.y;
+            
+            // Create a small rectangle for each character
+            let char_rect = Rect::new(char_x, char_y, char_width * 0.8, char_height);
+            
+            // Draw character as a colored rectangle
+            self.draw_rounded_rect(char_rect, color, 1.0);
+        }
     }
     
     /// Set clip rectangle

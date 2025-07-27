@@ -384,11 +384,26 @@ impl UiFramework {
             let layout_result = widget.layout(available_space);
             self.state.layout_cache.insert(widget_id, layout_result.clone());
             
-            // Layout children
-            let layout_bounds_size = layout_result.bounds.size;
+            // Layout children with simple spacing
+            let parent_bounds = layout_result.bounds;
             if let Some(children) = self.state.hierarchy.get(&widget_id).cloned() {
+                let mut y_offset = 10.0; // Start with padding from top
+                
                 for child_id in children {
-                    self.layout_widget(child_id, layout_bounds_size);
+                    if let Some(child_widget) = self.state.widgets.get_mut(&child_id) {
+                        // Layout child within parent's content area
+                        let available_space = Vec2::new(parent_bounds.size.x - 20.0, parent_bounds.size.y - y_offset);
+                        let mut child_layout = child_widget.layout(available_space);
+                        
+                        // Position child relative to parent with vertical stacking
+                        child_layout.bounds.position.x = parent_bounds.position.x + 10.0; // Left padding
+                        child_layout.bounds.position.y = parent_bounds.position.y + y_offset;
+                        
+                        self.state.layout_cache.insert(child_id, child_layout.clone());
+                        
+                        // Move y_offset down for next child
+                        y_offset += child_layout.bounds.size.y + 5.0; // Child height + spacing
+                    }
                 }
             }
         }

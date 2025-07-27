@@ -173,13 +173,17 @@ impl Widget for Button {
     }
     
     fn layout(&mut self, available_space: Vec2) -> LayoutResult {
-        // For now, use simple layout - just take the available space or minimum size
-        let bounds = Rect::new(0.0, 0.0, available_space.x, available_space.y);
+        // Calculate button size based on text content
+        let text_width = self.text.len() as f32 * 12.0; // Approximate character width
+        let button_width = (text_width + 20.0).min(available_space.x); // Add padding
+        let button_height = 30.0_f32.min(available_space.y); // Fixed height
+        
+        let bounds = Rect::new(0.0, 0.0, button_width, button_height);
         
         let result = LayoutResult {
             bounds,
-            overflow: false,
-            content_size: available_space,
+            overflow: button_width > available_space.x || button_height > available_space.y,
+            content_size: Vec2::new(button_width, button_height),
         };
         
         self.base.layout_cache = Some(result.clone());
