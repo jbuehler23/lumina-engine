@@ -2,7 +2,7 @@
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 /// Input handler that processes and distributes input events
 #[derive(Debug, Default)]

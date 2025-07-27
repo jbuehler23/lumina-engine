@@ -1,6 +1,6 @@
 //! Property inspector component
 
-use crate::{Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
+use crate::{Widget, WidgetId, LayoutConstraints, layout::LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
 use glam::Vec2;
 
 /// Property inspector widget

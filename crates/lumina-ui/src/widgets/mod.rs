@@ -15,7 +15,7 @@ pub use text_input::*;
 pub use canvas::*;
 pub use container::*;
 
-use crate::{WidgetId, InputEvent, InputResponse, LayoutConstraints, LayoutResult, UiRenderer, Rect};
+use crate::{WidgetId, LayoutConstraints, layout::LayoutResult};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -206,7 +206,7 @@ impl Margin {
 }
 
 /// Widget animation state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AnimationState {
     /// Widget is in its normal state
     Normal,

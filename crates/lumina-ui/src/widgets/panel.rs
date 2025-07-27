@@ -1,8 +1,9 @@
 //! Panel widget - a basic container for other widgets
 
 use crate::{
-    Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, 
-    UiRenderer, Rect, widgets::{BaseWidget, WidgetStyle}
+    Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
+    UiRenderer, Rect, widgets::{BaseWidget, WidgetStyle},
+    layout::LayoutResult,
 };
 use glam::Vec2;
 

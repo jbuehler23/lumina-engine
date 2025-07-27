@@ -8,7 +8,6 @@
 
 pub mod widgets;
 pub mod layout;
-pub mod rendering;
 pub mod theming;
 pub mod input;
 pub mod editor;
@@ -18,12 +17,14 @@ pub mod error;
 pub mod web;
 
 // Re-export commonly used types  
-pub use widgets::*;
+pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container};
 pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign};
-pub use rendering::*;
-pub use theming::*;
-pub use input::*;
+pub use theming::Theme;
+pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler};
 pub use error::{UiError, UiResult};
+
+// Re-export rendering types from lumina-render
+pub use lumina_render::{UiRenderer, Rect};
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
@@ -32,8 +33,8 @@ use uuid::Uuid;
 
 /// Core UI framework context that manages the entire UI system
 pub struct UiFramework {
-    /// UI renderer for drawing widgets
-    pub renderer: UiRenderer,
+    /// UI renderer for drawing widgets (optional since it requires WGPU setup)
+    pub renderer: Option<UiRenderer>,
     /// Layout engine for positioning widgets
     pub layout_engine: LayoutEngine,
     /// Input handler for processing user interactions
@@ -126,58 +127,23 @@ pub trait Widget: std::fmt::Debug {
     fn on_focus_lost(&mut self) {}
 }
 
-/// Rectangle representing widget bounds
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct Rect {
-    /// Position of the rectangle
-    pub position: Vec2,
-    /// Size of the rectangle
-    pub size: Vec2,
-}
-
-impl Rect {
-    /// Create a new rectangle
-    pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self {
-            position: Vec2::new(x, y),
-            size: Vec2::new(width, height),
-        }
-    }
-    
-    /// Check if a point is inside this rectangle
-    pub fn contains(&self, point: Vec2) -> bool {
-        point.x >= self.position.x
-            && point.x <= self.position.x + self.size.x
-            && point.y >= self.position.y
-            && point.y <= self.position.y + self.size.y
-    }
-    
-    /// Get the center point of the rectangle
-    pub fn center(&self) -> Vec2 {
-        self.position + self.size * 0.5
-    }
-    
-    /// Get the minimum bounds (top-left corner)
-    pub fn min(&self) -> Vec2 {
-        self.position
-    }
-    
-    /// Get the maximum bounds (bottom-right corner)
-    pub fn max(&self) -> Vec2 {
-        self.position + self.size
-    }
-}
+// Rect is now re-exported from lumina-render
 
 impl UiFramework {
     /// Create a new UI framework instance
-    pub fn new(renderer: UiRenderer, theme: Theme) -> Self {
+    pub fn new(theme: Theme) -> Self {
         Self {
-            renderer,
+            renderer: None,
             layout_engine: LayoutEngine::new(),
             input_handler: InputHandler::new(),
             theme,
             state: UiState::default(),
         }
+    }
+    
+    /// Set the renderer (called after WGPU setup)
+    pub fn set_renderer(&mut self, renderer: UiRenderer) {
+        self.renderer = Some(renderer);
     }
     
     /// Add a widget to the UI
@@ -215,9 +181,13 @@ impl UiFramework {
         self.state.widgets.get(&id).map(|w| w.as_ref())
     }
     
-    /// Get a mutable widget by ID
-    pub fn get_widget_mut(&mut self, id: WidgetId) -> Option<&mut dyn Widget + '_> {
-        self.state.widgets.get_mut(&id).map(|w| w.as_mut())
+    /// Get a mutable widget by ID  
+    pub fn get_widget_mut(&mut self, id: WidgetId) -> Option<&mut (dyn Widget + '_)> {
+        if let Some(widget) = self.state.widgets.get_mut(&id) {
+            Some(widget.as_mut())
+        } else {
+            None
+        }
     }
     
     /// Process input events
@@ -327,23 +297,35 @@ impl UiFramework {
     }
     
     /// Render the entire UI
-    pub fn render(&mut self) {
+    pub fn render(&mut self, queue: &wgpu::Queue) {
         if !self.state.needs_render {
             return;
         }
         
-        // Begin rendering
-        self.renderer.begin_frame();
+        // Clone root widgets to avoid borrow checker issues
+        let root_widgets = self.state.root_widgets.clone();
         
-        // Render root widgets
-        for &root_id in &self.state.root_widgets {
-            self.render_widget(root_id);
+        if self.renderer.is_some() {
+            // Begin rendering
+            self.renderer.as_mut().unwrap().begin_frame(queue);
+            
+            // Render root widgets
+            for root_id in root_widgets {
+                if let Some(layout) = self.state.layout_cache.get(&root_id).cloned() {
+                    if let Some(widget) = self.state.widgets.get(&root_id) {
+                        widget.render(self.renderer.as_mut().unwrap(), layout.bounds);
+                        
+                        // Render children recursively
+                        self.render_children(root_id);
+                    }
+                }
+            }
+            
+            // End rendering
+            self.renderer.as_mut().unwrap().end_frame(queue);
+            
+            self.state.needs_render = false;
         }
-        
-        // End rendering
-        self.renderer.end_frame();
-        
-        self.state.needs_render = false;
     }
     
     /// Find widget at a specific position
@@ -371,27 +353,29 @@ impl UiFramework {
     fn layout_widget(&mut self, widget_id: WidgetId, available_space: Vec2) {
         if let Some(widget) = self.state.widgets.get_mut(&widget_id) {
             let layout_result = widget.layout(available_space);
-            self.state.layout_cache.insert(widget_id, layout_result);
+            self.state.layout_cache.insert(widget_id, layout_result.clone());
             
             // Layout children
+            let layout_bounds_size = layout_result.bounds.size;
             if let Some(children) = self.state.hierarchy.get(&widget_id).cloned() {
                 for child_id in children {
-                    self.layout_widget(child_id, layout_result.bounds.size);
+                    self.layout_widget(child_id, layout_bounds_size);
                 }
             }
         }
     }
     
-    /// Render a specific widget
-    fn render_widget(&mut self, widget_id: WidgetId) {
-        if let Some(layout) = self.state.layout_cache.get(&widget_id).cloned() {
-            if let Some(widget) = self.state.widgets.get(&widget_id) {
-                widget.render(&mut self.renderer, layout.bounds);
-                
-                // Render children
-                if let Some(children) = self.state.hierarchy.get(&widget_id) {
-                    for &child_id in children {
-                        self.render_widget(child_id);
+    /// Render children of a specific widget
+    fn render_children(&mut self, widget_id: WidgetId) {
+        let children = self.state.hierarchy.get(&widget_id).cloned();
+        if let Some(children) = children {
+            for child_id in children {
+                if let Some(layout) = self.state.layout_cache.get(&child_id).cloned() {
+                    if let Some(widget) = self.state.widgets.get(&child_id) {
+                        widget.render(self.renderer.as_mut().unwrap(), layout.bounds);
+                        
+                        // Recursively render grandchildren
+                        self.render_children(child_id);
                     }
                 }
             }
