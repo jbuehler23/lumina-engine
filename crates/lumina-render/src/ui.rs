@@ -4,7 +4,8 @@
 //! It handles batching, clipping, and efficient rendering of UI primitives like rectangles,
 //! text, and textured quads.
 
-use crate::{Rect, RenderError, RenderResult, TextRenderer};
+use crate::{Rect, RenderError, RenderResult};
+use crate::text::{TextPipeline, TextLayoutInfo};
 use glam::{Vec2, Vec4, Mat4};
 use bytemuck::{Pod, Zeroable};
 
@@ -26,8 +27,8 @@ pub struct UiRenderer {
     solid_pipeline: wgpu::RenderPipeline,
     /// Render pipeline for textured quads
     texture_pipeline: wgpu::RenderPipeline,
-    /// Text renderer for proper font-based text rendering
-    text_renderer: TextRenderer,
+    /// Text pipeline for proper font-based text rendering
+    text_pipeline: TextPipeline,
     /// Texture bind group for glyph atlas
     glyph_atlas_bind_group: wgpu::BindGroup,
     /// Sampler for texture filtering
@@ -293,8 +294,8 @@ impl UiRenderer {
             -1.0, 1.0,
         );
         
-        // Create text renderer
-        let text_renderer = TextRenderer::new(device, queue, config.format)?;
+        // Create text pipeline
+        let text_pipeline = TextPipeline::new(device, queue, config.format)?;
         
         // Create texture sampler for font atlas
         let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -313,9 +314,7 @@ impl UiRenderer {
         });
         
         // Create texture view for the glyph atlas
-        let glyph_atlas_texture = text_renderer.glyph_atlas().ok_or_else(|| {
-            crate::RenderError::GraphicsInit("Text renderer missing glyph atlas".to_string())
-        })?;
+        let glyph_atlas_texture = text_pipeline.glyph_atlas();
         let glyph_atlas_view = glyph_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
         
         // Create bind group for glyph atlas
@@ -343,7 +342,7 @@ impl UiRenderer {
             uniform_bind_group,
             solid_pipeline,
             texture_pipeline,
-            text_renderer,
+            text_pipeline,
             glyph_atlas_bind_group,
             texture_sampler,
             vertices: Vec::new(),
@@ -373,8 +372,7 @@ impl UiRenderer {
     
     /// End the current frame and submit all draw commands
     pub fn end_frame(&mut self, queue: &wgpu::Queue) {
-        // Upload any pending glyphs to the GPU atlas
-        self.upload_pending_glyphs(queue);
+        // Note: TextPipeline uploads glyphs immediately, no pending upload needed
         
         // Update vertex and index buffers
         if !self.vertices.is_empty() {
@@ -411,7 +409,7 @@ impl UiRenderer {
     /// Draw a colored rectangle
     pub fn draw_rect(&mut self, bounds: Rect, color: Vec4) {
         // Use a tiny white pixel at (0,0) in the atlas for solid color rendering
-        let white_pixel_uv = 0.5 / self.text_renderer.atlas_size().0 as f32; // Half pixel size
+        let white_pixel_uv = 0.5 / self.text_pipeline.atlas_size().0 as f32; // Half pixel size
         self.add_quad(bounds, color, [0.0, 0.0], [white_pixel_uv, white_pixel_uv]);
     }
     
@@ -427,189 +425,36 @@ impl UiRenderer {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
-    /// Draw text using TTF font glyph bitmaps with GPU atlas optimization
-    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4) {
-        let mut cursor_x = position.x;
-        let cursor_y = position.y;
+    /// Draw text using the TextPipeline (Bevy pattern)
+    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4, queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Queue text for layout and rendering using the TextPipeline
+        let color_array = [color.x, color.y, color.z, color.w];
+        let layout_info = self.text_pipeline.queue_text(
+            text,
+            font,
+            size,
+            position,
+            color_array,
+            queue,
+        )?;
         
-        for ch in text.chars() {
-            if ch == ' ' {
-                // Space character - just advance cursor
-                let space_advance = size * 0.25; // Standard space width
-                cursor_x += space_advance;
-                continue;
-            }
+        // Render all positioned glyphs from the layout
+        for glyph in &layout_info.glyphs {
+            let glyph_bounds = Rect::new(
+                glyph.position.x,
+                glyph.position.y,
+                glyph.size.x,
+                glyph.size.y,
+            );
             
-            // Get the glyph from the text renderer and extract data
-            let (glyph_bitmap, glyph_metrics, texture_coords, advance_width) = if let Some(glyph) = self.text_renderer.get_glyph(font, ch, size) {
-                // Extract the data we need before any potential mutable borrows
-                let bitmap = glyph.bitmap.clone();
-                let metrics = glyph.metrics.clone();
-                let coords = glyph.texture_coords;
-                let advance = metrics.advance_width;
-                (Some(bitmap), Some(metrics), coords, advance)
-            } else {
-                (None, None, None, size * 0.5) // Fallback advance width
-            };
-            
-            if let (Some(bitmap), Some(metrics)) = (glyph_bitmap, glyph_metrics) {
-                // Use actual glyph metrics and bitmap
-                let glyph_width = metrics.width as f32;
-                let glyph_height = metrics.height as f32;
-                
-                if !bitmap.is_empty() && glyph_width > 0.0 && glyph_height > 0.0 {
-                    // Calculate glyph position based on baseline and bearing
-                    let glyph_x = cursor_x + metrics.x as f32;
-                    let glyph_y = cursor_y + (size * 0.8) - metrics.y as f32; // Adjust for baseline
-                    
-                    let glyph_bounds = Rect::new(
-                        glyph_x,
-                        glyph_y,
-                        glyph_width,
-                        glyph_height,
-                    );
-                    
-                    // Check if we have texture coordinates for GPU atlas rendering
-                    if let Some(coords) = texture_coords {
-                        // Use optimized GPU atlas rendering
-                        log::debug!("Rendering glyph '{}' using GPU atlas at coords {:?}", ch, coords);
-                        self.draw_textured_glyph(glyph_bounds, color, coords);
-                    } else {
-                        // Fallback to pixel-by-pixel rendering for now
-                        log::debug!("Rendering glyph '{}' using pixel bitmap ({}x{})", ch, metrics.width, metrics.height);
-                        self.draw_glyph_bitmap(&bitmap, glyph_bounds, color, 
-                                             metrics.width as usize, metrics.height as usize);
-                    }
-                }
-                
-                // Advance cursor by the glyph's advance width
-                cursor_x += advance_width;
-            } else {
-                // Fallback: use readable character representation if no glyph available
-                log::warn!("No glyph found for character '{}', using fallback shape", ch);
-                let char_width = size * 0.5;
-                self.draw_readable_char(ch, Vec2::new(cursor_x, cursor_y), size, color);
-                cursor_x += char_width;
-            }
+            // Render the glyph using its atlas coordinates
+            self.draw_textured_glyph(glyph_bounds, color, glyph.atlas_coords);
         }
+        
+        log::debug!("Rendered {} glyphs for text '{}' at position {:?}", layout_info.glyphs.len(), text, position);
+        Ok(())
     }
     
-    /// Draw a readable character using simple but recognizable shapes
-    fn draw_readable_char(&mut self, ch: char, position: Vec2, size: f32, color: Vec4) {
-        let char_width = size * 0.5;
-        let char_height = size * 0.8;
-        
-        // Base character rectangle
-        let base_rect = Rect::new(
-            position.x + char_width * 0.1,
-            position.y + size * 0.1,
-            char_width * 0.8,
-            char_height * 0.6,
-        );
-        
-        match ch {
-            // Draw distinctive shapes for different character types
-            'A'..='Z' => {
-                // Uppercase: full height rectangle with small top accent
-                self.draw_rect(base_rect, color);
-                let top_accent = Rect::new(
-                    position.x + char_width * 0.3,
-                    position.y,
-                    char_width * 0.4,
-                    size * 0.15,
-                );
-                self.draw_rect(top_accent, color);
-            },
-            'a'..='z' => {
-                // Lowercase: smaller rectangle
-                let lower_rect = Rect::new(
-                    position.x + char_width * 0.1,
-                    position.y + size * 0.25,
-                    char_width * 0.8,
-                    char_height * 0.5,
-                );
-                self.draw_rect(lower_rect, color);
-            },
-            '0'..='9' => {
-                // Numbers: distinctive square shape
-                let num_rect = Rect::new(
-                    position.x + char_width * 0.15,
-                    position.y + size * 0.1,
-                    char_width * 0.7,
-                    char_height * 0.7,
-                );
-                self.draw_rect(num_rect, color);
-                
-                // Add number-specific details
-                match ch {
-                    '1' => {
-                        let thin_rect = Rect::new(
-                            position.x + char_width * 0.4,
-                            position.y + size * 0.05,
-                            char_width * 0.2,
-                            char_height * 0.8,
-                        );
-                        self.draw_rect(thin_rect, color);
-                    },
-                    '0' => {
-                        // Draw as hollow rectangle
-                        let inner_rect = Rect::new(
-                            position.x + char_width * 0.25,
-                            position.y + size * 0.2,
-                            char_width * 0.5,
-                            char_height * 0.5,
-                        );
-                        // Note: We'd need a hollow rect function for this, using solid for now
-                        self.draw_rect(num_rect, color);
-                    },
-                    _ => {
-                        self.draw_rect(num_rect, color);
-                    }
-                }
-            },
-            '.' => {
-                // Period: small dot at bottom
-                let dot = Rect::new(
-                    position.x + char_width * 0.4,
-                    position.y + size * 0.7,
-                    char_width * 0.2,
-                    size * 0.15,
-                );
-                self.draw_rect(dot, color);
-            },
-            ',' => {
-                // Comma: small dot with tail
-                let dot = Rect::new(
-                    position.x + char_width * 0.4,
-                    position.y + size * 0.7,
-                    char_width * 0.2,
-                    size * 0.2,
-                );
-                self.draw_rect(dot, color);
-            },
-            ':' => {
-                // Colon: two dots
-                let top_dot = Rect::new(
-                    position.x + char_width * 0.4,
-                    position.y + size * 0.2,
-                    char_width * 0.2,
-                    size * 0.15,
-                );
-                let bottom_dot = Rect::new(
-                    position.x + char_width * 0.4,
-                    position.y + size * 0.6,
-                    char_width * 0.2,
-                    size * 0.15,
-                );
-                self.draw_rect(top_dot, color);
-                self.draw_rect(bottom_dot, color);
-            },
-            _ => {
-                // Default: draw base rectangle for other characters
-                self.draw_rect(base_rect, color);
-            }
-        }
-    }
     
     /// Draw a textured glyph using the font atlas texture for optimal performance
     fn draw_textured_glyph(&mut self, bounds: Rect, color: Vec4, texture_coords: [f32; 4]) {
@@ -618,138 +463,8 @@ impl UiRenderer {
         self.add_quad(bounds, color, [texture_coords[0], texture_coords[1]], [texture_coords[2], texture_coords[3]]);
     }
     
-    /// Upload any pending glyphs to the GPU atlas
-    fn upload_pending_glyphs(&mut self, queue: &wgpu::Queue) {
-        self.text_renderer.upload_pending_glyphs(queue);
-    }
     
-    /// Draw glyph bitmap as individual pixels for readable text
-    fn draw_glyph_bitmap(&mut self, bitmap: &[u8], bounds: Rect, color: Vec4, width: usize, height: usize) {
-        if bitmap.is_empty() || width == 0 || height == 0 {
-            return;
-        }
-        
-        let pixel_width = bounds.size.x / width as f32;
-        let pixel_height = bounds.size.y / height as f32;
-        
-        for y in 0..height {
-            for x in 0..width {
-                let pixel_index = y * width + x;
-                if pixel_index < bitmap.len() {
-                    let alpha = bitmap[pixel_index] as f32 / 255.0;
-                    
-                    if alpha > 0.1 { // Only draw visible pixels
-                        let pixel_rect = Rect::new(
-                            bounds.position.x + x as f32 * pixel_width,
-                            bounds.position.y + y as f32 * pixel_height,
-                            pixel_width,
-                            pixel_height,
-                        );
-                        
-                        // Apply alpha to color for anti-aliasing
-                        let pixel_color = Vec4::new(color.x, color.y, color.z, color.w * alpha);
-                        self.draw_rect(pixel_rect, pixel_color);
-                    }
-                }
-            }
-        }
-    }
     
-    /// Get a simple 8x8 bitmap pattern for a character
-    fn get_char_bitmap(&self, ch: char) -> [u8; 8] {
-        match ch {
-            // Uppercase letters
-            'A' => [0x18, 0x3C, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x00],
-            'B' => [0x7C, 0x66, 0x66, 0x7C, 0x66, 0x66, 0x7C, 0x00],
-            'C' => [0x3C, 0x66, 0x60, 0x60, 0x60, 0x66, 0x3C, 0x00],
-            'D' => [0x78, 0x6C, 0x66, 0x66, 0x66, 0x6C, 0x78, 0x00],
-            'E' => [0x7E, 0x60, 0x60, 0x78, 0x60, 0x60, 0x7E, 0x00],
-            'F' => [0x7E, 0x60, 0x60, 0x78, 0x60, 0x60, 0x60, 0x00],
-            'G' => [0x3C, 0x66, 0x60, 0x6E, 0x66, 0x66, 0x3C, 0x00],
-            'H' => [0x66, 0x66, 0x66, 0x7E, 0x66, 0x66, 0x66, 0x00],
-            'I' => [0x3C, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
-            'J' => [0x1E, 0x0C, 0x0C, 0x0C, 0x0C, 0x6C, 0x38, 0x00],
-            'K' => [0x66, 0x6C, 0x78, 0x70, 0x78, 0x6C, 0x66, 0x00],
-            'L' => [0x60, 0x60, 0x60, 0x60, 0x60, 0x60, 0x7E, 0x00],
-            'M' => [0x63, 0x77, 0x7F, 0x6B, 0x63, 0x63, 0x63, 0x00],
-            'N' => [0x66, 0x76, 0x7E, 0x7E, 0x6E, 0x66, 0x66, 0x00],
-            'O' => [0x3C, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],
-            'P' => [0x7C, 0x66, 0x66, 0x7C, 0x60, 0x60, 0x60, 0x00],
-            'Q' => [0x3C, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x0E, 0x00],
-            'R' => [0x7C, 0x66, 0x66, 0x7C, 0x78, 0x6C, 0x66, 0x00],
-            'S' => [0x3C, 0x66, 0x60, 0x3C, 0x06, 0x66, 0x3C, 0x00],
-            'T' => [0x7E, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x00],
-            'U' => [0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x00],
-            'V' => [0x66, 0x66, 0x66, 0x66, 0x66, 0x3C, 0x18, 0x00],
-            'W' => [0x63, 0x63, 0x63, 0x6B, 0x7F, 0x77, 0x63, 0x00],
-            'X' => [0x66, 0x66, 0x3C, 0x18, 0x3C, 0x66, 0x66, 0x00],
-            'Y' => [0x66, 0x66, 0x66, 0x3C, 0x18, 0x18, 0x18, 0x00],
-            'Z' => [0x7E, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x7E, 0x00],
-            
-            // Lowercase letters
-            'a' => [0x00, 0x00, 0x3C, 0x06, 0x3E, 0x66, 0x3E, 0x00],
-            'b' => [0x60, 0x60, 0x7C, 0x66, 0x66, 0x66, 0x7C, 0x00],
-            'c' => [0x00, 0x00, 0x3C, 0x60, 0x60, 0x60, 0x3C, 0x00],
-            'd' => [0x06, 0x06, 0x3E, 0x66, 0x66, 0x66, 0x3E, 0x00],
-            'e' => [0x00, 0x00, 0x3C, 0x66, 0x7E, 0x60, 0x3C, 0x00],
-            'f' => [0x0E, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x18, 0x00],
-            'g' => [0x00, 0x00, 0x3E, 0x66, 0x66, 0x3E, 0x06, 0x7C],
-            'h' => [0x60, 0x60, 0x7C, 0x66, 0x66, 0x66, 0x66, 0x00],
-            'i' => [0x18, 0x00, 0x38, 0x18, 0x18, 0x18, 0x3C, 0x00],
-            'j' => [0x06, 0x00, 0x0E, 0x06, 0x06, 0x66, 0x66, 0x3C],
-            'k' => [0x60, 0x60, 0x6C, 0x78, 0x70, 0x78, 0x6C, 0x00],
-            'l' => [0x38, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3C, 0x00],
-            'm' => [0x00, 0x00, 0x66, 0x7F, 0x7F, 0x6B, 0x63, 0x00],
-            'n' => [0x00, 0x00, 0x7C, 0x66, 0x66, 0x66, 0x66, 0x00],
-            'o' => [0x00, 0x00, 0x3C, 0x66, 0x66, 0x66, 0x3C, 0x00],
-            'p' => [0x00, 0x00, 0x7C, 0x66, 0x66, 0x7C, 0x60, 0x60],
-            'q' => [0x00, 0x00, 0x3E, 0x66, 0x66, 0x3E, 0x06, 0x06],
-            'r' => [0x00, 0x00, 0x7C, 0x66, 0x60, 0x60, 0x60, 0x00],
-            's' => [0x00, 0x00, 0x3E, 0x60, 0x3C, 0x06, 0x7C, 0x00],
-            't' => [0x18, 0x18, 0x7E, 0x18, 0x18, 0x18, 0x0E, 0x00],
-            'u' => [0x00, 0x00, 0x66, 0x66, 0x66, 0x66, 0x3E, 0x00],
-            'v' => [0x00, 0x00, 0x66, 0x66, 0x66, 0x3C, 0x18, 0x00],
-            'w' => [0x00, 0x00, 0x63, 0x6B, 0x7F, 0x3E, 0x36, 0x00],
-            'x' => [0x00, 0x00, 0x66, 0x3C, 0x18, 0x3C, 0x66, 0x00],
-            'y' => [0x00, 0x00, 0x66, 0x66, 0x66, 0x3E, 0x0C, 0x78],
-            'z' => [0x00, 0x00, 0x7E, 0x0C, 0x18, 0x30, 0x7E, 0x00],
-            
-            // Numbers
-            '0' => [0x3C, 0x66, 0x6E, 0x76, 0x66, 0x66, 0x3C, 0x00],
-            '1' => [0x18, 0x38, 0x18, 0x18, 0x18, 0x18, 0x7E, 0x00],
-            '2' => [0x3C, 0x66, 0x06, 0x0C, 0x30, 0x60, 0x7E, 0x00],
-            '3' => [0x3C, 0x66, 0x06, 0x1C, 0x06, 0x66, 0x3C, 0x00],
-            '4' => [0x06, 0x0E, 0x1E, 0x66, 0x7F, 0x06, 0x06, 0x00],
-            '5' => [0x7E, 0x60, 0x7C, 0x06, 0x06, 0x66, 0x3C, 0x00],
-            '6' => [0x3C, 0x66, 0x60, 0x7C, 0x66, 0x66, 0x3C, 0x00],
-            '7' => [0x7E, 0x66, 0x0C, 0x18, 0x18, 0x18, 0x18, 0x00],
-            '8' => [0x3C, 0x66, 0x66, 0x3C, 0x66, 0x66, 0x3C, 0x00],
-            '9' => [0x3C, 0x66, 0x66, 0x3E, 0x06, 0x66, 0x3C, 0x00],
-            
-            // Special characters
-            ' ' => [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-            '.' => [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x00],
-            ',' => [0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x18, 0x30],
-            ':' => [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x00],
-            ';' => [0x00, 0x00, 0x18, 0x18, 0x00, 0x18, 0x18, 0x30],
-            '!' => [0x18, 0x18, 0x18, 0x18, 0x00, 0x00, 0x18, 0x00],
-            '?' => [0x3C, 0x66, 0x06, 0x0C, 0x18, 0x00, 0x18, 0x00],
-            '-' => [0x00, 0x00, 0x00, 0x7E, 0x00, 0x00, 0x00, 0x00],
-            '+' => [0x00, 0x18, 0x18, 0x7E, 0x18, 0x18, 0x00, 0x00],
-            '=' => [0x00, 0x00, 0x7E, 0x00, 0x7E, 0x00, 0x00, 0x00],
-            '(' => [0x0E, 0x18, 0x30, 0x30, 0x30, 0x18, 0x0E, 0x00],
-            ')' => [0x70, 0x18, 0x0C, 0x0C, 0x0C, 0x18, 0x70, 0x00],
-            '[' => [0x3E, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3E, 0x00],
-            ']' => [0x7C, 0x0C, 0x0C, 0x0C, 0x0C, 0x0C, 0x7C, 0x00],
-            '/' => [0x00, 0x03, 0x06, 0x0C, 0x18, 0x30, 0x60, 0x00],
-            '\\' => [0x00, 0x60, 0x30, 0x18, 0x0C, 0x06, 0x03, 0x00],
-            '"' => [0x66, 0x66, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00],
-            '\'' => [0x18, 0x18, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00],
-            
-            // Default fallback for unknown characters
-            _ => [0x3C, 0x42, 0x99, 0xA1, 0xA1, 0x99, 0x42, 0x3C],
-        }
-    }
     
     
     /// Set clip rectangle
@@ -783,7 +498,7 @@ impl UiRenderer {
     
     /// Get the default font handle
     pub fn get_default_font(&self) -> FontHandle {
-        let handle = self.text_renderer.default_font().unwrap_or(FontHandle(0));
+        let handle = self.text_pipeline.default_font().unwrap_or(FontHandle(0));
         log::debug!("get_default_font() returning handle: {:?}", handle);
         handle
     }
