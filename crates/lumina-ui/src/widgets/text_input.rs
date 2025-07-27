@@ -1,8 +1,9 @@
 //! Text input widget
 
 use crate::{
-    Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, 
-    UiRenderer, Rect, widgets::BaseWidget
+    Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
+    UiRenderer, Rect, widgets::BaseWidget,
+    layout::LayoutResult,
 };
 use glam::Vec2;
 

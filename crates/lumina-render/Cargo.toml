@@ -6,14 +6,33 @@ description = "Rendering system for the Lumina game engine"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+# Core engine dependencies
 lumina-core = { path = "../lumina-core" }
 lumina-ecs = { path = "../lumina-ecs" }
-wgpu.workspace = true
-winit.workspace = true
-raw-window-handle.workspace = true
-bytemuck.workspace = true
-anyhow.workspace = true
-thiserror.workspace = true
-parking_lot.workspace = true
-glam.workspace = true
-image.workspace = true
+
+# Graphics and rendering
+wgpu = { workspace = true }
+winit = { workspace = true }
+raw-window-handle = { workspace = true }
+bytemuck = { workspace = true }
+
+# Math and utilities
+glam = { workspace = true }
+image = { workspace = true }
+
+# Font rendering
+fontdue = { workspace = true }
+ttf-parser = { workspace = true }
+
+# Error handling and logging
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }
+
+# Async and threading
+futures = { workspace = true }
+pollster = { workspace = true }
+parking_lot = { workspace = true }
+
+# Serialization
+serde = { workspace = true }

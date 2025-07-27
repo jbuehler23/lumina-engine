@@ -12,7 +12,7 @@ pub use node_editor::*;
 pub use asset_browser::*;
 pub use project_manager::*;
 
-use crate::{Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
+use crate::{Widget, WidgetId, LayoutConstraints, layout::LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -132,12 +132,12 @@ impl Widget for EditorApp {
         }
     }
     
-    fn handle_input(&mut self, input: &InputEvent) -> InputResponse {
+    fn handle_input(&mut self, _input: &InputEvent) -> InputResponse {
         // Route input to appropriate child component based on focus/hover
         InputResponse::NotHandled
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {
         // Render all child components
         // Implementation would render each component in its calculated position
     }

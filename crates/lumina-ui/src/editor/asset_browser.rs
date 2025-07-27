@@ -1,6 +1,6 @@
 //! Asset browser component
 
-use crate::{Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
+use crate::{Widget, WidgetId, LayoutConstraints, layout::LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
 use glam::Vec2;
 
 /// Asset browser widget

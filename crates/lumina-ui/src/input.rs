@@ -2,7 +2,35 @@
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
+
+/// Data that can be dragged and dropped
+#[derive(Debug, Clone, PartialEq)]
+pub enum DragData {
+    /// Text data
+    Text(String),
+    /// Widget ID being dragged
+    Widget(crate::WidgetId),
+    /// Visual scripting node type
+    NodeType(String),
+    /// Custom data with type identifier
+    Custom { data_type: String, data: Vec<u8> },
+}
+
+/// Current drag operation state
+#[derive(Debug, Clone)]
+pub struct DragState {
+    /// Position where drag started
+    pub start_position: Vec2,
+    /// Current drag position
+    pub current_position: Vec2,
+    /// Data being dragged
+    pub data: DragData,
+    /// Mouse button used for dragging
+    pub button: MouseButton,
+    /// Whether drag threshold has been exceeded
+    pub is_active: bool,
+}
 
 /// Input handler that processes and distributes input events
 #[derive(Debug, Default)]
@@ -25,6 +53,8 @@ pub struct InputHandler {
     text_input: String,
     /// Whether input has been captured by a widget (prevents propagation)
     input_captured: bool,
+    /// Current drag state
+    drag_state: Option<DragState>,
 }
 
 /// Input events that can be sent to widgets
@@ -56,6 +86,14 @@ pub enum InputEvent {
     FocusGained,
     /// Widget lost focus
     FocusLost,
+    /// Drag start event
+    DragStart { position: Vec2, button: MouseButton },
+    /// Drag update event
+    DragUpdate { position: Vec2, delta: Vec2 },
+    /// Drag end event
+    DragEnd { position: Vec2 },
+    /// Drop event
+    Drop { position: Vec2, data: DragData },
 }
 
 /// Response that widgets can return to input events

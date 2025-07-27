@@ -15,7 +15,7 @@ pub use text_input::*;
 pub use canvas::*;
 pub use container::*;
 
-use crate::{WidgetId, InputEvent, InputResponse, LayoutConstraints, LayoutResult, UiRenderer, Rect};
+use crate::{WidgetId, LayoutConstraints, layout::LayoutResult};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -61,6 +61,10 @@ pub struct WidgetStyle {
     pub opacity: Option<f32>,
     /// Drop shadow
     pub shadow: Option<Shadow>,
+    /// Widget position (x, y)
+    pub position: Option<[f32; 2]>,
+    /// Widget size (width, height)
+    pub size: Option<[f32; 2]>,
 }
 
 /// Padding values for a widget
@@ -127,6 +131,8 @@ impl Default for WidgetStyle {
             font_family: None,
             opacity: None,
             shadow: None,
+            position: None,
+            size: None,
         }
     }
 }
@@ -206,7 +212,7 @@ impl Margin {
 }
 
 /// Widget animation state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AnimationState {
     /// Widget is in its normal state
     Normal,

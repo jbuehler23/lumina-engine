@@ -1,26 +1,15 @@
-//! WGPU-based rendering system for the Lumina UI framework
+//! WGPU-based UI rendering system
+//!
+//! This module provides specialized rendering capabilities for immediate-mode UI interfaces.
+//! It handles batching, clipping, and efficient rendering of UI primitives like rectangles,
+//! text, and textured quads.
 
-pub mod renderer;
-pub mod text;
-pub mod shaders;
-pub mod buffers;
-
-pub use renderer::*;
-pub use text::*;
-pub use shaders::*;
-pub use buffers::*;
-
-use crate::{Rect, error::RenderError};
+use crate::{Rect, RenderError, RenderResult};
 use glam::{Vec2, Vec4, Mat4};
 use bytemuck::{Pod, Zeroable};
 
 /// Main UI renderer using WGPU
-#[derive(Debug)]
 pub struct UiRenderer {
-    /// WGPU device
-    device: wgpu::Device,
-    /// WGPU queue
-    queue: wgpu::Queue,
     /// Surface configuration
     config: wgpu::SurfaceConfiguration,
     /// Current render pass
@@ -37,8 +26,6 @@ pub struct UiRenderer {
     solid_pipeline: wgpu::RenderPipeline,
     /// Render pipeline for textured quads
     texture_pipeline: wgpu::RenderPipeline,
-    /// Text renderer
-    text_renderer: TextRenderer,
     /// Current frame's vertices
     vertices: Vec<UiVertex>,
     /// Current frame's indices
@@ -117,10 +104,10 @@ pub struct FontHandle(pub u32);
 impl UiRenderer {
     /// Create a new UI renderer
     pub async fn new(
-        device: wgpu::Device,
-        queue: wgpu::Queue,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
         config: wgpu::SurfaceConfiguration,
-    ) -> Result<Self, RenderError> {
+    ) -> RenderResult<Self> {
         let screen_size = Vec2::new(config.width as f32, config.height as f32);
         
         // Create buffers
@@ -185,10 +172,39 @@ impl UiRenderer {
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/texture.wgsl").into()),
         });
         
+        // Create texture bind group layout
+        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("UI Texture Bind Group Layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+            ],
+        });
+
         // Create pipeline layouts
         let solid_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("UI Solid Pipeline Layout"),
             bind_group_layouts: &[&uniform_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+        
+        let texture_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("UI Texture Pipeline Layout"),
+            bind_group_layouts: &[&uniform_bind_group_layout, &texture_bind_group_layout],
             push_constant_ranges: &[],
         });
         
@@ -230,7 +246,7 @@ impl UiRenderer {
         
         let texture_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("UI Texture Pipeline"),
-            layout: Some(&solid_pipeline_layout),
+            layout: Some(&texture_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &texture_shader,
                 entry_point: "vs_main",
@@ -271,12 +287,7 @@ impl UiRenderer {
             -1.0, 1.0,
         );
         
-        // Create text renderer
-        let text_renderer = TextRenderer::new(&device, &queue, config.format)?;
-        
         Ok(Self {
-            device,
-            queue,
             config,
             current_pass: None,
             vertex_buffer,
@@ -285,7 +296,6 @@ impl UiRenderer {
             uniform_bind_group,
             solid_pipeline,
             texture_pipeline,
-            text_renderer,
             vertices: Vec::new(),
             indices: Vec::new(),
             screen_size,
@@ -296,7 +306,7 @@ impl UiRenderer {
     }
     
     /// Begin a new frame
-    pub fn begin_frame(&mut self) {
+    pub fn begin_frame(&mut self, queue: &wgpu::Queue) {
         self.vertices.clear();
         self.indices.clear();
         self.clip_stack.clear();
@@ -308,17 +318,38 @@ impl UiRenderer {
             _padding: [0.0, 0.0],
         };
         
-        self.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
     }
     
     /// End the current frame and submit all draw commands
-    pub fn end_frame(&mut self) {
+    pub fn end_frame(&mut self, queue: &wgpu::Queue) {
         // Update vertex and index buffers
         if !self.vertices.is_empty() {
-            self.queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
+            queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
         }
         if !self.indices.is_empty() {
-            self.queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&self.indices));
+            queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&self.indices));
+        }
+    }
+    
+    /// Submit the rendered UI to a render pass
+    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        if self.vertices.is_empty() || self.indices.is_empty() {
+            return;
+        }
+        
+        // Set the pipeline and bind groups
+        render_pass.set_pipeline(&self.solid_pipeline);
+        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+        
+        // Set vertex and index buffers
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+        
+        // Draw all vertices
+        let num_indices = self.indices.len() as u32;
+        if num_indices > 0 {
+            render_pass.draw_indexed(0..num_indices, 0, 0..1);
         }
     }
     
@@ -328,21 +359,21 @@ impl UiRenderer {
     }
     
     /// Draw a rectangle with rounded corners
-    pub fn draw_rounded_rect(&mut self, bounds: Rect, color: Vec4, border_radius: f32) {
+    pub fn draw_rounded_rect(&mut self, bounds: Rect, color: Vec4, _border_radius: f32) {
         // For now, just draw a regular rectangle
         // TODO: Implement proper rounded rectangle rendering
         self.draw_rect(bounds, color);
     }
     
     /// Draw a textured rectangle
-    pub fn draw_textured_rect(&mut self, bounds: Rect, texture: TextureHandle, color: Vec4) {
+    pub fn draw_textured_rect(&mut self, bounds: Rect, _texture: TextureHandle, color: Vec4) {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
     /// Draw text
-    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4) {
-        // Delegate to text renderer
-        self.text_renderer.draw_text(text, position, font, size, color);
+    pub fn draw_text(&mut self, _text: &str, _position: Vec2, _font: FontHandle, _size: f32, _color: Vec4) {
+        // TODO: Implement text rendering
+        // This will delegate to text renderer
     }
     
     /// Set clip rectangle

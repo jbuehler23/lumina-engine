@@ -1,8 +1,9 @@
 //! Text widget for displaying text
 
 use crate::{
-    Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, 
-    UiRenderer, Rect, widgets::BaseWidget
+    Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
+    UiRenderer, Rect, widgets::BaseWidget,
+    layout::LayoutResult,
 };
 use glam::{Vec2, Vec4};
 
@@ -84,7 +85,7 @@ impl Widget for Text {
             return;
         }
         
-        let font_handle = crate::rendering::FontHandle(0);
+        let font_handle = lumina_render::FontHandle(0);
         renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, self.color);
     }
 }

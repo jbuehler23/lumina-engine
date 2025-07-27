@@ -1,6 +1,6 @@
 //! Scene view component for the editor
 
-use crate::{Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
+use crate::{Widget, WidgetId, LayoutConstraints, layout::LayoutResult, InputEvent, InputResponse, UiRenderer, Rect};
 use glam::Vec2;
 
 /// Scene view widget for visualizing and editing game scenes

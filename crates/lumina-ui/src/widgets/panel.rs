@@ -1,8 +1,9 @@
 //! Panel widget - a basic container for other widgets
 
 use crate::{
-    Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, 
-    UiRenderer, Rect, widgets::{BaseWidget, WidgetStyle}
+    Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
+    UiRenderer, Rect, widgets::{BaseWidget, WidgetStyle},
+    layout::LayoutResult,
 };
 use glam::Vec2;
 
@@ -41,12 +42,16 @@ impl Widget for Panel {
     }
     
     fn layout(&mut self, available_space: Vec2) -> LayoutResult {
-        let bounds = Rect::new(0.0, 0.0, available_space.x, available_space.y);
+        // Use the panel's position if set, otherwise default to (0,0)
+        let position = self.base.style.position.unwrap_or([0.0, 0.0]);
+        let size = self.base.style.size.unwrap_or([available_space.x, available_space.y]);
+        
+        let bounds = Rect::new(position[0], position[1], size[0], size[1]);
         
         let result = LayoutResult {
             bounds,
             overflow: false,
-            content_size: available_space,
+            content_size: Vec2::new(size[0], size[1]),
         };
         
         self.base.layout_cache = Some(result.clone());

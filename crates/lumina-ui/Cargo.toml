@@ -17,6 +17,7 @@ web = ["wasm-bindgen", "web-sys", "js-sys"]
 # Core dependencies
 lumina-core = { path = "../lumina-core" }
 lumina-ecs = { path = "../lumina-ecs" }
+lumina-render = { path = "../lumina-render" }
 
 # Graphics and rendering
 wgpu = { workspace = true, optional = true }

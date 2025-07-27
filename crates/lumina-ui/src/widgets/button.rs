@@ -1,14 +1,14 @@
 //! Button widget implementation
 
 use crate::{
-    Widget, WidgetId, LayoutConstraints, LayoutResult, InputEvent, InputResponse, 
-    UiRenderer, Rect, Theme, widgets::{BaseWidget, WidgetStyle, AnimationState}
+    Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
+    UiRenderer, Rect, Theme, widgets::{BaseWidget, WidgetStyle, AnimationState},
+    layout::LayoutResult,
 };
 use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
 /// Button widget for user interactions
-#[derive(Debug)]
 pub struct Button {
     /// Base widget properties
     base: BaseWidget,
@@ -24,6 +24,20 @@ pub struct Button {
     is_pressed: bool,
     /// Whether the button is currently hovered
     is_hovered: bool,
+}
+
+impl std::fmt::Debug for Button {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Button")
+            .field("base", &self.base)
+            .field("text", &self.text)
+            .field("variant", &self.variant)
+            .field("state", &self.state)
+            .field("on_click", &"<callback>")
+            .field("is_pressed", &self.is_pressed)
+            .field("is_hovered", &self.is_hovered)
+            .finish()
+    }
 }
 
 /// Button style variants
@@ -288,7 +302,7 @@ impl Widget for Button {
             );
             
             // TODO: Use actual font handle
-            let font_handle = crate::rendering::FontHandle(0);
+            let font_handle = lumina_render::FontHandle(0);
             renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color);
         }
     }
