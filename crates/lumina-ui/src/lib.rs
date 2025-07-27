@@ -17,10 +17,10 @@ pub mod error;
 pub mod web;
 
 // Re-export commonly used types  
-pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container};
+pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container, Draggable};
 pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign};
 pub use theming::Theme;
-pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler};
+pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler, DragData};
 pub use error::{UiError, UiResult};
 
 // Re-export rendering types from lumina-render
@@ -300,12 +300,147 @@ impl UiFramework {
         // Clear layout cache
         self.state.layout_cache.clear();
         
-        // Layout root widgets
-        for &root_id in &self.state.root_widgets.clone() {
-            self.layout_widget(root_id, available_space);
-        }
+        // Layout root widgets with improved spacing
+        self.layout_root_widgets(available_space);
         
         self.state.needs_render = true;
+    }
+    
+    /// Layout root widgets with better positioning logic
+    fn layout_root_widgets(&mut self, available_space: Vec2) {
+        let root_widgets = self.state.root_widgets.clone();
+        
+        if root_widgets.is_empty() {
+            return;
+        }
+        
+        // For now, use a simple grid-like layout for root widgets
+        // In a full editor, we'd have a proper docking system
+        let padding = 12.0;
+        let menu_height = 60.0;
+        let bottom_panel_height = 200.0;
+        
+        for (index, &root_id) in root_widgets.iter().enumerate() {
+            if let Some(widget) = self.state.widgets.get_mut(&root_id) {
+                let layout_result = match index {
+                    // Menu bar - spans the top
+                    0 => {
+                        let bounds = Rect::new(
+                            padding,
+                            padding,
+                            available_space.x - padding * 2.0,
+                            menu_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Left panel
+                    1 => {
+                        let panel_width = 350.0;
+                        let bounds = Rect::new(
+                            padding,
+                            menu_height + padding * 2.0,
+                            panel_width,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Center panel (scene)
+                    2 => {
+                        let left_width = 350.0;
+                        let right_width = 350.0;
+                        let bounds = Rect::new(
+                            left_width + padding * 2.0,
+                            menu_height + padding * 2.0,
+                            available_space.x - left_width - right_width - padding * 4.0,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Right panel
+                    3 => {
+                        let panel_width = 350.0;
+                        let bounds = Rect::new(
+                            available_space.x - panel_width - padding,
+                            menu_height + padding * 2.0,
+                            panel_width,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Bottom left panel (console)
+                    4 => {
+                        let left_width = available_space.x * 0.6;
+                        let bounds = Rect::new(
+                            padding,
+                            available_space.y - bottom_panel_height - padding,
+                            left_width - padding,
+                            bottom_panel_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Bottom right panel (visual scripting)
+                    _ => {
+                        let left_width = available_space.x * 0.6;
+                        let bounds = Rect::new(
+                            left_width + padding,
+                            available_space.y - bottom_panel_height - padding,
+                            available_space.x - left_width - padding * 2.0,
+                            bottom_panel_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    }
+                };
+                
+                self.state.layout_cache.insert(root_id, layout_result.clone());
+                
+                // Layout children within the parent bounds
+                if let Some(children) = self.state.hierarchy.get(&root_id).cloned() {
+                    let parent_bounds = layout_result.bounds;
+                    let mut y_offset = 10.0; // Start with padding from top
+                    
+                    for child_id in children {
+                        if let Some(child_widget) = self.state.widgets.get_mut(&child_id) {
+                            // Layout child within parent's content area
+                            let available_space = Vec2::new(parent_bounds.size.x - 20.0, parent_bounds.size.y - y_offset);
+                            let mut child_layout = child_widget.layout(available_space);
+                            
+                            // Position child relative to parent with vertical stacking
+                            child_layout.bounds.position.x = parent_bounds.position.x + 10.0; // Left padding
+                            child_layout.bounds.position.y = parent_bounds.position.y + y_offset;
+                            
+                            self.state.layout_cache.insert(child_id, child_layout.clone());
+                            
+                            // Move y_offset down for next child
+                            y_offset += child_layout.bounds.size.y + 5.0; // Child height + spacing
+                        }
+                    }
+                }
+            }
+        }
     }
     
     /// Render the entire UI
@@ -378,35 +513,5 @@ impl UiFramework {
         None
     }
     
-    /// Layout a specific widget
-    fn layout_widget(&mut self, widget_id: WidgetId, available_space: Vec2) {
-        if let Some(widget) = self.state.widgets.get_mut(&widget_id) {
-            let layout_result = widget.layout(available_space);
-            self.state.layout_cache.insert(widget_id, layout_result.clone());
-            
-            // Layout children with simple spacing
-            let parent_bounds = layout_result.bounds;
-            if let Some(children) = self.state.hierarchy.get(&widget_id).cloned() {
-                let mut y_offset = 10.0; // Start with padding from top
-                
-                for child_id in children {
-                    if let Some(child_widget) = self.state.widgets.get_mut(&child_id) {
-                        // Layout child within parent's content area
-                        let available_space = Vec2::new(parent_bounds.size.x - 20.0, parent_bounds.size.y - y_offset);
-                        let mut child_layout = child_widget.layout(available_space);
-                        
-                        // Position child relative to parent with vertical stacking
-                        child_layout.bounds.position.x = parent_bounds.position.x + 10.0; // Left padding
-                        child_layout.bounds.position.y = parent_bounds.position.y + y_offset;
-                        
-                        self.state.layout_cache.insert(child_id, child_layout.clone());
-                        
-                        // Move y_offset down for next child
-                        y_offset += child_layout.bounds.size.y + 5.0; // Child height + spacing
-                    }
-                }
-            }
-        }
-    }
     
 }

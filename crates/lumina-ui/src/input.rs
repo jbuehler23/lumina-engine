@@ -341,6 +341,122 @@ impl InputHandler {
     pub fn is_input_captured(&self) -> bool {
         self.input_captured
     }
+    
+    /// Start a drag operation
+    pub fn start_drag(&mut self, data: DragData, button: MouseButton) -> bool {
+        if self.drag_state.is_none() {
+            self.drag_state = Some(DragState {
+                start_position: self.mouse_position,
+                current_position: self.mouse_position,
+                data,
+                button,
+                is_active: false,
+            });
+            true
+        } else {
+            false
+        }
+    }
+    
+    /// Update drag state (called during mouse movement)
+    pub fn update_drag(&mut self) -> Option<InputEvent> {
+        if let Some(ref mut drag_state) = self.drag_state {
+            let previous_position = drag_state.current_position;
+            drag_state.current_position = self.mouse_position;
+            
+            // Check if drag threshold has been exceeded
+            const DRAG_THRESHOLD: f32 = 3.0; // pixels
+            if !drag_state.is_active {
+                let distance = (drag_state.current_position - drag_state.start_position).length();
+                if distance > DRAG_THRESHOLD {
+                    drag_state.is_active = true;
+                    return Some(InputEvent::DragStart {
+                        position: drag_state.current_position,
+                        button: drag_state.button,
+                    });
+                }
+            } else {
+                let delta = drag_state.current_position - previous_position;
+                return Some(InputEvent::DragUpdate {
+                    position: drag_state.current_position,
+                    delta,
+                });
+            }
+        }
+        None
+    }
+    
+    /// End drag operation
+    pub fn end_drag(&mut self) -> Option<InputEvent> {
+        if let Some(drag_state) = self.drag_state.take() {
+            if drag_state.is_active {
+                Some(InputEvent::DragEnd {
+                    position: drag_state.current_position,
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    
+    /// Get current drag state
+    pub fn drag_state(&self) -> Option<&DragState> {
+        self.drag_state.as_ref()
+    }
+    
+    /// Check if currently dragging
+    pub fn is_dragging(&self) -> bool {
+        self.drag_state.as_ref().map_or(false, |state| state.is_active)
+    }
+    
+    /// Create a drop event at the current position
+    pub fn create_drop_event(&self, data: DragData) -> InputEvent {
+        InputEvent::Drop {
+            position: self.mouse_position,
+            data,
+        }
+    }
+    
+    /// Handle potential drag operations during mouse events
+    pub fn handle_drag_events(&mut self, raw_input: &RawInputEvent) -> Vec<InputEvent> {
+        let mut events = Vec::new();
+        
+        match raw_input {
+            RawInputEvent::MouseMove { .. } => {
+                if let Some(drag_event) = self.update_drag() {
+                    events.push(drag_event);
+                }
+            }
+            RawInputEvent::MouseUp { button, .. } => {
+                let drag_data = if let Some(drag_state) = &self.drag_state {
+                    if drag_state.button == *button {
+                        Some(drag_state.data.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                
+                if let Some(data) = drag_data {
+                    if let Some(drag_end_event) = self.end_drag() {
+                        events.push(drag_end_event);
+                        
+                        // Also create a drop event with the dragged data
+                        events.push(InputEvent::Drop {
+                            position: self.mouse_position,
+                            data,
+                        });
+                    }
+                }
+            }
+            _ => {}
+        }
+        
+        events
+    }
 }
 
 /// Raw input events from the windowing system

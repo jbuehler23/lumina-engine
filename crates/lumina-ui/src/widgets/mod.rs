@@ -6,6 +6,7 @@ pub mod text;
 pub mod text_input;
 pub mod canvas;
 pub mod container;
+pub mod draggable;
 
 // Re-export all widgets
 pub use button::*;
@@ -14,6 +15,7 @@ pub use text::*;
 pub use text_input::*;
 pub use canvas::*;
 pub use container::*;
+pub use draggable::*;
 
 use crate::{WidgetId, LayoutConstraints, layout::LayoutResult};
 use glam::Vec2;

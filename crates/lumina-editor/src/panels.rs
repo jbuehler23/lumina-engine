@@ -5,6 +5,7 @@ use lumina_ui::{UiFramework, Button, Panel, Text, WidgetId};
 use lumina_ui::widgets::button::ButtonVariant;
 use lumina_scripting::visual_scripting::{VisualScript, ScriptNode, NodeType};
 use glam::Vec4;
+use log::{info, debug, warn, error};
 
 /// Menu bar panel with file operations and tools
 pub struct MenuBar {
@@ -13,13 +14,12 @@ pub struct MenuBar {
 
 impl MenuBar {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
-        // Create menu bar with background
+        debug!("Creating menu bar panel...");
+        // Create menu bar with modern dark theme styling
         let menu_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.2, 0.2, 0.2, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([10.0, 10.0]),
-                size: Some([400.0, 60.0]),
+                background_color: Some([0.1, 0.1, 0.18, 1.0]), // theme.surface.default
+                border_radius: Some(8.0),
                 ..Default::default()
             });
 
@@ -67,22 +67,26 @@ impl ProjectPanel {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let project_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.15, 0.15, 0.15, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([10.0, 80.0]),
-                size: Some([300.0, 400.0]),
+                background_color: Some([0.15, 0.15, 0.25, 1.0]), // theme.surface.elevated
+                border_radius: Some(12.0),
                 ..Default::default()
             });
 
         let title = Text::new("Project")
-            .font_size(16.0)
+            .font_size(24.0)
             .color(Vec4::new(1.0, 1.0, 1.0, 1.0));
 
         let new_project_btn = Button::new("New Project")
-            .variant(ButtonVariant::Primary);
+            .variant(ButtonVariant::Primary)
+            .on_click(|| {
+                println!("📁 Creating new project...");
+            });
 
         let load_project_btn = Button::new("Load Project")
-            .variant(ButtonVariant::Secondary);
+            .variant(ButtonVariant::Secondary)
+            .on_click(|| {
+                println!("📂 Loading existing project...");
+            });
 
         // Add to UI framework
         let panel_id = ui.add_root_widget(Box::new(project_panel));
@@ -114,10 +118,8 @@ impl ScenePanel {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let scene_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.1, 0.1, 0.2, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([320.0, 80.0]),
-                size: Some([600.0, 400.0]),
+                background_color: Some([0.06, 0.06, 0.14, 1.0]), // theme.background.primary
+                border_radius: Some(12.0),
                 ..Default::default()
             });
 
@@ -157,10 +159,8 @@ impl PropertiesPanel {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let properties_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.18, 0.15, 0.12, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([930.0, 80.0]),
-                size: Some([300.0, 400.0]),
+                background_color: Some([0.15, 0.15, 0.25, 1.0]), // theme.surface.elevated
+                border_radius: Some(12.0),
                 ..Default::default()
             });
 
@@ -200,10 +200,8 @@ impl ConsolePanel {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let console_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.05, 0.05, 0.05, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([10.0, 490.0]),
-                size: Some([600.0, 200.0]),
+                background_color: Some([0.1, 0.1, 0.18, 1.0]), // theme.surface.default
+                border_radius: Some(12.0),
                 ..Default::default()
             });
 
@@ -216,7 +214,10 @@ impl ConsolePanel {
             .color(Vec4::new(0.0, 0.8, 0.4, 1.0));
 
         let clear_btn = Button::new("Clear")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🧹 Console cleared");
+            });
 
         // Add to UI framework  
         let panel_id = ui.add_root_widget(Box::new(console_panel));
@@ -250,10 +251,8 @@ impl VisualScriptingPanel {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let scripting_panel = Panel::new()
             .style(lumina_ui::widgets::WidgetStyle {
-                background_color: Some([0.12, 0.08, 0.2, 1.0]),
-                border_radius: Some(4.0),
-                position: Some([620.0, 490.0]),
-                size: Some([610.0, 200.0]),
+                background_color: Some([0.15, 0.15, 0.25, 1.0]), // theme.surface.elevated  
+                border_radius: Some(12.0),
                 ..Default::default()
             });
 
@@ -261,11 +260,45 @@ impl VisualScriptingPanel {
             .font_size(16.0)
             .color(Vec4::new(1.0, 1.0, 1.0, 1.0));
 
+        let script_info = Text::new("No script loaded")
+            .font_size(12.0)
+            .color(Vec4::new(0.7, 0.7, 0.7, 1.0));
+
         let new_script_btn = Button::new("New Script")
-            .variant(ButtonVariant::Primary);
+            .variant(ButtonVariant::Primary)
+            .on_click(|| {
+                println!("📜 Creating new visual script...");
+                // TODO: Open script creation dialog
+            });
 
         let load_script_btn = Button::new("Load Script")
-            .variant(ButtonVariant::Secondary);
+            .variant(ButtonVariant::Secondary)
+            .on_click(|| {
+                println!("📂 Loading visual script...");
+            });
+
+        // Example script buttons
+        let examples_title = Text::new("Example Scripts")
+            .font_size(14.0)
+            .color(Vec4::new(0.6, 0.9, 0.6, 1.0)); // Green
+
+        let player_movement_btn = Button::new("Player Movement")
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🎮 Creating Player Movement script...");
+            });
+
+        let coin_collection_btn = Button::new("Coin Collection")
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🪙 Creating Coin Collection script...");
+            });
+
+        let enemy_ai_btn = Button::new("Enemy AI")
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🤖 Creating Enemy AI script...");
+            });
 
         // Node type buttons for adding nodes
         let event_nodes_title = Text::new("Event Nodes")
@@ -273,36 +306,60 @@ impl VisualScriptingPanel {
             .color(Vec4::new(0.3, 0.6, 1.0, 1.0)); // Blue
 
         let on_start_btn = Button::new("On Start")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟦 Adding On Start event node");
+            });
 
         let on_update_btn = Button::new("On Update")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟦 Adding On Update event node");
+            });
 
         let action_nodes_title = Text::new("Action Nodes")
             .font_size(14.0)
             .color(Vec4::new(1.0, 0.3, 0.3, 1.0)); // Red
 
         let move_node_btn = Button::new("Move Towards")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟥 Adding Move Towards action node");
+            });
 
         let play_sound_btn = Button::new("Play Sound")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟥 Adding Play Sound action node");
+            });
 
         let logic_nodes_title = Text::new("Logic Nodes")
             .font_size(14.0)
             .color(Vec4::new(1.0, 0.9, 0.2, 1.0)); // Yellow
 
         let if_node_btn = Button::new("If Statement")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟨 Adding If Statement logic node");
+            });
 
         let compare_btn = Button::new("Compare")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .on_click(|| {
+                println!("🟨 Adding Compare logic node");
+            });
 
         // Add to UI framework
         let panel_id = ui.add_root_widget(Box::new(scripting_panel));
         let title_id = ui.add_widget(Box::new(title));
+        let script_info_id = ui.add_widget(Box::new(script_info));
         let new_id = ui.add_widget(Box::new(new_script_btn));
         let load_id = ui.add_widget(Box::new(load_script_btn));
+        
+        let examples_title_id = ui.add_widget(Box::new(examples_title));
+        let player_movement_id = ui.add_widget(Box::new(player_movement_btn));
+        let coin_collection_id = ui.add_widget(Box::new(coin_collection_btn));
+        let enemy_ai_id = ui.add_widget(Box::new(enemy_ai_btn));
         
         let event_title_id = ui.add_widget(Box::new(event_nodes_title));
         let on_start_id = ui.add_widget(Box::new(on_start_btn));
@@ -318,8 +375,13 @@ impl VisualScriptingPanel {
         
         // Establish parent-child relationships
         ui.add_child_to_parent(panel_id, title_id);
+        ui.add_child_to_parent(panel_id, script_info_id);
         ui.add_child_to_parent(panel_id, new_id);
         ui.add_child_to_parent(panel_id, load_id);
+        ui.add_child_to_parent(panel_id, examples_title_id);
+        ui.add_child_to_parent(panel_id, player_movement_id);
+        ui.add_child_to_parent(panel_id, coin_collection_id);
+        ui.add_child_to_parent(panel_id, enemy_ai_id);
         ui.add_child_to_parent(panel_id, event_title_id);
         ui.add_child_to_parent(panel_id, on_start_id);
         ui.add_child_to_parent(panel_id, on_update_id);
@@ -342,7 +404,7 @@ impl VisualScriptingPanel {
         // Here we would handle node creation, connection, and script execution
     }
 
-    /// Create a new visual script
+    /// Create a new empty visual script
     pub fn new_script(&mut self, name: String) {
         self.current_script = Some(VisualScript {
             name,
@@ -350,6 +412,39 @@ impl VisualScriptingPanel {
             connections: Vec::new(),
             variables: std::collections::HashMap::new(),
         });
+        println!("Created new script: {}", self.current_script.as_ref().unwrap().name);
+    }
+
+    /// Create a predefined player movement script
+    pub fn create_player_movement_script(&mut self) {
+        use lumina_scripting::visual_scripting::create_player_movement_script;
+        self.current_script = Some(create_player_movement_script());
+        println!("Created Player Movement script with {} nodes", 
+                 self.current_script.as_ref().unwrap().nodes.len());
+    }
+
+    /// Create a predefined coin collection script
+    pub fn create_coin_collection_script(&mut self) {
+        use lumina_scripting::visual_scripting::create_coin_collection_script;
+        self.current_script = Some(create_coin_collection_script());
+        println!("Created Coin Collection script with {} nodes", 
+                 self.current_script.as_ref().unwrap().nodes.len());
+    }
+
+    /// Create a predefined enemy AI script
+    pub fn create_enemy_ai_script(&mut self) {
+        use lumina_scripting::visual_scripting::create_enemy_ai_script;
+        self.current_script = Some(create_enemy_ai_script());
+        println!("Created Enemy AI script with {} nodes", 
+                 self.current_script.as_ref().unwrap().nodes.len());
+    }
+
+    /// Create a predefined top-down movement script
+    pub fn create_topdown_movement_script(&mut self) {
+        use lumina_scripting::visual_scripting::create_topdown_movement_script;
+        self.current_script = Some(create_topdown_movement_script());
+        println!("Created Top-Down Movement script with {} nodes", 
+                 self.current_script.as_ref().unwrap().nodes.len());
     }
 
     /// Add a node to the current script

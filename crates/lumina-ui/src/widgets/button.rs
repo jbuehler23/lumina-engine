@@ -1,4 +1,42 @@
 //! Button widget implementation
+//!
+//! # Overview
+//! 
+//! The Button widget provides interactive clickable elements with modern styling and theming support.
+//! It supports multiple variants (Primary, Secondary, Ghost, Danger) and smooth state transitions.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use lumina_ui::{Button, Theme};
+//! use lumina_ui::widgets::button::ButtonVariant;
+//!
+//! // Create a primary button
+//! let button = Button::new("Click me!")
+//!     .variant(ButtonVariant::Primary)
+//!     .on_click(|| {
+//!         println!("Button clicked!");
+//!     });
+//!
+//! // Create a secondary button with custom styling
+//! let secondary_button = Button::new("Cancel")
+//!     .variant(ButtonVariant::Secondary);
+//!
+//! // Create a danger button for destructive actions
+//! let delete_button = Button::new("Delete")
+//!     .variant(ButtonVariant::Danger)
+//!     .on_click(|| {
+//!         // Handle delete action
+//!     });
+//! ```
+//!
+//! # Features
+//!
+//! - **Theme Integration**: Automatically uses colors and styles from the current theme
+//! - **State Management**: Handles hover, press, and disabled states with smooth transitions
+//! - **Accessibility**: Supports keyboard focus and proper interaction feedback
+//! - **Responsive Design**: Adapts to different screen sizes and layouts
+//! - **Modern Styling**: Rounded corners, shadows, and smooth animations
 
 use crate::{
     Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 

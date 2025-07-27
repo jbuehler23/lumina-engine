@@ -12,6 +12,7 @@ use winit::{
     keyboard::{Key, NamedKey},
     raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle},
 };
+use log::{info, debug, warn, error};
 
 use std::sync::Arc;
 
@@ -57,6 +58,7 @@ impl EditorApp {
         let size = window.inner_size();
         
         // Initialize WGPU
+        debug!("Initializing WGPU instance...");
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
@@ -105,15 +107,18 @@ impl EditorApp {
         surface.configure(&device, &config);
         
         // Create UI renderer and framework
+        debug!("Creating UI renderer...");
         let ui_renderer = UiRenderer::new(&device, &queue, config.clone()).await?;
+        debug!("Setting up UI framework with dark theme...");
         let theme = Theme::dark();
         let mut ui_framework = UiFramework::new(theme);
         ui_framework.set_renderer(ui_renderer);
         
         // Initialize editor panels
+        debug!("Initializing editor panels...");
         let panels = EditorPanels::new(&mut ui_framework)?;
         
-        log::info!("Editor app initialized with {}x{} window", size.width, size.height);
+        info!("Editor app initialized with {}x{} window", size.width, size.height);
         
         Ok(Self {
             window,
@@ -211,7 +216,7 @@ impl EditorApp {
                 renderer.resize(Vec2::new(new_size.width as f32, new_size.height as f32));
             }
             
-            log::debug!("Editor resized to {}x{}", new_size.width, new_size.height);
+            debug!("Editor resized to {}x{}", new_size.width, new_size.height);
         }
     }
     
@@ -278,17 +283,19 @@ impl EditorApp {
     
     /// Create a new project
     pub fn new_project(&mut self, name: String, path: String) -> Result<()> {
+        info!("Creating new project: {} at {}", name, path);
         let project = EditorProject::new(name, path)?;
         self.current_project = Some(project);
-        log::info!("Created new project");
+        info!("Successfully created new project");
         Ok(())
     }
     
     /// Load an existing project
     pub fn load_project(&mut self, path: String) -> Result<()> {
+        info!("Loading project from: {}", path);
         let project = EditorProject::load(path)?;
         self.current_project = Some(project);
-        log::info!("Loaded project");
+        info!("Successfully loaded project");
         Ok(())
     }
     
