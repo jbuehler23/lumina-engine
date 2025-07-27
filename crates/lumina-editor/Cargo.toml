@@ -1,6 +1,30 @@
 [package]
 name = "lumina-editor"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+lumina-core = { path = "../lumina-core" }
+lumina-ui = { path = "../lumina-ui" }
+lumina-render = { path = "../lumina-render" }
+lumina-ecs = { path = "../lumina-ecs" }
+lumina-scripting = { path = "../lumina-scripting" }
+
+# Core dependencies
+anyhow.workspace = true
+thiserror.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+# Math and utilities
+glam.workspace = true
+
+# Graphics and windowing
+wgpu.workspace = true
+winit.workspace = true
+pollster.workspace = true
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }

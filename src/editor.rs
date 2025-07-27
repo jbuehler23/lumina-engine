@@ -1,27 +1,23 @@
-use lumina_core::{app::AppRunner, engine::EngineConfig, BasicApp};
+use lumina_editor::EditorRunner;
+use anyhow::Result;
 
-fn main() -> lumina_core::Result<()> {
-    println!("🎮 Lumina Engine Editor v0.1.0");
-    println!("=============================");
+fn main() -> Result<()> {
+    // Initialize logging
+    env_logger::init();
     
-    let config = EngineConfig {
-        window_title: "Lumina Engine Editor".to_string(),
-        window_width: 1920,
-        window_height: 1080,
-        vsync: true,
-        max_fps: Some(120),
-        enable_audio: true,
-        enable_physics: true,
-        enable_scripting: true,
-    };
-
-    println!("Starting editor with configuration:");
-    println!("  Window: {}x{}", config.window_width, config.window_height);
-    println!("  VSync: {}", config.vsync);
-    println!("  Max FPS: {:?}", config.max_fps);
+    println!("🎮 Lumina Engine - Visual Editor v0.1.0");
+    println!("======================================");
+    println!("Starting visual editor built with Lumina UI framework...");
     
-    let app = BasicApp::new();
-    let runner = AppRunner::with_config(app, config);
+    // Create and run the editor
+    let editor = EditorRunner::new()?;
     
-    runner.run()
+    println!("Editor initialized successfully!");
+    println!("Use Ctrl+C or close the window to exit.");
+    
+    // Run the editor with async runtime
+    let rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(async {
+        editor.run().await
+    })
 }

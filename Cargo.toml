@@ -96,6 +96,7 @@ lumina-editor = { path = "crates/lumina-editor" }
 anyhow.workspace = true
 log.workspace = true
 env_logger.workspace = true
+tokio = { version = "1.0", features = ["full"] }
 
 [[bin]]
 name = "lumina-editor"

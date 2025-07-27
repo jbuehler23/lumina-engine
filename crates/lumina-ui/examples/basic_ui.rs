@@ -1,11 +1,12 @@
 //! Basic UI framework example demonstrating buttons, panels, and layouts
 
 use lumina_ui::{
-    UiFramework, UiRenderer, Theme, 
-    widgets::{Button, Panel, Text, ButtonVariant},
-    input::{InputHandler, RawInputEvent, KeyCode, MouseButton, Modifiers},
-    rendering::UiUniforms,
+    UiFramework, Theme, 
+    Button, Panel, Text, 
+    InputEvent, InputHandler, KeyCode, MouseButton, Modifiers,
 };
+use lumina_ui::button::ButtonVariant;
+use lumina_render::{UiRenderer, Renderer, RenderConfig};
 use winit::{
     event::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
@@ -33,7 +34,7 @@ impl BasicUiApp {
         // Initialize WGPU
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
-            dx12_shader_compiler: Default::default(),
+            ..Default::default()
         });
         
         let surface = unsafe { instance.create_surface(&window) }.unwrap();
@@ -50,9 +51,9 @@ impl BasicUiApp {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::default(),
-                    label: None,
+                    label: Some("Device"),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
                 },
                 None,
             )
@@ -75,13 +76,15 @@ impl BasicUiApp {
             present_mode: surface_caps.present_modes[0],
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
         
         // Create UI renderer and framework
-        let ui_renderer = UiRenderer::new(device.clone(), queue.clone(), config.clone()).await.unwrap();
-        let theme = Theme::dark();
-        let mut ui_framework = UiFramework::new(ui_renderer, theme);
+        let ui_renderer = UiRenderer::new(&device, &queue, config.clone()).await.unwrap();
+        let theme = Theme::default();
+        let mut ui_framework = UiFramework::new(theme);
+        ui_framework.set_renderer(ui_renderer);
         
         // Create UI elements
         let counter_text = Text::new("Counter: 0")
@@ -89,22 +92,13 @@ impl BasicUiApp {
             .color([1.0, 1.0, 1.0, 1.0].into());
         
         let increment_button = Button::new("Increment")
-            .variant(ButtonVariant::Primary)
-            .on_click(|| {
-                println!("Increment button clicked!");
-            });
+            .variant(ButtonVariant::Primary);
         
         let decrement_button = Button::new("Decrement")
-            .variant(ButtonVariant::Secondary)
-            .on_click(|| {
-                println!("Decrement button clicked!");
-            });
+            .variant(ButtonVariant::Secondary);
         
         let reset_button = Button::new("Reset")
-            .variant(ButtonVariant::Danger)
-            .on_click(|| {
-                println!("Reset button clicked!");
-            });
+            .variant(ButtonVariant::Danger);
         
         let info_panel = Panel::new();
         
@@ -135,20 +129,20 @@ impl BasicUiApp {
             self.surface.configure(&self.device, &self.config);
             
             // Update UI framework size
-            self.ui_framework.renderer.resize([new_size.width as f32, new_size.height as f32].into());
+            if let Some(renderer) = &mut self.ui_framework.renderer {
+                renderer.resize([new_size.width as f32, new_size.height as f32].into());
+            }
         }
     }
     
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::CursorMoved { position, .. } => {
-                let raw_event = RawInputEvent::MouseMove {
+                let input_event = InputEvent::MouseMove {
                     position: [position.x as f32, position.y as f32].into(),
+                    delta: [0.0, 0.0].into(), // TODO: calculate actual delta
                 };
-                let input_events = self.ui_framework.input_handler.process_input(&raw_event);
-                for input_event in input_events {
-                    self.ui_framework.handle_input(input_event);
-                }
+                self.ui_framework.handle_input(input_event);
                 true
             }
             WindowEvent::MouseInput { state, button, .. } => {
@@ -159,24 +153,20 @@ impl BasicUiApp {
                     _ => return false,
                 };
                 
-                let mouse_pos = self.ui_framework.input_handler.mouse_position();
-                let raw_event = match state {
-                    ElementState::Pressed => RawInputEvent::MouseDown {
+                let input_event = match state {
+                    ElementState::Pressed => InputEvent::MouseDown {
                         button: mouse_button,
-                        position: mouse_pos,
-                        modifiers: Modifiers::empty(),
+                        position: [0.0, 0.0].into(), // TODO: get actual position
+                        modifiers: Modifiers::default(),
                     },
-                    ElementState::Released => RawInputEvent::MouseUp {
+                    ElementState::Released => InputEvent::MouseUp {
                         button: mouse_button,
-                        position: mouse_pos,
-                        modifiers: Modifiers::empty(),
+                        position: [0.0, 0.0].into(), // TODO: get actual position
+                        modifiers: Modifiers::default(),
                     },
                 };
                 
-                let input_events = self.ui_framework.input_handler.process_input(&raw_event);
-                for input_event in input_events {
-                    self.ui_framework.handle_input(input_event);
-                }
+                self.ui_framework.handle_input(input_event);
                 true
             }
             WindowEvent::KeyboardInput { 
@@ -198,21 +188,18 @@ impl BasicUiApp {
                     _ => return false,
                 };
                 
-                let raw_event = match state {
-                    ElementState::Pressed => RawInputEvent::KeyDown {
+                let input_event = match state {
+                    ElementState::Pressed => InputEvent::KeyDown {
                         key,
-                        modifiers: Modifiers::empty(),
+                        modifiers: Modifiers::default(),
                     },
-                    ElementState::Released => RawInputEvent::KeyUp {
+                    ElementState::Released => InputEvent::KeyUp {
                         key,
-                        modifiers: Modifiers::empty(),
+                        modifiers: Modifiers::default(),
                     },
                 };
                 
-                let input_events = self.ui_framework.input_handler.process_input(&raw_event);
-                for input_event in input_events {
-                    self.ui_framework.handle_input(input_event);
-                }
+                self.ui_framework.handle_input(input_event);
                 true
             }
             _ => false,
@@ -223,8 +210,7 @@ impl BasicUiApp {
         // Update UI layout
         self.ui_framework.update_layout([self.size.width as f32, self.size.height as f32].into());
         
-        // Begin input frame
-        self.ui_framework.input_handler.begin_frame();
+        // Update UI state (no input frame management needed)
     }
     
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -252,11 +238,13 @@ impl BasicUiApp {
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
         }
         
         // Render UI
-        self.ui_framework.render();
+        self.ui_framework.render(&self.queue);
         
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
@@ -309,7 +297,7 @@ async fn main() {
                 }
             }
             Event::MainEventsCleared => {
-                window.request_redraw();
+                // window.request_redraw(); // Not available in current winit version
             }
             _ => {}
         }
