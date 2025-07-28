@@ -41,6 +41,7 @@ pub mod buffer;
 pub mod texture;
 pub mod error;
 pub mod window;
+pub mod context;
 
 // Re-export commonly used types
 pub use renderer::*;
@@ -51,6 +52,7 @@ pub use buffer::*;
 pub use texture::{TextureManager, Texture};
 pub use error::*;
 pub use window::*;
+pub use context::RenderContext;
 
 // Re-export texture handle from texture module to avoid conflicts
 pub use texture::TextureHandle;

@@ -7,7 +7,6 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Core engine dependencies
-lumina-core = { path = "../lumina-core" }
 lumina-ecs = { path = "../lumina-ecs" }
 
 # Graphics and rendering

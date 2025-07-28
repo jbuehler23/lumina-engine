@@ -1,5 +1,4 @@
-use crate::Entity;
-use lumina_core::BitSet;
+use crate::{Entity, BitSet};
 use parking_lot::RwLock;
 use smallvec::SmallVec;
 

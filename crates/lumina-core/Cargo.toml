@@ -17,6 +17,11 @@ parking_lot.workspace = true
 rayon.workspace = true
 smallvec.workspace = true
 lumina-scripting = { path = "../lumina-scripting" }
+lumina-render = { path = "../lumina-render" }
+lumina-ui = { path = "../lumina-ui" }
+lumina-ecs = { path = "../lumina-ecs" }
+wgpu.workspace = true
+winit.workspace = true
 
 [features]
 default = ["logging"]

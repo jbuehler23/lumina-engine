@@ -14,6 +14,7 @@ pub mod editor;
 pub mod error;
 pub mod easy_api;
 pub mod app;
+pub mod ecs_integration;
 
 #[cfg(target_arch = "wasm32")]
 pub mod web;
@@ -26,6 +27,7 @@ pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, Inpu
 pub use error::{UiError, UiResult};
 pub use easy_api::{UiBuilder, Color, ButtonStyle, Direction, Alignment as EasyAlignment};
 pub use app::{UiApp, UiApplication, UiAppConfig, run_ui_app};
+pub use ecs_integration::{EcsUiApp, create_simple_ecs_ui_example, example_components};
 
 // Re-export rendering types from lumina-render
 pub use lumina_render::{UiRenderer, Rect};
@@ -86,7 +88,7 @@ impl Default for WidgetId {
 }
 
 /// Core trait that all UI widgets must implement
-pub trait Widget: std::fmt::Debug {
+pub trait Widget: std::fmt::Debug + Send + Sync {
     /// Get the unique ID of this widget
     fn id(&self) -> WidgetId;
     

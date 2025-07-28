@@ -6,6 +6,8 @@ pub mod math;
 pub mod memory;
 pub mod time;
 pub mod utils;
+pub mod render_systems;
+pub mod ecs_app;
 // Visual scripting now lives in lumina-scripting crate
 
 pub use app::*;
@@ -16,6 +18,8 @@ pub use math::*;
 pub use memory::*;
 pub use time::*;
 pub use utils::*;
+pub use render_systems::*;
+pub use ecs_app::*;
 // Re-export visual scripting from lumina-scripting
 pub use lumina_scripting::*;
 

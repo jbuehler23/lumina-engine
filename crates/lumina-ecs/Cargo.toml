@@ -6,7 +6,7 @@ description = "Entity Component System for the Lumina game engine"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-lumina-core = { path = "../lumina-core" }
+uuid.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 serde.workspace = true
