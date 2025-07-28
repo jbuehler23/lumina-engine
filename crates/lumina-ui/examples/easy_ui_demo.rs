@@ -3,7 +3,7 @@
 //! This example demonstrates the new easy-to-use declarative API
 //! designed to make UI creation accessible to non-technical users.
 
-use lumina_ui::{UiBuilder, Color, ButtonStyle, Direction, EasyAlignment as Alignment};
+use lumina_ui::{UiBuilder, Color, ButtonStyle, EasyAlignment as Alignment, InputEvent, MouseButton, Modifiers};
 use lumina_render::UiRenderer;
 use winit::{
     event::{Event, WindowEvent},
@@ -20,6 +20,7 @@ struct EasyUiDemoApp<'a> {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Arc<winit::window::Window>,
+    mouse_position: glam::Vec2,
 }
 
 impl<'a> EasyUiDemoApp<'a> {
@@ -91,6 +92,7 @@ impl<'a> EasyUiDemoApp<'a> {
             config,
             size,
             window,
+            mouse_position: glam::Vec2::ZERO,
         }
     }
     
@@ -110,30 +112,38 @@ impl<'a> EasyUiDemoApp<'a> {
             .name("subtitle")
             .build();
         
-        // Button section
+        // Button section with interactive callbacks
         let play_button = ui.button("Start Playing")
             .style(ButtonStyle::Primary)
             .name("play_button")
+            .on_click(|| println!("🚀 Starting the game! Loading assets..."))
             .build();
         
         let create_button = ui.button("Create Game")
             .style(ButtonStyle::Success)
             .name("create_button")
+            .on_click(|| println!("🛠️ Opening game creation tools..."))
             .build();
         
         let settings_button = ui.button("Settings")
             .style(ButtonStyle::Secondary)
             .name("settings_button")
+            .on_click(|| println!("⚙️ Opening settings menu..."))
             .build();
         
         let help_button = ui.button("Help & Tutorials")
             .style(ButtonStyle::Ghost)
             .name("help_button")
+            .on_click(|| println!("❓ Opening help and tutorials..."))
             .build();
         
         let exit_button = ui.button("Exit")
             .style(ButtonStyle::Danger)
             .name("exit_button")
+            .on_click(|| {
+                println!("❌ Exiting application...");
+                std::process::exit(0);
+            })
             .build();
         
         // Info section
@@ -259,18 +269,35 @@ impl<'a> EasyUiDemoApp<'a> {
     }
     
     fn handle_input(&mut self, event: &WindowEvent) -> bool {
-        // Handle input events
-        // In a real implementation, we'd convert winit events to UI events
+        // Convert winit events to UI events and handle them
         match event {
             WindowEvent::CursorMoved { position, .. } => {
-                // Handle mouse movement
+                // Update tracked mouse position
+                self.mouse_position = glam::Vec2::new(position.x as f32, position.y as f32);
+                
+                let ui_event = InputEvent::MouseMove {
+                    position: self.mouse_position,
+                    delta: [0.0, 0.0].into(), // We could track this for more advanced interactions
+                };
+                self.ui_builder.handle_input(ui_event);
                 true
             }
             WindowEvent::MouseInput { state, button, .. } => {
-                // Handle mouse clicks
-                // In a real app, we'd check if any of our named buttons were clicked
+                let mouse_button = match button {
+                    winit::event::MouseButton::Left => MouseButton::Left,
+                    winit::event::MouseButton::Right => MouseButton::Right,
+                    winit::event::MouseButton::Middle => MouseButton::Middle,
+                    _ => return false,
+                };
+                
                 if let winit::event::ElementState::Pressed = state {
-                    println!("Mouse clicked! In a real app, we'd check which button was clicked.");
+                    // Use the tracked mouse position for accurate click detection
+                    let ui_event = InputEvent::MouseClick {
+                        button: mouse_button,
+                        position: self.mouse_position,
+                        modifiers: Modifiers::default(),
+                    };
+                    self.ui_builder.handle_input(ui_event);
                 }
                 true
             }

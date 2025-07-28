@@ -9,9 +9,13 @@ use crate::{
     Button, Text, Panel,
     layout::containers::{Flex, FlexDirection, MainAxisAlignment, CrossAxisAlignment, Spacing, Padding},
     widgets::button::ButtonVariant,
+    InputEvent, InputResponse,
 };
 use glam::Vec2;
 use std::collections::HashMap;
+
+/// Callback function type for UI events
+pub type UiCallback = Box<dyn Fn() + Send + Sync>;
 
 /// Easy UI builder that provides a declarative API
 pub struct UiBuilder {
@@ -21,6 +25,8 @@ pub struct UiBuilder {
     widget_stack: Vec<WidgetId>,
     /// Named widgets for easy access
     named_widgets: HashMap<String, WidgetId>,
+    /// Button click callbacks
+    button_callbacks: HashMap<WidgetId, UiCallback>,
 }
 
 /// Color helper for easy color specification
@@ -138,6 +144,7 @@ impl UiBuilder {
             framework: UiFramework::new(theme),
             widget_stack: Vec::new(),
             named_widgets: HashMap::new(),
+            button_callbacks: HashMap::new(),
         }
     }
     
@@ -201,6 +208,48 @@ impl UiBuilder {
         self.framework.update_layout(screen_size);
     }
     
+    /// Handle input events and trigger callbacks
+    pub fn handle_input(&mut self, event: InputEvent) {
+        // First, let the framework handle the input
+        self.framework.handle_input(event.clone());
+        
+        // Then check if any buttons were clicked
+        if let InputEvent::MouseClick { position, .. } = event {
+            // Find which widget was clicked
+            for &root_id in &self.framework.state.root_widgets.clone() {
+                if let Some(clicked_widget) = self.find_clicked_widget(position, root_id) {
+                    // Check if we have a callback for this widget
+                    if let Some(callback) = self.button_callbacks.get(&clicked_widget) {
+                        callback();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    /// Find the widget that was clicked at the given position
+    fn find_clicked_widget(&self, position: Vec2, widget_id: WidgetId) -> Option<WidgetId> {
+        if let Some(layout) = self.framework.state.layout_cache.get(&widget_id) {
+            if layout.bounds.contains(position) {
+                // Check children first (they're on top)
+                if let Some(children) = self.framework.state.hierarchy.get(&widget_id) {
+                    for &child_id in children.iter().rev() {
+                        if let Some(found) = self.find_clicked_widget(position, child_id) {
+                            return Some(found);
+                        }
+                    }
+                }
+                
+                // Return this widget if no children match and it's clickable
+                if self.button_callbacks.contains_key(&widget_id) {
+                    return Some(widget_id);
+                }
+            }
+        }
+        None
+    }
+    
     /// Render the UI
     pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, device: &wgpu::Device, queue: &wgpu::Queue) {
         self.framework.render(render_pass, device, queue);
@@ -258,6 +307,7 @@ pub struct ButtonBuilder<'a> {
     ui: &'a mut UiBuilder,
     button: Button,
     name: Option<String>,
+    callback: Option<UiCallback>,
 }
 
 impl<'a> ButtonBuilder<'a> {
@@ -266,6 +316,7 @@ impl<'a> ButtonBuilder<'a> {
             ui,
             button: Button::new(text),
             name: None,
+            callback: None,
         }
     }
     
@@ -276,12 +327,11 @@ impl<'a> ButtonBuilder<'a> {
     }
     
     /// Set click handler (for simple cases)
-    pub fn on_click<F>(self, _handler: F) -> Self 
+    pub fn on_click<F>(mut self, handler: F) -> Self 
     where 
-        F: Fn() + 'static
+        F: Fn() + Send + Sync + 'static
     {
-        // In a real implementation, we'd store the handler
-        // For now, this is a placeholder for the API design
+        self.callback = Some(Box::new(handler));
         self
     }
     
@@ -297,6 +347,11 @@ impl<'a> ButtonBuilder<'a> {
         
         if let Some(name) = self.name {
             self.ui.named_widgets.insert(name, widget_id);
+        }
+        
+        // Store the callback if provided
+        if let Some(callback) = self.callback {
+            self.ui.button_callbacks.insert(widget_id, callback);
         }
         
         widget_id

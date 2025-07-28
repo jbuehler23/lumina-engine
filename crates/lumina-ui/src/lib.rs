@@ -13,6 +13,7 @@ pub mod input;
 pub mod editor;
 pub mod error;
 pub mod easy_api;
+pub mod app;
 
 #[cfg(target_arch = "wasm32")]
 pub mod web;
@@ -24,6 +25,7 @@ pub use theming::Theme;
 pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler, DragData};
 pub use error::{UiError, UiResult};
 pub use easy_api::{UiBuilder, Color, ButtonStyle, Direction, Alignment as EasyAlignment};
+pub use app::{UiApp, UiApplication, UiAppConfig, run_ui_app};
 
 // Re-export rendering types from lumina-render
 pub use lumina_render::{UiRenderer, Rect};
