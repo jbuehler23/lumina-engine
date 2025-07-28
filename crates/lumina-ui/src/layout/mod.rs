@@ -3,6 +3,8 @@
 //! Provides a flexbox-inspired layout engine that can handle complex
 //! UI layouts with automatic sizing and positioning.
 
+pub mod containers;
+
 use crate::{Rect, error::LayoutError};
 use glam::Vec2;
 use serde::{Deserialize, Serialize};

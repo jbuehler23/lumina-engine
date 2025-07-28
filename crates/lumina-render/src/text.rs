@@ -1,43 +1,54 @@
-//! Text rendering pipeline using cosmic-text following Bevy's patterns
+//! Text rendering pipeline using glyphon for optimized WGPU integration
 //!
 //! This module provides a clean separation between text layout and rendering,
-//! following Bevy's design patterns for optimal performance and maintainability.
-//! No fallback rendering - fails fast on errors for better debugging.
+//! using glyphon's specialized WGPU text rendering capabilities for better
+//! performance and simplified management.
 
 use crate::{RenderResult, FontHandle};
 use glam::Vec2;
-use cosmic_text::{FontSystem, SwashCache, Buffer, Metrics, Family, Attrs, Shaping, Wrap, CacheKey};
-use std::collections::HashMap;
+use glyphon::{
+    FontSystem, SwashCache, TextAtlas, TextRenderer, TextArea, TextBounds,
+    Buffer, Metrics, Family, Attrs, Shaping, Resolution, Color as GlyphonColor
+};
+// HashMap no longer needed with glyphon
 use thiserror::Error;
 
-/// Text layout information containing all positioned glyphs (Bevy pattern)
-#[derive(Debug, Clone)]
+/// Text layout information for glyphon-based rendering
+#[derive(Debug)]
 pub struct TextLayoutInfo {
-    /// All positioned glyphs ready for rendering
-    pub glyphs: Vec<PositionedGlyph>,
+    /// Buffer for text rendering (to be used with glyphon)
+    pub buffer: Buffer,
+    /// Position for the text
+    pub position: Vec2,
+    /// Color for the text  
+    pub color: GlyphonColor,
     /// Total text bounds
     pub size: Vec2,
 }
 
-/// A positioned glyph ready for rendering (Bevy pattern)
+/// Text measurement information for layout calculations
 #[derive(Debug, Clone)]
-pub struct PositionedGlyph {
-    /// Position in world space
-    pub position: Vec2,
-    /// Size of the glyph
+pub struct TextMeasurement {
+    /// Total size of the text
     pub size: Vec2,
-    /// Atlas coordinates for texture sampling
-    pub atlas_coords: [f32; 4],
-    /// Color multiplier
-    pub color: [f32; 4],
+    /// Distance from baseline to top of tallest character
+    pub ascent: f32,
+    /// Distance from baseline to bottom of lowest character
+    pub descent: f32,
+    /// Distance from top of text bounds to baseline
+    pub baseline_offset: f32,
 }
 
-/// Key for glyph cache lookup
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct GlyphKey {
-    cache_key: CacheKey,
-    font_size: u32, // Size in fixed point (size * 100)
+/// A text area ready for glyphon rendering
+#[derive(Debug)]
+pub struct TextAreaInfo {
+    /// Text area bounds
+    pub bounds: TextBounds,
+    /// Text color
+    pub color: GlyphonColor,
 }
+
+// Glyphon handles glyph caching internally - no manual cache management needed
 
 /// Text rendering errors
 #[derive(Error, Debug)]
@@ -50,245 +61,63 @@ pub enum TextError {
     RasterizationError(String),
     #[error("Font atlas is full")]
     AtlasFull,
+    #[error("Rendering error: {0}")]
+    RenderingError(String),
 }
 
-/// Text pipeline for layout and rendering using cosmic-text (Bevy pattern)
+/// Text pipeline for layout and rendering using glyphon
 pub struct TextPipeline {
-    /// Cosmic text font system (singleton)
+    /// Glyphon font system
     font_system: FontSystem,
-    /// Swash cache for glyph rasterization (singleton)
+    /// Swash cache for glyph rasterization
     swash_cache: SwashCache,
-    /// Font atlas for efficient glyph storage
-    font_atlas: FontAtlas,
+    /// Glyphon text atlas for glyph management
+    text_atlas: TextAtlas,
+    /// Glyphon text renderer
+    text_renderer: TextRenderer,
     /// Default font handle
     default_font: Option<FontHandle>,
+    /// Screen resolution for proper scaling
+    resolution: Resolution,
 }
 
-/// Font atlas for efficient glyph storage and retrieval
-pub struct FontAtlas {
-    /// Glyph atlas texture for GPU rendering
-    texture: wgpu::Texture,
-    /// Current atlas dimensions
-    size: (u32, u32),
-    /// Next position in atlas for new glyphs
-    cursor: (u32, u32),
-    /// Row height tracking for proper atlas packing
-    current_row_height: u32,
-    /// Cached glyph data
-    glyph_cache: HashMap<GlyphKey, PositionedGlyph>,
-}
-
-impl FontAtlas {
-    /// Create a new font atlas
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> RenderResult<Self> {
-        let size = (1024, 1024);
-        
-        // Create glyph atlas texture (1024x1024 grayscale)
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("Font Atlas"),
-            size: wgpu::Extent3d {
-                width: size.0,
-                height: size.1,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm, // Grayscale
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
-        
-        let atlas = Self {
-            texture,
-            size,
-            cursor: (1, 1), // Reserve (0,0) for white pixel
-            current_row_height: 0,
-            glyph_cache: HashMap::new(),
-        };
-        
-        // Initialize the atlas with a white pixel at (0,0) for solid color rendering
-        atlas.init_white_pixel(queue);
-        
-        Ok(atlas)
-    }
-    
-    /// Get or rasterize a glyph using cosmic-text
-    pub fn get_or_rasterize_glyph(
-        &mut self,
-        cache_key: CacheKey,
-        font_size: f32,
-        font_system: &mut FontSystem,
-        swash_cache: &mut SwashCache,
-        queue: &wgpu::Queue,
-    ) -> Result<&PositionedGlyph, TextError> {
-        let glyph_key = GlyphKey {
-            cache_key,
-            font_size: (font_size * 100.0) as u32,
-        };
-        
-        if !self.glyph_cache.contains_key(&glyph_key) {
-            // Rasterize the glyph using swash
-            let image = if let Some(image) = swash_cache.get_image(font_system, cache_key) {
-                image
-            } else {
-                return Err(TextError::RasterizationError(format!("Failed to rasterize glyph with cache key {:?}", cache_key)));
-            };
-            
-            log::debug!("Rasterized glyph at size {} ({}x{})", font_size, image.placement.width, image.placement.height);
-            
-            // Extract image data
-            let glyph_width = image.placement.width;
-            let glyph_height = image.placement.height;
-            
-            // Convert to grayscale bitmap
-            let bitmap = match image.content {
-                cosmic_text::SwashContent::Mask => {
-                    // Already grayscale
-                    image.data.to_vec()
-                },
-                cosmic_text::SwashContent::Color => {
-                    // Convert RGBA to grayscale
-                    let mut grayscale = Vec::with_capacity(image.data.len() / 4);
-                    for chunk in image.data.chunks_exact(4) {
-                        let r = chunk[0] as f32;
-                        let g = chunk[1] as f32;
-                        let b = chunk[2] as f32;
-                        let gray = (0.299 * r + 0.587 * g + 0.114 * b) as u8;
-                        grayscale.push(gray);
-                    }
-                    grayscale
-                },
-                cosmic_text::SwashContent::SubpixelMask => {
-                    // Take only one channel for simplicity
-                    image.data.iter().step_by(3).copied().collect()
-                },
-            };
-            
-            // Allocate space in atlas and get coordinates
-            let atlas_coords = self.allocate_atlas_space(glyph_width, glyph_height, &bitmap, queue)?;
-            
-            let positioned_glyph = PositionedGlyph {
-                position: Vec2::ZERO, // Will be set by caller
-                size: Vec2::new(glyph_width as f32, glyph_height as f32),
-                atlas_coords,
-                color: [1.0, 1.0, 1.0, 1.0], // Default white
-            };
-            
-            self.glyph_cache.insert(glyph_key.clone(), positioned_glyph);
-            log::debug!("Cached glyph (size: {}) with {}x{} bitmap", font_size, glyph_width, glyph_height);
-        }
-        
-        self.glyph_cache.get(&glyph_key)
-            .ok_or_else(|| TextError::RasterizationError("Failed to retrieve cached glyph".to_string()))
-    }
-    
-    /// Allocate space in the atlas and upload glyph bitmap
-    fn allocate_atlas_space(&mut self, width: u32, height: u32, bitmap: &[u8], queue: &wgpu::Queue) -> Result<[f32; 4], TextError> {
-        // Check if we need to move to next row
-        if self.cursor.0 + width > self.size.0 {
-            // Move to next row
-            self.cursor.0 = 1; // Skip white pixel
-            self.cursor.1 += self.current_row_height + 2; // Add padding
-            self.current_row_height = 0;
-        }
-        
-        // Track row height
-        self.current_row_height = self.current_row_height.max(height);
-        
-        // Check if we have vertical space
-        if self.cursor.1 + height > self.size.1 {
-            return Err(TextError::AtlasFull);
-        }
-        
-        let coords = [
-            self.cursor.0 as f32 / self.size.0 as f32,
-            self.cursor.1 as f32 / self.size.1 as f32,
-            (self.cursor.0 + width) as f32 / self.size.0 as f32,
-            (self.cursor.1 + height) as f32 / self.size.1 as f32,
-        ];
-        
-        // Upload to GPU
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: self.cursor.0,
-                    y: self.cursor.1,
-                    z: 0,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            bitmap,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(width),
-                rows_per_image: Some(height),
-            },
-            wgpu::Extent3d {
-                width,
-                height,
-                depth_or_array_layers: 1,
-            },
-        );
-        
-        log::debug!("Uploaded glyph to GPU atlas at ({}, {})", self.cursor.0, self.cursor.1);
-        
-        // Advance cursor
-        self.cursor.0 += width + 1; // Add padding
-        
-        Ok(coords)
-    }
-    
-    /// Initialize a white pixel at (0,0) in the atlas for solid color rendering
-    fn init_white_pixel(&self, queue: &wgpu::Queue) {
-        // Create a single white pixel
-        let white_pixel = [255u8]; // Single grayscale white pixel
-        
-        queue.write_texture(
-            wgpu::ImageCopyTexture {
-                texture: &self.texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &white_pixel,
-            wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(1),
-                rows_per_image: Some(1),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        );
-        
-        log::debug!("Initialized white pixel at (0,0) in font atlas for solid rendering");
-    }
-}
+// Glyphon manages font atlas internally - no manual atlas management needed
 
 impl TextPipeline {
-    /// Create a new text pipeline
+    /// Create a new text pipeline using glyphon
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        _format: wgpu::TextureFormat,
+        format: wgpu::TextureFormat,
     ) -> RenderResult<Self> {
-        // Create cosmic-text singletons
-        let font_system = FontSystem::new();
+        // Create glyphon components
+        let mut font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         
-        // Create font atlas
-        let font_atlas = FontAtlas::new(device, queue)?;
+        // Create text atlas with proper format
+        let mut text_atlas = TextAtlas::new(device, queue, format);
+        
+        // Create text renderer
+        let text_renderer = TextRenderer::new(
+            &mut text_atlas,
+            device,
+            wgpu::MultisampleState::default(),
+            None, // No depth stencil for UI text
+        );
+        
+        // Set up screen resolution (will be updated on resize)
+        let resolution = Resolution {
+            width: 1920,
+            height: 1080,
+        };
         
         let mut pipeline = Self {
             font_system,
             swash_cache,
-            font_atlas,
+            text_atlas,
+            text_renderer,
             default_font: None,
+            resolution,
         };
         
         // Load default font
@@ -298,7 +127,61 @@ impl TextPipeline {
         Ok(pipeline)
     }
     
-    /// Queue text for layout and rendering (Bevy pattern)
+    /// Measure text dimensions without rendering (for layout calculations)
+    pub fn measure_text(
+        &mut self,
+        text: &str,
+        _font_handle: FontHandle,
+        font_size: f32,
+    ) -> Result<TextMeasurement, TextError> {
+        let metrics = Metrics::new(font_size, font_size * 1.2);
+        let mut buffer = Buffer::new(&mut self.font_system, metrics);
+        
+        // Configure buffer for measurement
+        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX); // Large size for measurement
+        buffer.set_text(
+            &mut self.font_system,
+            text,
+            Attrs::new().family(Family::SansSerif),
+            Shaping::Advanced,
+        );
+        
+        // Shape the text
+        buffer.shape_until_scroll(&mut self.font_system);
+        
+        // Calculate text bounds using glyphon's layout information
+        let mut width = 0.0f32;
+        let mut height = 0.0f32;
+        
+        for run in buffer.layout_runs() {
+            width = width.max(run.line_w);
+            height += metrics.line_height;
+        }
+        
+        // Handle empty text
+        if text.is_empty() {
+            return Ok(TextMeasurement {
+                size: Vec2::ZERO,
+                ascent: 0.0,
+                descent: 0.0,
+                baseline_offset: 0.0,
+            });
+        }
+        
+        // Calculate font metrics for proper centering
+        let ascent = metrics.font_size * 0.8; // Approximate ascent
+        let descent = metrics.font_size * 0.2; // Approximate descent
+        let baseline_offset = ascent; // Distance from top to baseline
+        
+        Ok(TextMeasurement {
+            size: Vec2::new(width, height),
+            ascent,
+            descent,
+            baseline_offset,
+        })
+    }
+
+    /// Queue text for layout and rendering using glyphon
     pub fn queue_text(
         &mut self,
         text: &str,
@@ -306,7 +189,7 @@ impl TextPipeline {
         font_size: f32,
         position: Vec2,
         color: [f32; 4],
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
     ) -> Result<TextLayoutInfo, TextError> {
         log::debug!("Queueing text: '{}' at size {} at position {:?}", text, font_size, position);
         
@@ -315,66 +198,40 @@ impl TextPipeline {
         let mut buffer = Buffer::new(&mut self.font_system, metrics);
         
         // Configure buffer
-        buffer.set_size(&mut self.font_system, Some(1000.0), Some(1000.0));
+        buffer.set_size(&mut self.font_system, f32::MAX, f32::MAX); // Large size for layout
         buffer.set_text(
             &mut self.font_system,
             text,
             Attrs::new().family(Family::SansSerif),
             Shaping::Advanced,
         );
-        buffer.set_wrap(&mut self.font_system, Wrap::None);
         
         // Shape the text
-        buffer.shape_until_scroll(&mut self.font_system, false);
+        buffer.shape_until_scroll(&mut self.font_system);
         
-        // Extract positioned glyphs
-        let mut glyphs = Vec::new();
-        let mut max_x = 0.0f32;
-        let mut max_y = 0.0f32;
+        // Calculate text bounds
+        let mut width = 0.0f32;
+        let mut height = 0.0f32;
         
         for run in buffer.layout_runs() {
-            for glyph in run.glyphs {
-                let cache_key = CacheKey::new(
-                    glyph.font_id,
-                    glyph.glyph_id,
-                    font_size,
-                    (0.0, 0.0), // No subpixel positioning for now
-                    cosmic_text::CacheKeyFlags::empty(),
-                ).0;
-                
-                // Get or create glyph in atlas
-                let positioned_glyph = self.font_atlas.get_or_rasterize_glyph(
-                    cache_key,
-                    font_size,
-                    &mut self.font_system,
-                    &mut self.swash_cache,
-                    queue,
-                )?;
-                
-                let glyph_position = Vec2::new(
-                    position.x + glyph.x,
-                    position.y + glyph.y,
-                );
-                
-                glyphs.push(PositionedGlyph {
-                    position: glyph_position,
-                    size: positioned_glyph.size,
-                    atlas_coords: positioned_glyph.atlas_coords,
-                    color,
-                });
-                
-                max_x = max_x.max(glyph_position.x + positioned_glyph.size.x);
-                max_y = max_y.max(glyph_position.y + positioned_glyph.size.y);
-            }
+            width = width.max(run.line_w);
+            height += metrics.line_height;
         }
         
-        let layout_size = Vec2::new(max_x - position.x, max_y - position.y);
+        let glyphon_color = GlyphonColor::rgba(
+            (color[0] * 255.0) as u8,
+            (color[1] * 255.0) as u8,
+            (color[2] * 255.0) as u8,
+            (color[3] * 255.0) as u8,
+        );
         
-        log::debug!("Generated {} positioned glyphs for text '{}'", glyphs.len(), text);
+        log::debug!("Generated text buffer for text '{}' with bounds {}x{}", text, width, height);
         
         Ok(TextLayoutInfo {
-            glyphs,
-            size: layout_size,
+            buffer,
+            position,
+            color: glyphon_color,
+            size: Vec2::new(width, height),
         })
     }
 
@@ -418,13 +275,75 @@ impl TextPipeline {
         self.default_font
     }
     
-    /// Get the font atlas texture for binding in shaders
-    pub fn glyph_atlas(&self) -> &wgpu::Texture {
-        &self.font_atlas.texture
+    /// Get the glyphon text atlas
+    pub fn text_atlas(&self) -> &TextAtlas {
+        &self.text_atlas
     }
     
-    /// Get the atlas size
-    pub fn atlas_size(&self) -> (u32, u32) {
-        self.font_atlas.size
+    /// Get mutable reference to text atlas
+    pub fn text_atlas_mut(&mut self) -> &mut TextAtlas {
+        &mut self.text_atlas
+    }
+    
+    /// Get the glyphon text renderer
+    pub fn text_renderer(&self) -> &TextRenderer {
+        &self.text_renderer
+    }
+    
+    /// Get mutable reference to text renderer
+    pub fn text_renderer_mut(&mut self) -> &mut TextRenderer {
+        &mut self.text_renderer
+    }
+    
+    /// Update screen resolution for proper text scaling
+    pub fn set_resolution(&mut self, width: u32, height: u32) {
+        self.resolution = Resolution { width, height };
+    }
+    
+    /// Prepare text layout infos for rendering
+    pub fn prepare_text_layouts(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        text_layouts: &[TextLayoutInfo],
+    ) -> Result<(), TextError> {
+        // Convert TextLayoutInfo to TextArea for glyphon
+        let text_areas: Vec<TextArea> = text_layouts.iter().map(|layout| {
+            TextArea {
+                buffer: &layout.buffer,
+                left: layout.position.x,
+                top: layout.position.y,
+                scale: 1.0,
+                bounds: TextBounds {
+                    left: layout.position.x as i32,
+                    top: layout.position.y as i32,
+                    right: (layout.position.x + layout.size.x) as i32,
+                    bottom: (layout.position.y + layout.size.y) as i32,
+                },
+                default_color: layout.color,
+            }
+        }).collect();
+        
+        self.text_renderer
+            .prepare(
+                device,
+                queue,
+                &mut self.font_system,
+                &mut self.text_atlas,
+                self.resolution,
+                text_areas,
+                &mut self.swash_cache,
+            )
+            .map_err(|e| TextError::RenderingError(format!("Failed to prepare text areas: {:?}", e)))
+    }
+    
+    /// Render text areas to a render pass
+    pub fn render_text_areas<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) -> Result<(), TextError> {
+        self.text_renderer
+            .render(&self.text_atlas, render_pass)
+            .map_err(|e| TextError::RenderingError(format!("Failed to render text areas: {:?}", e)))
     }
 }

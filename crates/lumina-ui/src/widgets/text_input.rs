@@ -13,6 +13,7 @@ pub struct TextInput {
     /// Base widget properties
     base: BaseWidget,
     /// Current text value
+    #[allow(dead_code)]
     value: String,
     /// Placeholder text
     placeholder: String,
@@ -57,7 +58,7 @@ impl Widget for TextInput {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue, _theme: &crate::Theme) {
         // TODO: Implement text input rendering
     }
     

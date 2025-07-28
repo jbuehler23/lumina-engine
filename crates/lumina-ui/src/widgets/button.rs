@@ -307,14 +307,12 @@ impl Widget for Button {
         }
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue, theme: &Theme) {
         if !self.base.visible {
             return;
         }
         
-        // Get theme (in a real implementation, this would be passed in or accessed differently)
-        let theme = Theme::default();
-        let (bg_color, text_color, border_color) = self.get_current_colors(&theme);
+        let (bg_color, text_color, border_color) = self.get_current_colors(theme);
         
         // Get border radius
         let border_radius = match self.variant {
@@ -338,14 +336,27 @@ impl Widget for Button {
         // Draw text
         if !self.text.is_empty() {
             let font_size = theme.typography.font_sizes.base;
-            let text_pos = Vec2::new(
-                bounds.position.x + bounds.size.x * 0.5, // Center horizontally
-                bounds.position.y + bounds.size.y * 0.5, // Center vertically
-            );
-            
-            // TODO: Use actual font handle
             let font_handle = lumina_render::FontHandle(0);
-            let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
+            
+            // Measure text to get proper centering information using glyphon
+            if let Ok(measurement) = renderer.measure_text(&self.text, font_handle, font_size) {
+                // Center text properly using glyphon's measurement
+                // The measurement gives us the actual text bounds for proper centering
+                let text_pos = Vec2::new(
+                    bounds.position.x + (bounds.size.x - measurement.size.x) * 0.5, // Center horizontally
+                    bounds.position.y + (bounds.size.y - measurement.size.y) * 0.5 + measurement.baseline_offset, // Center vertically with baseline
+                );
+                
+                let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
+            } else {
+                // Fallback to simple centering if measurement fails
+                let text_pos = Vec2::new(
+                    bounds.position.x + bounds.size.x * 0.5,
+                    bounds.position.y + bounds.size.y * 0.5,
+                );
+                let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
+                log::warn!("Text measurement failed for button text '{}', using fallback positioning", self.text);
+            }
         }
     }
     

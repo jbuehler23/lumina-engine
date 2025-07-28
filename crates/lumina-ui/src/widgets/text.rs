@@ -80,13 +80,20 @@ impl Widget for Text {
         InputResponse::NotHandled
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue, theme: &crate::Theme) {
         if !self.base.visible || self.content.is_empty() {
             return;
         }
         
+        // Use theme's primary text color by default
+        let text_color = if self.color == Vec4::new(1.0, 1.0, 1.0, 1.0) {
+            theme.colors.text.primary
+        } else {
+            self.color
+        };
+        
         // Use default font (should be loaded from Inter font file)
         let font_handle = renderer.get_default_font();
-        let _ = renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, self.color, queue);
+        let _ = renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, text_color, queue);
     }
 }

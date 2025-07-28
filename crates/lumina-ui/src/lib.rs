@@ -12,16 +12,18 @@ pub mod theming;
 pub mod input;
 pub mod editor;
 pub mod error;
+pub mod easy_api;
 
 #[cfg(target_arch = "wasm32")]
 pub mod web;
 
 // Re-export commonly used types  
 pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container, Draggable};
-pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign};
+pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign, containers::*};
 pub use theming::Theme;
 pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler, DragData};
 pub use error::{UiError, UiResult};
+pub use easy_api::{UiBuilder, Color, ButtonStyle, Direction, Alignment as EasyAlignment};
 
 // Re-export rendering types from lumina-render
 pub use lumina_render::{UiRenderer, Rect};
@@ -96,7 +98,7 @@ pub trait Widget: std::fmt::Debug {
     fn handle_input(&mut self, input: &InputEvent) -> InputResponse;
     
     /// Render the widget
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue);
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue, theme: &Theme);
     
     /// Get child widgets
     fn children(&self) -> Vec<WidgetId> {
@@ -321,7 +323,7 @@ impl UiFramework {
         let bottom_panel_height = 200.0;
         
         for (index, &root_id) in root_widgets.iter().enumerate() {
-            if let Some(widget) = self.state.widgets.get_mut(&root_id) {
+            if let Some(_widget) = self.state.widgets.get_mut(&root_id) {
                 let layout_result = match index {
                     // Menu bar - spans the top
                     0 => {
@@ -443,8 +445,13 @@ impl UiFramework {
         }
     }
     
+    /// Mark the UI as needing a re-render
+    pub fn mark_needs_render(&mut self) {
+        self.state.needs_render = true;
+    }
+    
     /// Render the entire UI
-    pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, queue: &wgpu::Queue) {
+    pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, device: &wgpu::Device, queue: &wgpu::Queue) {
         if !self.state.needs_render {
             return;
         }
@@ -457,35 +464,36 @@ impl UiFramework {
         let root_widgets = self.state.root_widgets.clone();
         let layout_cache = self.state.layout_cache.clone();
         let hierarchy = self.state.hierarchy.clone();
+        let theme = self.theme.clone();
         
         // Begin rendering
         self.renderer.as_mut().unwrap().begin_frame(queue);
         
         // Render all widgets
         for root_id in root_widgets {
-            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy, queue);
+            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy, queue, &theme);
         }
         
         // End rendering and submit draw commands to render pass
         let renderer = self.renderer.as_mut().unwrap();
-        renderer.end_frame(queue);
-        renderer.submit_to_render_pass(render_pass);
+        let _ = renderer.end_frame(device, queue);
+        let _ = renderer.submit_to_render_pass(render_pass);
         
         self.state.needs_render = false;
     }
     
     /// Render a widget and its children recursively using cached data
-    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>, queue: &wgpu::Queue) {
+    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>, queue: &wgpu::Queue, theme: &Theme) {
         if let Some(layout) = layout_cache.get(&widget_id) {
             if let Some(widget) = self.state.widgets.get(&widget_id) {
                 if let Some(renderer) = &mut self.renderer {
-                    widget.render(renderer, layout.bounds, queue);
+                    widget.render(renderer, layout.bounds, queue, theme);
                 }
                 
                 // Render children
                 if let Some(children) = hierarchy.get(&widget_id) {
                     for &child_id in children {
-                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy, queue);
+                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy, queue, theme);
                     }
                 }
             }

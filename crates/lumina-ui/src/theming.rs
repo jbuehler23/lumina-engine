@@ -340,18 +340,18 @@ impl Theme {
     pub fn dark() -> Self {
         Self {
             colors: ColorPalette {
-                primary: Vec4::new(0.4, 0.5, 0.9, 1.0),     // #667eea
-                secondary: Vec4::new(0.46, 0.29, 0.64, 1.0), // #764ba2
-                accent: Vec4::new(0.0, 0.8, 0.6, 1.0),       // #00cc99
+                primary: Vec4::new(0.28, 0.53, 0.96, 1.0),     // Modern blue #4788f5
+                secondary: Vec4::new(0.48, 0.42, 0.84, 1.0),   // Purple accent #7b6bd6
+                accent: Vec4::new(0.15, 0.82, 0.61, 1.0),      // Modern teal #26d19c
                 background: BackgroundColors {
-                    primary: Vec4::new(0.06, 0.06, 0.14, 1.0),   // #0f0f23
-                    secondary: Vec4::new(0.1, 0.1, 0.18, 1.0),    // #1a1a2e
-                    tertiary: Vec4::new(0.15, 0.15, 0.25, 1.0),   // #26263f
+                    primary: Vec4::new(0.11, 0.11, 0.13, 1.0),     // VS Code dark #1c1c21
+                    secondary: Vec4::new(0.15, 0.15, 0.17, 1.0),   // Panel background #26262b
+                    tertiary: Vec4::new(0.19, 0.19, 0.22, 1.0),    // Elevated surfaces #303037
                 },
                 surface: SurfaceColors {
-                    default: Vec4::new(0.1, 0.1, 0.18, 1.0),      // #1a1a2e
-                    elevated: Vec4::new(0.15, 0.15, 0.25, 1.0),   // #26263f
-                    overlay: Vec4::new(0.2, 0.2, 0.3, 0.95),      // #333344 with alpha
+                    default: Vec4::new(0.15, 0.15, 0.17, 1.0),     // Panel background #26262b
+                    elevated: Vec4::new(0.19, 0.19, 0.22, 1.0),    // Elevated surfaces #303037
+                    overlay: Vec4::new(0.23, 0.23, 0.26, 0.95),    // Modal backgrounds #3a3a42
                 },
                 text: TextColors {
                     primary: Vec4::new(1.0, 1.0, 1.0, 1.0),       // #ffffff
@@ -420,33 +420,33 @@ impl Theme {
                 button: ButtonTheme {
                     primary: ButtonVariant {
                         default: ButtonStateColors {
-                            background: Vec4::new(0.4, 0.5, 0.9, 1.0),
-                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.4, 0.5, 0.9, 1.0),
+                            background: Vec4::new(0.28, 0.53, 0.96, 1.0),     // Primary blue
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),             // White text
+                            border: Vec4::new(0.28, 0.53, 0.96, 1.0),        // Same as bg
                         },
                         hovered: ButtonStateColors {
-                            background: Vec4::new(0.35, 0.45, 0.85, 1.0),
+                            background: Vec4::new(0.32, 0.57, 0.98, 1.0),     // Lighter blue
                             text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.35, 0.45, 0.85, 1.0),
+                            border: Vec4::new(0.32, 0.57, 0.98, 1.0),
                         },
                         pressed: ButtonStateColors {
-                            background: Vec4::new(0.3, 0.4, 0.8, 1.0),
+                            background: Vec4::new(0.24, 0.49, 0.94, 1.0),     // Darker blue
                             text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.3, 0.4, 0.8, 1.0),
+                            border: Vec4::new(0.24, 0.49, 0.94, 1.0),
                         },
                         disabled: ButtonStateColors {
-                            background: Vec4::new(0.2, 0.2, 0.3, 1.0),
-                            text: Vec4::new(0.5, 0.5, 0.5, 1.0),
-                            border: Vec4::new(0.2, 0.2, 0.3, 1.0),
+                            background: Vec4::new(0.19, 0.19, 0.22, 1.0),     // Disabled surface
+                            text: Vec4::new(0.5, 0.5, 0.5, 1.0),             // Disabled text
+                            border: Vec4::new(0.19, 0.19, 0.22, 1.0),
                         },
                         border_radius: 6.0,
                         padding: [8.0, 16.0, 8.0, 16.0],
                     },
                     secondary: ButtonVariant {
                         default: ButtonStateColors {
-                            background: Vec4::new(0.15, 0.15, 0.25, 1.0),
-                            text: Vec4::new(0.8, 0.8, 0.8, 1.0),
-                            border: Vec4::new(0.3, 0.3, 0.4, 1.0),
+                            background: Vec4::new(0.19, 0.19, 0.22, 1.0),     // Elevated surface
+                            text: Vec4::new(0.9, 0.9, 0.9, 1.0),             // Light text
+                            border: Vec4::new(0.35, 0.35, 0.40, 1.0),        // Subtle border
                         },
                         hovered: ButtonStateColors {
                             background: Vec4::new(0.2, 0.2, 0.3, 1.0),

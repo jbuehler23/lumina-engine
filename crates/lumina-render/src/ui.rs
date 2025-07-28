@@ -4,7 +4,7 @@
 //! It handles batching, clipping, and efficient rendering of UI primitives like rectangles,
 //! text, and textured quads.
 
-use crate::{Rect, RenderError, RenderResult};
+use crate::{Rect, RenderResult};
 use crate::text::{TextPipeline, TextLayoutInfo};
 use glam::{Vec2, Vec4, Mat4};
 use bytemuck::{Pod, Zeroable};
@@ -13,8 +13,6 @@ use bytemuck::{Pod, Zeroable};
 pub struct UiRenderer {
     /// Surface configuration
     config: wgpu::SurfaceConfiguration,
-    /// Current render pass
-    current_pass: Option<wgpu::RenderPass<'static>>,
     /// Vertex buffer for UI quads
     vertex_buffer: wgpu::Buffer,
     /// Index buffer for UI quads
@@ -23,16 +21,14 @@ pub struct UiRenderer {
     uniform_buffer: wgpu::Buffer,
     /// Bind group for uniforms
     uniform_bind_group: wgpu::BindGroup,
-    /// Render pipeline for solid colors
-    solid_pipeline: wgpu::RenderPipeline,
     /// Render pipeline for textured quads
     texture_pipeline: wgpu::RenderPipeline,
     /// Text pipeline for proper font-based text rendering
     text_pipeline: TextPipeline,
-    /// Texture bind group for glyph atlas
-    glyph_atlas_bind_group: wgpu::BindGroup,
-    /// Sampler for texture filtering
-    texture_sampler: wgpu::Sampler,
+    /// Texture bind group for solid color rendering
+    solid_texture_bind_group: wgpu::BindGroup,
+    /// Current frame's text layouts for glyphon rendering
+    text_layouts: Vec<TextLayoutInfo>,
     /// Current frame's vertices
     vertices: Vec<UiVertex>,
     /// Current frame's indices
@@ -216,7 +212,7 @@ impl UiRenderer {
         });
         
         // Create render pipelines
-        let solid_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let _solid_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("UI Solid Pipeline"),
             layout: Some(&solid_pipeline_layout),
             vertex: wgpu::VertexState {
@@ -294,12 +290,49 @@ impl UiRenderer {
             -1.0, 1.0,
         );
         
-        // Create text pipeline
+        // Create text pipeline using glyphon
         let text_pipeline = TextPipeline::new(device, queue, config.format)?;
         
-        // Create texture sampler for font atlas
+        // Create a simple white texture for solid color rendering
+        let white_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("White Texture"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        
+        // Write white pixel data
+        queue.write_texture(
+            wgpu::ImageCopyTexture {
+                texture: &white_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &[255u8, 255u8, 255u8, 255u8], // White RGBA
+            wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
+            },
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+        );
+        
+        // Create texture sampler
         let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("Font Atlas Sampler"),
+            label: Some("Solid Texture Sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -313,13 +346,12 @@ impl UiRenderer {
             anisotropy_clamp: 1,
         });
         
-        // Create texture view for the glyph atlas
-        let glyph_atlas_texture = text_pipeline.glyph_atlas();
-        let glyph_atlas_view = glyph_atlas_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        // Create texture view
+        let white_texture_view = white_texture.create_view(&wgpu::TextureViewDescriptor::default());
         
-        // Create bind group for glyph atlas
-        let glyph_atlas_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Glyph Atlas Bind Group"),
+        // Create bind group for solid texture
+        let solid_texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Solid Texture Bind Group"),
             layout: &texture_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -328,23 +360,21 @@ impl UiRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&glyph_atlas_view),
+                    resource: wgpu::BindingResource::TextureView(&white_texture_view),
                 },
             ],
         });
         
         Ok(Self {
             config,
-            current_pass: None,
             vertex_buffer,
             index_buffer,
             uniform_buffer,
             uniform_bind_group,
-            solid_pipeline,
             texture_pipeline,
             text_pipeline,
-            glyph_atlas_bind_group,
-            texture_sampler,
+            solid_texture_bind_group,
+            text_layouts: Vec::new(),
             vertices: Vec::new(),
             indices: Vec::new(),
             screen_size,
@@ -358,7 +388,11 @@ impl UiRenderer {
     pub fn begin_frame(&mut self, queue: &wgpu::Queue) {
         self.vertices.clear();
         self.indices.clear();
+        self.text_layouts.clear();
         self.clip_stack.clear();
+        
+        // Update text pipeline resolution
+        self.text_pipeline.set_resolution(self.screen_size.x as u32, self.screen_size.y as u32);
         
         // Update uniforms
         let uniforms = UiUniforms {
@@ -371,46 +405,56 @@ impl UiRenderer {
     }
     
     /// End the current frame and submit all draw commands
-    pub fn end_frame(&mut self, queue: &wgpu::Queue) {
-        // Note: TextPipeline uploads glyphs immediately, no pending upload needed
+    pub fn end_frame(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Prepare text layouts for glyphon rendering
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.prepare_text_layouts(device, queue, &self.text_layouts)?;
+        }
         
-        // Update vertex and index buffers
+        // Update vertex and index buffers for solid/textured quads
         if !self.vertices.is_empty() {
             queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
         }
         if !self.indices.is_empty() {
             queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&self.indices));
         }
+        
+        Ok(())
     }
     
     /// Submit the rendered UI to a render pass
-    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        if self.vertices.is_empty() || self.indices.is_empty() {
-            return;
+    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) -> Result<(), crate::text::TextError> {
+        // Render solid/textured quads first
+        if !self.vertices.is_empty() && !self.indices.is_empty() {
+            // Set vertex and index buffers
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            
+            // Use texture pipeline for solid quads with white texture
+            render_pass.set_pipeline(&self.texture_pipeline);
+            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &self.solid_texture_bind_group, &[]);
+            
+            // Draw all vertices
+            let num_indices = self.indices.len() as u32;
+            if num_indices > 0 {
+                render_pass.draw_indexed(0..num_indices, 0, 0..1);
+            }
         }
         
-        // Set vertex and index buffers (same for both pipelines)
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        
-        // For now, render everything with the texture pipeline and glyph atlas
-        // This handles both textured glyphs and solid quads (solid quads will use white texture)
-        render_pass.set_pipeline(&self.texture_pipeline);
-        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-        render_pass.set_bind_group(1, &self.glyph_atlas_bind_group, &[]);
-        
-        // Draw all vertices with texture pipeline
-        let num_indices = self.indices.len() as u32;
-        if num_indices > 0 {
-            render_pass.draw_indexed(0..num_indices, 0, 0..1);
+        // Render text using glyphon
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.render_text_areas(render_pass)?;
         }
+        
+        Ok(())
     }
     
     /// Draw a colored rectangle
     pub fn draw_rect(&mut self, bounds: Rect, color: Vec4) {
-        // Use a tiny white pixel at (0,0) in the atlas for solid color rendering
-        let white_pixel_uv = 0.5 / self.text_pipeline.atlas_size().0 as f32; // Half pixel size
-        self.add_quad(bounds, color, [0.0, 0.0], [white_pixel_uv, white_pixel_uv]);
+        // For solid color rendering, we'll use the center of the texture (0.5, 0.5)
+        // This should give us a white pixel in most texture atlases
+        self.add_quad(bounds, color, [0.5, 0.5], [0.5, 0.5]);
     }
     
     /// Draw a rectangle with rounded corners
@@ -425,9 +469,14 @@ impl UiRenderer {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
-    /// Draw text using the TextPipeline (Bevy pattern)
-    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4, queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
-        // Queue text for layout and rendering using the TextPipeline
+    /// Measure text dimensions without rendering (for layout calculations)
+    pub fn measure_text(&mut self, text: &str, font: FontHandle, size: f32) -> Result<crate::text::TextMeasurement, crate::text::TextError> {
+        self.text_pipeline.measure_text(text, font, size)
+    }
+
+    /// Draw text using glyphon TextPipeline
+    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4, _queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Queue text for layout using the glyphon-based TextPipeline
         let color_array = [color.x, color.y, color.z, color.w];
         let layout_info = self.text_pipeline.queue_text(
             text,
@@ -435,33 +484,18 @@ impl UiRenderer {
             size,
             position,
             color_array,
-            queue,
+            _queue,
         )?;
         
-        // Render all positioned glyphs from the layout
-        for glyph in &layout_info.glyphs {
-            let glyph_bounds = Rect::new(
-                glyph.position.x,
-                glyph.position.y,
-                glyph.size.x,
-                glyph.size.y,
-            );
-            
-            // Render the glyph using its atlas coordinates
-            self.draw_textured_glyph(glyph_bounds, color, glyph.atlas_coords);
-        }
+        // Add text layout to our frame's text layouts for glyphon rendering
+        self.text_layouts.push(layout_info);
         
-        log::debug!("Rendered {} glyphs for text '{}' at position {:?}", layout_info.glyphs.len(), text, position);
+        log::debug!("Queued text '{}' for glyphon rendering at position {:?}", text, position);
         Ok(())
     }
     
     
-    /// Draw a textured glyph using the font atlas texture for optimal performance
-    fn draw_textured_glyph(&mut self, bounds: Rect, color: Vec4, texture_coords: [f32; 4]) {
-        // Add a textured quad using the atlas coordinates
-        // texture_coords = [u_min, v_min, u_max, v_max] in atlas space
-        self.add_quad(bounds, color, [texture_coords[0], texture_coords[1]], [texture_coords[2], texture_coords[3]]);
-    }
+    // Glyphon handles glyph rendering internally - no manual glyph drawing needed
     
     
     
@@ -494,6 +528,9 @@ impl UiRenderer {
         // Update configuration
         self.config.width = new_size.x as u32;
         self.config.height = new_size.y as u32;
+        
+        // Update text pipeline resolution
+        self.text_pipeline.set_resolution(new_size.x as u32, new_size.y as u32);
     }
     
     /// Get the default font handle

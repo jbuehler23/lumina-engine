@@ -2,7 +2,7 @@
 //!
 //! Provides utilities for loading, creating, and managing textures.
 
-use crate::{RenderResult, RenderError};
+use crate::{RenderResult};
 
 /// Texture handle
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,7 +41,7 @@ impl TextureManager {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        data: &[u8],
+        _data: &[u8],
         label: Option<&str>,
     ) -> RenderResult<TextureHandle> {
         // TODO: Implement proper texture loading

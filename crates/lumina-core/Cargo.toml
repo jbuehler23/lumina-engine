@@ -21,6 +21,7 @@ lumina-scripting = { path = "../lumina-scripting" }
 [features]
 default = ["logging"]
 logging = ["env_logger"]
+track-allocations = []
 
 [dependencies.env_logger]
 workspace = true

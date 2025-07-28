@@ -198,7 +198,7 @@ impl Widget for Draggable {
         }
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue, _theme: &crate::Theme) {
         if !self.base.visible {
             return;
         }
@@ -305,7 +305,7 @@ pub fn draggable(drag_data: DragData) -> DraggableBuilder {
 }
 
 /// Create a draggable node for visual scripting
-pub fn draggable_node(node_type: String, label: String) -> DraggableBuilder {
+pub fn draggable_node(node_type: String, _label: String) -> DraggableBuilder {
     DraggableBuilder::new(DragData::NodeType(node_type))
         .background_color(Vec4::new(0.15, 0.15, 0.25, 0.95))
         .drag_border_color(Vec4::new(0.3, 0.6, 1.0, 1.0))

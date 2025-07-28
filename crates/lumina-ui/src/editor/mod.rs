@@ -137,7 +137,7 @@ impl Widget for EditorApp {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue, _theme: &crate::Theme) {
         // Render all child components
         // Implementation would render each component in its calculated position
     }

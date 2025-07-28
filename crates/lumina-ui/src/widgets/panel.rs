@@ -62,15 +62,17 @@ impl Widget for Panel {
         InputResponse::NotHandled
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue, theme: &crate::Theme) {
         if !self.base.visible {
             return;
         }
         
-        // Draw panel background if specified
-        if let Some(bg_color) = self.base.style.background_color {
-            let border_radius = self.base.style.border_radius.unwrap_or(0.0);
-            renderer.draw_rounded_rect(bounds, bg_color.into(), border_radius);
+        // Draw panel background
+        let bg_color = self.base.style.background_color.map(Into::into).unwrap_or(theme.colors.surface.default);
+        let border_radius = self.base.style.border_radius.unwrap_or(theme.components.panel.default.border_radius);
+        
+        if bg_color.w > 0.0 {
+            renderer.draw_rounded_rect(bounds, bg_color, border_radius);
         }
     }
     

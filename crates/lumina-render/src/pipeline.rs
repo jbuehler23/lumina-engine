@@ -2,7 +2,7 @@
 //!
 //! Provides utilities for creating and managing WGPU render pipelines.
 
-use crate::{RenderResult, RenderError};
+use crate::{RenderResult};
 
 /// Graphics pipeline wrapper
 pub struct Pipeline {

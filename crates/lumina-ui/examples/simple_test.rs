@@ -1,4 +1,4 @@
-//! Basic UI framework example demonstrating buttons, panels, and layouts
+//! Simple UI test for debugging text positioning and theming issues
 
 use lumina_ui::{
     UiFramework, Theme, 
@@ -6,15 +6,16 @@ use lumina_ui::{
     InputEvent, KeyCode, MouseButton, Modifiers,
 };
 use lumina_ui::widgets::button::ButtonVariant;
-use lumina_render::{UiRenderer};
+use lumina_render::UiRenderer;
 use winit::{
     event::{Event, WindowEvent, ElementState},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::EventLoop,
     window::WindowBuilder,
 };
 use std::sync::Arc;
+use glam::Vec2;
 
-struct BasicUiApp<'a> {
+struct SimpleTestApp<'a> {
     ui_framework: UiFramework,
     surface: wgpu::Surface<'a>,
     device: wgpu::Device,
@@ -22,12 +23,9 @@ struct BasicUiApp<'a> {
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
     window: Arc<winit::window::Window>,
-    // UI state
-    counter: i32,
-    button_clicked: bool,
 }
 
-impl<'a> BasicUiApp<'a> {
+impl<'a> SimpleTestApp<'a> {
     async fn new(window: Arc<winit::window::Window>) -> Self {
         let size = window.inner_size();
         
@@ -86,28 +84,23 @@ impl<'a> BasicUiApp<'a> {
         let mut ui_framework = UiFramework::new(theme);
         ui_framework.set_renderer(ui_renderer);
         
-        // Create UI elements
-        let counter_text = Text::new("Counter: 0")
+        // Simple test: just a few buttons to test positioning and theming
+        let test_text = Text::new("Test Text - Baseline Check")
             .font_size(24.0)
             .color([1.0, 1.0, 1.0, 1.0].into());
+        ui_framework.add_root_widget(Box::new(test_text));
         
-        let increment_button = Button::new("Increment")
+        let primary_btn = Button::new("Primary Button")
             .variant(ButtonVariant::Primary);
+        ui_framework.add_root_widget(Box::new(primary_btn));
         
-        let decrement_button = Button::new("Decrement")
+        let secondary_btn = Button::new("Secondary Button")
             .variant(ButtonVariant::Secondary);
+        ui_framework.add_root_widget(Box::new(secondary_btn));
         
-        let reset_button = Button::new("Reset")
-            .variant(ButtonVariant::Danger);
-        
-        let info_panel = Panel::new();
-        
-        // Add widgets to framework
-        ui_framework.add_root_widget(Box::new(counter_text));
-        ui_framework.add_root_widget(Box::new(increment_button));
-        ui_framework.add_root_widget(Box::new(decrement_button));
-        ui_framework.add_root_widget(Box::new(reset_button));
-        ui_framework.add_root_widget(Box::new(info_panel));
+        // Test panel with explicit theme color
+        let test_panel = Panel::new();
+        ui_framework.add_root_widget(Box::new(test_panel));
         
         Self {
             ui_framework,
@@ -117,8 +110,6 @@ impl<'a> BasicUiApp<'a> {
             config,
             size,
             window,
-            counter: 0,
-            button_clicked: false,
         }
     }
     
@@ -129,7 +120,6 @@ impl<'a> BasicUiApp<'a> {
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
             
-            // Update UI framework size
             if let Some(renderer) = &mut self.ui_framework.renderer {
                 renderer.resize([new_size.width as f32, new_size.height as f32].into());
             }
@@ -138,77 +128,49 @@ impl<'a> BasicUiApp<'a> {
     
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
-            WindowEvent::CursorMoved { position, .. } => {
-                let input_event = InputEvent::MouseMove {
-                    position: [position.x as f32, position.y as f32].into(),
-                    delta: [0.0, 0.0].into(), // TODO: calculate actual delta
-                };
-                self.ui_framework.handle_input(input_event);
-                true
-            }
-            WindowEvent::MouseInput { state, button, .. } => {
-                let mouse_button = match button {
-                    winit::event::MouseButton::Left => MouseButton::Left,
-                    winit::event::MouseButton::Right => MouseButton::Right,
-                    winit::event::MouseButton::Middle => MouseButton::Middle,
-                    _ => return false,
-                };
-                
-                let input_event = match state {
-                    ElementState::Pressed => InputEvent::MouseDown {
-                        button: mouse_button,
-                        position: [0.0, 0.0].into(), // TODO: get actual position
-                        modifiers: Modifiers::default(),
-                    },
-                    ElementState::Released => InputEvent::MouseUp {
-                        button: mouse_button,
-                        position: [0.0, 0.0].into(), // TODO: get actual position
-                        modifiers: Modifiers::default(),
-                    },
-                };
-                
-                self.ui_framework.handle_input(input_event);
-                true
-            }
             WindowEvent::KeyboardInput { event: key_event, .. } => {
                 if let winit::keyboard::PhysicalKey::Code(keycode) = key_event.physical_key {
-                    let key = match keycode {
-                        winit::keyboard::KeyCode::Space => KeyCode::Space,
-                        winit::keyboard::KeyCode::Enter => KeyCode::Enter,
-                        winit::keyboard::KeyCode::Escape => KeyCode::Escape,
-                        winit::keyboard::KeyCode::KeyA => KeyCode::A,
-                        winit::keyboard::KeyCode::KeyD => KeyCode::D,
-                        winit::keyboard::KeyCode::KeyW => KeyCode::W,
-                        winit::keyboard::KeyCode::KeyS => KeyCode::S,
-                        _ => return false,
-                    };
-                    
-                    let input_event = match key_event.state {
-                        ElementState::Pressed => InputEvent::KeyDown {
-                            key,
-                            modifiers: Modifiers::default(),
-                        },
-                        ElementState::Released => InputEvent::KeyUp {
-                            key,
-                            modifiers: Modifiers::default(),
-                        },
-                    };
-                    
-                    self.ui_framework.handle_input(input_event);
-                    true
-                } else {
-                    false
+                    if keycode == winit::keyboard::KeyCode::Escape && key_event.state == ElementState::Pressed {
+                        return false; // Exit
+                    }
                 }
+                true
             }
             _ => false,
         }
     }
     
     fn update(&mut self) {
-        // Update UI layout
-        self.ui_framework.update_layout([self.size.width as f32, self.size.height as f32].into());
+        // Simple layout - just stack widgets vertically
+        let available_space = Vec2::new(self.size.width as f32, self.size.height as f32);
         
-        // Update UI state (no input frame management needed)
+        // Override the complex layout with a simple vertical stack
+        self.ui_framework.state.layout_cache.clear();
+        let root_widgets = self.ui_framework.state.root_widgets.clone();
+        
+        let mut y_offset = 50.0;
+        let widget_height = 50.0;
+        let padding = 20.0;
+        
+        for (index, &widget_id) in root_widgets.iter().enumerate() {
+            let bounds = lumina_render::Rect::new(
+                50.0,                    // x
+                y_offset,               // y
+                available_space.x - 100.0, // width
+                widget_height           // height
+            );
+            
+            let layout_result = lumina_ui::layout::LayoutResult {
+                bounds,
+                overflow: false,
+                content_size: bounds.size,
+            };
+            
+            self.ui_framework.state.layout_cache.insert(widget_id, layout_result);
+            y_offset += widget_height + padding;
+        }
+        
+        self.ui_framework.state.needs_render = true;
     }
     
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -227,9 +189,9 @@ impl<'a> BasicUiApp<'a> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.06,
-                            g: 0.06,
-                            b: 0.14,
+                            r: 0.11, // Dark theme background (same as theme.colors.background.primary)
+                            g: 0.11,
+                            b: 0.13,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -240,7 +202,6 @@ impl<'a> BasicUiApp<'a> {
                 occlusion_query_set: None,
             });
 
-            // Render UI
             self.ui_framework.render(&mut render_pass, &self.queue);
         }
         
@@ -256,12 +217,12 @@ fn main() {
     
     let event_loop = EventLoop::new().unwrap();
     let window = Arc::new(WindowBuilder::new()
-        .with_title("Lumina UI Framework - Basic Example")
-        .with_inner_size(winit::dpi::LogicalSize::new(800, 600))
+        .with_title("Lumina UI - Simple Test")
+        .with_inner_size(winit::dpi::LogicalSize::new(600, 400))
         .build(&event_loop)
         .unwrap());
     
-    let mut app = pollster::block_on(BasicUiApp::new(window.clone()));
+    let mut app = pollster::block_on(SimpleTestApp::new(window.clone()));
     
     event_loop.run(move |event, elwt| {
         match event {
@@ -270,22 +231,24 @@ fn main() {
                 window_id,
             } if window_id == app.window.id() => {
                 if !app.input(event) {
-                    match event {
-                        WindowEvent::CloseRequested => elwt.exit(),
-                        WindowEvent::Resized(physical_size) => {
-                            app.resize(*physical_size);
-                        }
-                        WindowEvent::RedrawRequested => {
-                            app.update();
-                            match app.render() {
-                                Ok(_) => {}
-                                Err(wgpu::SurfaceError::Lost) => app.resize(app.size),
-                                Err(wgpu::SurfaceError::OutOfMemory) => elwt.exit(),
-                                Err(e) => eprintln!("{:?}", e),
-                            }
-                        }
-                        _ => {}
+                    elwt.exit();
+                    return;
+                }
+                match event {
+                    WindowEvent::CloseRequested => elwt.exit(),
+                    WindowEvent::Resized(physical_size) => {
+                        app.resize(*physical_size);
                     }
+                    WindowEvent::RedrawRequested => {
+                        app.update();
+                        match app.render() {
+                            Ok(_) => {}
+                            Err(wgpu::SurfaceError::Lost) => app.resize(app.size),
+                            Err(wgpu::SurfaceError::OutOfMemory) => elwt.exit(),
+                            Err(e) => eprintln!("{:?}", e),
+                        }
+                    }
+                    _ => {}
                 }
             }
             _ => {}

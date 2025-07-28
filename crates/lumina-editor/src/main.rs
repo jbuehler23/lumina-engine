@@ -5,26 +5,39 @@ use lumina_core::{
     Result,
 };
 use lumina_ui::{
-    Widget,
+    Widget, UiFramework, Theme,
     editor::EditorApp,
     widgets::{Button, Text, Panel},
 };
+use glam::{Vec2, Vec4};
 
-/// Editor application that demonstrates text rendering
+/// Editor application that demonstrates clean, readable UI
 struct LuminaEditor {
-    editor_app: EditorApp,
-    test_button: Button,
-    test_text: Text,
-    test_panel: Panel,
+    ui_framework: Option<UiFramework>,
+    // UI elements with proper styling
+    title_text: Text,
+    subtitle_text: Text,
+    primary_button: Button,
+    secondary_button: Button,
+    info_panel: Panel,
 }
 
 impl LuminaEditor {
     fn new() -> Self {
         Self {
-            editor_app: EditorApp::new(),
-            test_button: Button::new("Test Button"),
-            test_text: Text::new("Hello, Lumina Engine!"),
-            test_panel: Panel::new(),
+            ui_framework: None,
+            // Create properly styled UI elements
+            title_text: Text::new("Lumina Engine - Text Rendering Test")
+                .font_size(24.0)
+                .color(Vec4::new(1.0, 1.0, 1.0, 1.0)), // White text
+            subtitle_text: Text::new("Testing TTF font rendering with cosmic-text")
+                .font_size(16.0)
+                .color(Vec4::new(0.8, 0.8, 0.8, 1.0)), // Light gray text
+            primary_button: Button::new("Primary Action")
+                .variant(lumina_ui::widgets::button::ButtonVariant::Primary),
+            secondary_button: Button::new("Secondary Action")
+                .variant(lumina_ui::widgets::button::ButtonVariant::Secondary),
+            info_panel: Panel::new(),
         }
     }
 }
@@ -46,11 +59,11 @@ impl App for LuminaEditor {
             engine.stop()?;
         }
         
-        // Simple text rendering test 
-        log::info!("Editor running - text rendering system ready for testing");
-        log::info!("Button widget: {:?}", self.test_button.id());
-        log::info!("Text widget: {:?}", self.test_text.id());
-        log::info!("Panel widget: {:?}", self.test_panel.id());
+        // Update UI framework if it exists
+        if let Some(ui_framework) = &mut self.ui_framework {
+            // Handle input and update animations
+            log::debug!("UI framework running - text rendering active");
+        }
         
         Ok(())
     }

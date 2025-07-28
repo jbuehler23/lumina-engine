@@ -20,8 +20,8 @@ bytemuck = { workspace = true }
 glam = { workspace = true }
 image = { workspace = true }
 
-# Font rendering
-cosmic-text = "0.12"
+# Font rendering with glyphon for better WGPU integration
+glyphon = "0.5"
 
 # Error handling and logging
 anyhow = { workspace = true }

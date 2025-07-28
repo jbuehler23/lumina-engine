@@ -151,7 +151,7 @@ impl Renderer {
     /// End the current frame
     pub fn end_frame(&mut self, output: Option<wgpu::SurfaceTexture>) {
         if let Some(ui_renderer) = &mut self.ui_renderer {
-            ui_renderer.end_frame(&self.queue);
+            let _ = ui_renderer.end_frame(&self.device, &self.queue);
         }
         
         if let Some(output) = output {
