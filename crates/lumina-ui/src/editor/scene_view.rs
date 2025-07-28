@@ -40,7 +40,7 @@ impl Widget for SceneView {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
         // TODO: Render scene view
     }
 }

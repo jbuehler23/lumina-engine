@@ -57,7 +57,7 @@ impl Widget for TextInput {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
         // TODO: Implement text input rendering
     }
     

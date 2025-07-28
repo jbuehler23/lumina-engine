@@ -48,7 +48,7 @@ impl Widget for Container {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
         // Render background if specified
     }
     

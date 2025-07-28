@@ -45,7 +45,7 @@ impl Widget for Canvas {
         InputResponse::NotHandled
     }
     
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {
         // TODO: Implement canvas rendering
     }
 }

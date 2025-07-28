@@ -307,7 +307,7 @@ impl Widget for Button {
         }
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue) {
         if !self.base.visible {
             return;
         }
@@ -345,7 +345,7 @@ impl Widget for Button {
             
             // TODO: Use actual font handle
             let font_handle = lumina_render::FontHandle(0);
-            renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color);
+            let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
         }
     }
     

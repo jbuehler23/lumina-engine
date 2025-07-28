@@ -62,7 +62,7 @@ impl Widget for Panel {
         InputResponse::NotHandled
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue) {
         if !self.base.visible {
             return;
         }

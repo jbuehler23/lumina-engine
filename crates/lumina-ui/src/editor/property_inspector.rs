@@ -26,5 +26,5 @@ impl Widget for PropertyInspector {
         }
     }
     fn handle_input(&mut self, _input: &InputEvent) -> InputResponse { InputResponse::NotHandled }
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {}
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue) {}
 }

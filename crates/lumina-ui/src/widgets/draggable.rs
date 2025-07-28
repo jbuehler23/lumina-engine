@@ -198,7 +198,7 @@ impl Widget for Draggable {
         }
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, _queue: &wgpu::Queue) {
         if !self.base.visible {
             return;
         }

@@ -80,13 +80,13 @@ impl Widget for Text {
         InputResponse::NotHandled
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue) {
         if !self.base.visible || self.content.is_empty() {
             return;
         }
         
         // Use default font (should be loaded from Inter font file)
         let font_handle = renderer.get_default_font();
-        renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, self.color);
+        let _ = renderer.draw_text(&self.content, bounds.position, font_handle, self.font_size, self.color, queue);
     }
 }

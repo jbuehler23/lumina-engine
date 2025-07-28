@@ -96,7 +96,7 @@ pub trait Widget: std::fmt::Debug {
     fn handle_input(&mut self, input: &InputEvent) -> InputResponse;
     
     /// Render the widget
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect);
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue);
     
     /// Get child widgets
     fn children(&self) -> Vec<WidgetId> {
@@ -463,7 +463,7 @@ impl UiFramework {
         
         // Render all widgets
         for root_id in root_widgets {
-            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy);
+            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy, queue);
         }
         
         // End rendering and submit draw commands to render pass
@@ -475,17 +475,17 @@ impl UiFramework {
     }
     
     /// Render a widget and its children recursively using cached data
-    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>) {
+    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>, queue: &wgpu::Queue) {
         if let Some(layout) = layout_cache.get(&widget_id) {
             if let Some(widget) = self.state.widgets.get(&widget_id) {
                 if let Some(renderer) = &mut self.renderer {
-                    widget.render(renderer, layout.bounds);
+                    widget.render(renderer, layout.bounds, queue);
                 }
                 
                 // Render children
                 if let Some(children) = hierarchy.get(&widget_id) {
                     for &child_id in children {
-                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy);
+                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy, queue);
                     }
                 }
             }
