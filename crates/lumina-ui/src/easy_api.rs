@@ -9,7 +9,7 @@ use crate::{
     Button, Text, Panel,
     layout::containers::{Flex, FlexDirection, MainAxisAlignment, CrossAxisAlignment, Spacing, Padding},
     widgets::button::ButtonVariant,
-    InputEvent, InputResponse,
+    InputEvent,
 };
 use glam::Vec2;
 use std::collections::HashMap;
@@ -21,7 +21,8 @@ pub type UiCallback = Box<dyn Fn() + Send + Sync>;
 pub struct UiBuilder {
     /// The underlying UI framework
     framework: UiFramework,
-    /// Widget stack for building hierarchies
+    /// Widget stack for building hierarchies (reserved for future use)
+    #[allow(dead_code)]
     widget_stack: Vec<WidgetId>,
     /// Named widgets for easy access
     named_widgets: HashMap<String, WidgetId>,
@@ -32,9 +33,13 @@ pub struct UiBuilder {
 /// Color helper for easy color specification
 #[derive(Debug, Clone, Copy)]
 pub struct Color {
+    /// Red component (0.0 to 1.0)
     pub r: f32,
+    /// Green component (0.0 to 1.0)
     pub g: f32,
+    /// Blue component (0.0 to 1.0)
     pub b: f32,
+    /// Alpha component (0.0 to 1.0)
     pub a: f32,
 }
 
@@ -77,11 +82,17 @@ impl Color {
     }
     
     // Common colors
+    /// Pure white color
     pub const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
+    /// Pure black color
     pub const BLACK: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 };
+    /// Pure red color
     pub const RED: Color = Color { r: 1.0, g: 0.0, b: 0.0, a: 1.0 };
+    /// Pure green color
     pub const GREEN: Color = Color { r: 0.0, g: 1.0, b: 0.0, a: 1.0 };
+    /// Pure blue color
     pub const BLUE: Color = Color { r: 0.0, g: 0.0, b: 1.0, a: 1.0 };
+    /// Fully transparent color
     pub const TRANSPARENT: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
 }
 
@@ -100,11 +111,17 @@ impl From<Color> for [f32; 4] {
 /// Button style options
 #[derive(Debug, Clone)]
 pub enum ButtonStyle {
+    /// Primary button style (usually blue)
     Primary,
+    /// Secondary button style (usually gray)
     Secondary,
+    /// Success button style (usually green)
     Success,
+    /// Warning button style (usually yellow/orange)
     Warning,
+    /// Danger button style (usually red)
     Danger,
+    /// Ghost button style (transparent background)
     Ghost,
 }
 
@@ -124,16 +141,22 @@ impl From<ButtonStyle> for ButtonVariant {
 /// Layout direction for containers
 #[derive(Debug, Clone, Copy)]
 pub enum Direction {
+    /// Horizontal layout (left to right)
     Row,
+    /// Vertical layout (top to bottom)
     Column,
 }
 
 /// Alignment options
 #[derive(Debug, Clone, Copy)]
 pub enum Alignment {
+    /// Align to start (left/top)
     Start,
+    /// Align to center
     Center,
+    /// Align to end (right/bottom)
     End,
+    /// Stretch to fill available space
     Stretch,
 }
 
@@ -564,6 +587,7 @@ pub fn example_simple_ui() -> UiFramework {
     ui.build()
 }
 
+/// Create an example UI layout for demonstrations
 pub fn example_layout_ui() -> UiFramework {
     let mut ui = UiBuilder::dark();
     

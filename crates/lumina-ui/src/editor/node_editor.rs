@@ -10,6 +10,7 @@ pub struct NodeEditor {
 }
 
 impl NodeEditor {
+    /// Create a new node editor
     pub fn new() -> Self {
         Self { id: WidgetId::new() }
     }

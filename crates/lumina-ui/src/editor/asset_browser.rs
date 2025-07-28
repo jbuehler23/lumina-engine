@@ -10,6 +10,7 @@ pub struct AssetBrowser {
 }
 
 impl AssetBrowser {
+    /// Create a new asset browser
     pub fn new() -> Self {
         Self { id: WidgetId::new() }
     }

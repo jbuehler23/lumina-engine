@@ -72,26 +72,40 @@ pub struct UiUniforms {
 pub enum DrawCommand {
     /// Draw a colored rectangle
     Rect {
+        /// The bounds of the rectangle
         bounds: Rect,
+        /// The color as RGBA components
         color: Vec4,
+        /// The border radius for rounded corners
         border_radius: f32,
     },
     /// Draw a textured rectangle
     TexturedRect {
+        /// The bounds of the rectangle
         bounds: Rect,
+        /// Handle to the texture to render
         texture: TextureHandle,
+        /// Tint color as RGBA components
         color: Vec4,
     },
     /// Draw text
     Text {
+        /// The text string to render
         text: String,
+        /// Position where to render the text
         position: Vec2,
+        /// Handle to the font to use
         font: FontHandle,
+        /// Font size in pixels
         size: f32,
+        /// Text color as RGBA components
         color: Vec4,
     },
     /// Push a clip rectangle
-    PushClip { bounds: Rect },
+    PushClip { 
+        /// The clipping bounds
+        bounds: Rect 
+    },
     /// Pop the last clip rectangle
     PopClip,
 }

@@ -10,6 +10,7 @@ pub struct ProjectManager {
 }
 
 impl ProjectManager {
+    /// Create a new project manager
     pub fn new() -> Self {
         Self { id: WidgetId::new() }
     }

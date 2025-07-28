@@ -117,7 +117,7 @@ impl UiApplication for MyGameMenu {
             .build();
     }
     
-    fn update(&mut self, ui: &mut UiBuilder) {
+    fn update(&mut self, _ui: &mut UiBuilder) {
         // Update the counter display if it changed
         // In a real game, this is where you'd update game state
         
@@ -125,7 +125,7 @@ impl UiApplication for MyGameMenu {
         // (In a real app, you'd have actual game logic here)
     }
     
-    fn handle_input(&mut self, event: &InputEvent, ui: &mut UiBuilder) -> bool {
+    fn handle_input(&mut self, event: &InputEvent, _ui: &mut UiBuilder) -> bool {
         // Handle custom input events
         // For example, keyboard shortcuts
         match event {

@@ -10,6 +10,7 @@ pub struct PropertyInspector {
 }
 
 impl PropertyInspector {
+    /// Create a new property inspector
     pub fn new() -> Self {
         Self { id: WidgetId::new() }
     }

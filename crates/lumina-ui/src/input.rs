@@ -1,5 +1,7 @@
 //! Input handling for the Lumina UI framework
 
+#![allow(missing_docs)]
+
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;

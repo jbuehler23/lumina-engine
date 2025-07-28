@@ -53,14 +53,19 @@ pub struct TextAreaInfo {
 /// Text rendering errors
 #[derive(Error, Debug)]
 pub enum TextError {
+    /// Failed to load font file
     #[error("Failed to load font: {0}")]
     FontLoadError(String),
+    /// Failed to shape text for rendering
     #[error("Failed to shape text: {0}")]
     ShapingError(String),
+    /// Failed to rasterize glyph to bitmap
     #[error("Failed to rasterize glyph: {0}")]
     RasterizationError(String),
+    /// Font texture atlas ran out of space
     #[error("Font atlas is full")]
     AtlasFull,
+    /// General rendering error
     #[error("Rendering error: {0}")]
     RenderingError(String),
 }
@@ -91,7 +96,7 @@ impl TextPipeline {
         format: wgpu::TextureFormat,
     ) -> RenderResult<Self> {
         // Create glyphon components
-        let mut font_system = FontSystem::new();
+        let font_system = FontSystem::new();
         let swash_cache = SwashCache::new();
         
         // Create text atlas with proper format

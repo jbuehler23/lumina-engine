@@ -380,10 +380,12 @@ pub fn row() -> Flex {
     Flex::row()
 }
 
+/// Create a new column flex container
 pub fn column() -> Flex {
     Flex::column()
 }
 
+/// Create a new grid container with the specified number of columns
 pub fn grid(columns: usize) -> Grid {
     Grid::new(columns)
 }

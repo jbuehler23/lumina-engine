@@ -65,6 +65,7 @@ pub struct UiApp<'a> {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: PhysicalSize<u32>,
+    #[allow(dead_code)]
     window: Arc<Window>,
     mouse_position: Vec2,
 }
