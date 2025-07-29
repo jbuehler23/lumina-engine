@@ -164,6 +164,11 @@ impl EcsApp for EditorApp {
         Ok(())
     }
     
+    fn handle_ui_action(&mut self, _world: &mut World, action: String) -> Result<()> {
+        self.handle_ui_action(action);
+        Ok(())
+    }
+    
     fn handle_event(&mut self, _world: &mut World, event: &WindowEvent) -> Result<bool> {
         match event {
             WindowEvent::CursorMoved { position, .. } => {
@@ -173,11 +178,15 @@ impl EcsApp for EditorApp {
                     delta: Vec2::ZERO, // TODO: Calculate actual delta
                 };
                 
+                // Update UI hover state
+                let _ = lumina_core::render_systems::update_ui_hover(&mut self.world, self.mouse_position);
+                
                 // Handle input through docking manager first
                 if !self.docking_manager.handle_input(&input_event) {
                     self.ui_framework.handle_input(input_event);
                 }
-                Ok(true)
+                // Return false so the ECS input system can also process mouse movement
+                Ok(false)
             },
             WindowEvent::MouseInput { state, button, .. } => {
                 let mouse_button = match button {
@@ -200,14 +209,13 @@ impl EcsApp for EditorApp {
                     },
                 };
                 
-                // Handle input through toolbar first, then docking manager
-                let toolbar_action = self.toolbar.handle_click(self.mouse_position);
-                if !matches!(toolbar_action, ToolbarAction::None) {
-                    self.handle_toolbar_action(toolbar_action);
-                } else if !self.docking_manager.handle_input(&input_event) {
+                // Handle input through docking manager and UI framework
+                // Note: Button clicks are now handled by the ECS input processing system
+                if !self.docking_manager.handle_input(&input_event) {
                     self.ui_framework.handle_input(input_event);
                 }
-                Ok(true)
+                // Return false so the ECS input system can also process this event
+                Ok(false)
             },
             WindowEvent::KeyboardInput { 
                 event, .. 
@@ -254,7 +262,8 @@ impl EcsApp for EditorApp {
                 if !self.docking_manager.handle_input(&input_event) {
                     self.ui_framework.handle_input(input_event);
                 }
-                Ok(true)
+                // Return false so the ECS input system can also process keyboard input
+                Ok(false)
             },
             _ => Ok(false),
         }
@@ -346,6 +355,56 @@ impl EditorApp {
         let tool_id = self.ui_framework.add_root_widget(Box::new(tool_text));
         
         log::debug!("Added debug overlay widgets: status={:?}, tool={:?}", text_id, tool_id);
+    }
+
+    /// Handle UI actions from the new ECS-based click system
+    fn handle_ui_action(&mut self, action: String) {
+        match action.as_str() {
+            "select" => {
+                info!("🖱️ Select tool activated");
+                // TODO: Activate select tool in scene editor
+            }
+            "move" => {
+                info!("🖱️ Move tool activated");
+                // TODO: Activate move tool in scene editor
+            }
+            "rotate" => {
+                info!("🖱️ Rotate tool activated");
+                // TODO: Activate rotate tool in scene editor
+            }
+            "scale" => {
+                info!("🖱️ Scale tool activated");
+                // TODO: Activate scale tool in scene editor
+            }
+            "brush" => {
+                info!("🖱️ Brush tool activated");
+                // TODO: Activate brush tool in scene editor
+            }
+            "eraser" => {
+                info!("🖱️ Eraser tool activated");
+                // TODO: Activate eraser tool in scene editor
+            }
+            "new" => {
+                info!("🖱️ New project requested");
+                // TODO: Show new project dialog
+            }
+            "open" => {
+                info!("🖱️ Open project requested");
+                // TODO: Show open project dialog
+            }
+            "save" => {
+                info!("🖱️ Save project requested");
+                if let Some(project) = &self.current_project {
+                    info!("Saving project: {}", project.name);
+                    // TODO: Implement project saving
+                } else {
+                    info!("No project to save");
+                }
+            }
+            _ => {
+                info!("🖱️ Unknown UI action: {}", action);
+            }
+        }
     }
 
     /// Handle toolbar actions

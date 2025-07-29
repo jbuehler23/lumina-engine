@@ -35,6 +35,13 @@ pub trait EcsApp {
         Ok(false)
     }
     
+    /// Handle UI actions from button clicks and other UI interactions
+    fn handle_ui_action(&mut self, _world: &mut World, _action: String) -> Result<()> {
+        // Default implementation logs the action
+        log::info!("🖱️ UI action received: {}", _action);
+        Ok(())
+    }
+    
     /// Get window configuration
     fn window_config(&self) -> WindowConfig {
         WindowConfig::default()
@@ -199,6 +206,10 @@ impl<T: EcsApp> EcsAppRunner<T> {
         println!("🔧 [DEBUG] UI framework created, adding to world...");
         world.add_resource(ui_framework);
         
+        // Initialize input events resource
+        println!("🔧 [DEBUG] Creating input events resource...");
+        world.add_resource(crate::render_systems::InputEvents::default());
+        
         println!("🔧 [DEBUG] All resources added to world successfully");
         Ok(())
     }
@@ -241,6 +252,18 @@ impl<T: EcsApp> EcsAppRunner<T> {
                     
                     if let Err(e) = crate::render_systems::ui_render_system(&mut world) {
                         eprintln!("UI render error: {}", e);
+                    }
+                    
+                    // Process input events after UI is rendered
+                    match crate::render_systems::process_input_events(&mut world) {
+                        Ok(actions) => {
+                            for action in actions {
+                                if let Err(e) = self.app.handle_ui_action(&mut world, action) {
+                                    eprintln!("UI action error: {}", e);
+                                }
+                            }
+                        }
+                        Err(e) => eprintln!("Input processing error: {}", e),
                     }
                 }
                 _ => {
