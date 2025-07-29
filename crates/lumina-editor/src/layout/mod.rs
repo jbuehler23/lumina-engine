@@ -11,7 +11,7 @@ pub mod tab_bar;
 pub mod types;
 
 pub use docking::DockingManager;
-pub use layout_node::{LayoutNode, SplitDirection};
+pub use layout_node::LayoutNode;
 pub use panel_trait::DockablePanel;
 pub use splitter::Splitter;
 pub use tab_bar::{TabBar, TabInfo, TabAction};

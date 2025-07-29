@@ -14,8 +14,21 @@ impl PanelId {
     }
     
     pub fn from_name(name: &str) -> Self {
-        // Create deterministic UUIDs for built-in panels
-        Self(Uuid::new_v5(&Uuid::NAMESPACE_OID, name.as_bytes()))
+        // Create deterministic UUIDs for built-in panels by hashing the name
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        let hash = hasher.finish();
+        
+        // Use the hash to create a deterministic UUID
+        let bytes = hash.to_le_bytes();
+        let mut uuid_bytes = [0u8; 16];
+        uuid_bytes[..8].copy_from_slice(&bytes);
+        uuid_bytes[8..16].copy_from_slice(&bytes);
+        
+        Self(Uuid::from_bytes(uuid_bytes))
     }
 }
 

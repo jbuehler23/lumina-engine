@@ -23,7 +23,7 @@ pub trait DockablePanel {
     fn render(&mut self, ui: &mut UiFramework, bounds: Rect) -> Result<()>;
     
     /// Handle input events, return true if handled
-    fn handle_input(&mut self, event: &InputEvent) -> bool {
+    fn handle_input(&mut self, _event: &InputEvent) -> bool {
         false
     }
     

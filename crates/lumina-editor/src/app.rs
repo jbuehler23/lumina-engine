@@ -14,10 +14,12 @@ use winit::{
 };
 use log::{info, debug};
 
-use crate::panels::{MenuBar, ProjectPanel, ScenePanel, PropertiesPanel, ConsolePanel, VisualScriptingPanel, AssetBrowserPanel};
+use crate::panels::{MenuBar, ProjectPanel, PropertiesPanel, ConsolePanel, VisualScriptingPanel, AssetBrowserPanel};
 use crate::project::EditorProject;
 use crate::scene::SceneManager;
 use crate::assets::AssetBrowser;
+use crate::layout::DockingManager;
+use crate::dockable_scene_panel::DockableScenePanel;
 
 /// Main editor application that manages ECS world and UI
 pub struct EditorApp {
@@ -31,17 +33,17 @@ pub struct EditorApp {
     current_project: Option<EditorProject>,
     scene_manager: SceneManager,
     asset_browser: AssetBrowser,
+    docking_manager: DockingManager,
     panels: EditorPanels,
     
     // Input tracking
     mouse_position: Vec2,
 }
 
-/// Container for all editor panels
+/// Container for non-dockable editor panels
 pub struct EditorPanels {
     pub menu_bar: MenuBar,
     pub project_panel: ProjectPanel,
-    pub scene_panel: ScenePanel,
     pub properties_panel: PropertiesPanel,
     pub console_panel: ConsolePanel,
     pub visual_scripting_panel: VisualScriptingPanel,
@@ -61,7 +63,15 @@ impl EditorApp {
         let theme = Theme::dark();
         let mut ui_framework = UiFramework::new(theme);
         
-        // Initialize editor panels
+        // Initialize docking manager
+        debug!("Initializing docking manager...");
+        let mut docking_manager = DockingManager::with_default_layout();
+        
+        // Register dockable panels
+        let scene_panel = Box::new(DockableScenePanel::new());
+        docking_manager.add_panel(scene_panel);
+        
+        // Initialize editor panels (non-dockable ones)
         debug!("Initializing editor panels...");
         let panels = EditorPanels::new(&mut ui_framework)?;
         
@@ -73,6 +83,7 @@ impl EditorApp {
             current_project: None,
             scene_manager: SceneManager::new(),
             asset_browser: AssetBrowser::new(),
+            docking_manager,
             panels,
             mouse_position: Vec2::ZERO,
         })
@@ -104,11 +115,20 @@ impl EcsApp for EditorApp {
     }
     
     fn update(&mut self, _world: &mut World) -> Result<()> {
-        // Update editor panels
+        // Update docking manager
+        self.docking_manager.update();
+        
+        // Render docked panels
+        let screen_size = Vec2::new(1400.0, 900.0); // TODO: Get from window size
+        let docking_bounds = crate::layout::types::Rect::new(0.0, 32.0, screen_size.x, screen_size.y - 64.0); // Leave space for menu and status
+        if let Err(e) = self.docking_manager.render(&mut self.ui_framework, docking_bounds) {
+            log::warn!("Failed to render docking manager: {}", e);
+        }
+        
+        // Update editor panels (non-dockable ones)
         self.panels.update(&mut self.ui_framework);
         
         // Update UI layout
-        let screen_size = Vec2::new(1400.0, 900.0); // TODO: Get from window size
         self.ui_framework.update_layout(screen_size);
         
         Ok(())
@@ -122,7 +142,11 @@ impl EcsApp for EditorApp {
                     position: self.mouse_position,
                     delta: Vec2::ZERO, // TODO: Calculate actual delta
                 };
-                self.ui_framework.handle_input(input_event);
+                
+                // Handle input through docking manager first
+                if !self.docking_manager.handle_input(&input_event) {
+                    self.ui_framework.handle_input(input_event);
+                }
                 Ok(true)
             },
             WindowEvent::MouseInput { state, button, .. } => {
@@ -146,7 +170,10 @@ impl EcsApp for EditorApp {
                     },
                 };
                 
-                self.ui_framework.handle_input(input_event);
+                // Handle input through docking manager first
+                if !self.docking_manager.handle_input(&input_event) {
+                    self.ui_framework.handle_input(input_event);
+                }
                 Ok(true)
             },
             WindowEvent::KeyboardInput { 
@@ -175,7 +202,10 @@ impl EcsApp for EditorApp {
                     },
                 };
                 
-                self.ui_framework.handle_input(input_event);
+                // Handle input through docking manager first
+                if !self.docking_manager.handle_input(&input_event) {
+                    self.ui_framework.handle_input(input_event);
+                }
                 Ok(true)
             },
             _ => Ok(false),
@@ -227,6 +257,16 @@ impl EditorApp {
     pub fn asset_browser_mut(&mut self) -> &mut AssetBrowser {
         &mut self.asset_browser
     }
+
+    /// Get the docking manager
+    pub fn docking_manager(&self) -> &DockingManager {
+        &self.docking_manager
+    }
+
+    /// Get a mutable reference to the docking manager
+    pub fn docking_manager_mut(&mut self) -> &mut DockingManager {
+        &mut self.docking_manager
+    }
 }
 
 impl EditorPanels {
@@ -234,7 +274,6 @@ impl EditorPanels {
     pub fn new(ui: &mut UiFramework) -> Result<Self> {
         let menu_bar = MenuBar::new(ui)?;
         let project_panel = ProjectPanel::new(ui)?;
-        let scene_panel = ScenePanel::new(ui)?;
         let properties_panel = PropertiesPanel::new(ui)?;
         let console_panel = ConsolePanel::new(ui)?;
         let visual_scripting_panel = VisualScriptingPanel::new(ui)?;
@@ -243,7 +282,6 @@ impl EditorPanels {
         Ok(Self {
             menu_bar,
             project_panel,
-            scene_panel,
             properties_panel,
             console_panel,
             visual_scripting_panel,
@@ -255,7 +293,6 @@ impl EditorPanels {
     pub fn update(&mut self, ui: &mut UiFramework) {
         self.menu_bar.update(ui);
         self.project_panel.update(ui);
-        self.scene_panel.update(ui);
         self.properties_panel.update(ui);
         self.console_panel.update(ui);
         self.visual_scripting_panel.update(ui);

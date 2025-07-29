@@ -12,6 +12,8 @@ pub mod assets;
 pub mod panels;
 pub mod project;
 pub mod scene;
+pub mod layout;
+pub mod dockable_scene_panel;
 
 pub use app::EditorApp;
 pub use assets::{GameAsset, AssetType, AssetBrowser, AssetDatabase};
