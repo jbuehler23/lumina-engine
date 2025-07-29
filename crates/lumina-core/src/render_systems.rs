@@ -136,11 +136,150 @@ pub fn ui_render_system(world: &mut World) -> Result<()> {
                                 timestamp_writes: None,
                             });
                             
-                            // Add simple visual feedback by drawing additional clear operations
-                            // This creates a visual distinction for different UI areas
+                            // Draw basic UI elements using the renderer's UiRenderer
+                            let window_size = render_context.window_size();
                             
-                            log::debug!("UI render pass executed - editor window ({} x {}) rendering successfully", 
-                                       render_context.window_size().x, render_context.window_size().y);
+                            // Get the references we need to avoid borrow checker issues
+                            let device_ptr = render_context.device() as *const wgpu::Device;
+                            let queue_ptr = render_context.queue() as *const wgpu::Queue;
+                            
+                            if let Some(ui_renderer) = render_context.renderer_mut().ui_renderer_mut() {
+                                // Begin UI frame (using unsafe to bypass borrow checker)
+                                unsafe {
+                                    ui_renderer.begin_frame(&*queue_ptr);
+                                }
+                                
+                                // Draw toolbar background
+                                use lumina_render::Rect;
+                                use glam::Vec4;
+                                
+                                let toolbar_rect = Rect {
+                                    position: glam::Vec2::new(0.0, 0.0),
+                                    size: glam::Vec2::new(window_size.x, 40.0),
+                                };
+                                ui_renderer.draw_rect(toolbar_rect, Vec4::new(0.2, 0.22, 0.25, 1.0));
+                                
+                                // Draw main panel area
+                                let main_panel_rect = Rect {
+                                    position: glam::Vec2::new(0.0, 40.0),
+                                    size: glam::Vec2::new(window_size.x, window_size.y - 40.0),
+                                };
+                                ui_renderer.draw_rect(main_panel_rect, Vec4::new(0.15, 0.16, 0.18, 1.0));
+                                
+                                // Draw scene panel on the left
+                                let scene_panel_rect = Rect {
+                                    position: glam::Vec2::new(10.0, 50.0),
+                                    size: glam::Vec2::new(400.0, window_size.y - 100.0),
+                                };
+                                ui_renderer.draw_rect(scene_panel_rect, Vec4::new(0.12, 0.14, 0.20, 1.0));
+                                
+                                // Draw property panel on the right
+                                let prop_panel_rect = Rect {
+                                    position: glam::Vec2::new(window_size.x - 300.0, 50.0),
+                                    size: glam::Vec2::new(290.0, window_size.y - 100.0),
+                                };
+                                ui_renderer.draw_rect(prop_panel_rect, Vec4::new(0.12, 0.14, 0.20, 1.0));
+                                
+                                // Add text labels to make panels visible
+                                let font = ui_renderer.get_default_font();
+                                
+                                // Draw toolbar buttons
+                                let button_y = 5.0;
+                                let button_height = 30.0;
+                                let mut button_x = 10.0;
+                                
+                                // Tool buttons
+                                let tools = [
+                                    ("📍", "Select"), ("✋", "Move"), ("🔄", "Rotate"), 
+                                    ("📏", "Scale"), ("🖌️", "Brush"), ("🧽", "Eraser")
+                                ];
+                                
+                                for (icon, _name) in &tools {
+                                    // Button background
+                                    let button_rect = Rect {
+                                        position: glam::Vec2::new(button_x, button_y),
+                                        size: glam::Vec2::new(35.0, button_height),
+                                    };
+                                    ui_renderer.draw_rect(button_rect, Vec4::new(0.25, 0.27, 0.30, 1.0));
+                                    
+                                    // Button text
+                                    unsafe {
+                                        let _ = ui_renderer.draw_text(
+                                            icon,
+                                            glam::Vec2::new(button_x + 8.0, button_y + 8.0),
+                                            font,
+                                            16.0,
+                                            Vec4::new(0.9, 0.9, 0.9, 1.0),
+                                            &*queue_ptr
+                                        );
+                                    }
+                                    
+                                    button_x += 40.0;
+                                }
+                                
+                                // Separator
+                                button_x += 20.0;
+                                
+                                // File operations
+                                let file_ops = [("📄", "New"), ("📂", "Open"), ("💾", "Save")];
+                                for (icon, _name) in &file_ops {
+                                    let button_rect = Rect {
+                                        position: glam::Vec2::new(button_x, button_y),
+                                        size: glam::Vec2::new(35.0, button_height),
+                                    };
+                                    ui_renderer.draw_rect(button_rect, Vec4::new(0.25, 0.27, 0.30, 1.0));
+                                    
+                                    unsafe {
+                                        let _ = ui_renderer.draw_text(
+                                            icon,
+                                            glam::Vec2::new(button_x + 8.0, button_y + 8.0),
+                                            font,
+                                            16.0,
+                                            Vec4::new(0.9, 0.9, 0.9, 1.0),
+                                            &*queue_ptr
+                                        );
+                                    }
+                                    
+                                    button_x += 40.0;
+                                }
+                                
+                                // Scene panel text
+                                unsafe {
+                                    let _ = ui_renderer.draw_text(
+                                        "🎮 Scene Editor\nDrop objects here",
+                                        glam::Vec2::new(20.0, 65.0),
+                                        font,
+                                        16.0,
+                                        Vec4::new(0.8, 0.9, 1.0, 1.0),
+                                        &*queue_ptr
+                                    );
+                                }
+                                
+                                // Property panel text  
+                                unsafe {
+                                    let _ = ui_renderer.draw_text(
+                                        "🔍 Properties\nObject details",
+                                        glam::Vec2::new(window_size.x - 290.0, 65.0),
+                                        font,
+                                        16.0,
+                                        Vec4::new(0.8, 0.9, 1.0, 1.0),
+                                        &*queue_ptr
+                                    );
+                                }
+                                
+                                // End UI frame and submit to render pass
+                                let result = unsafe {
+                                    ui_renderer.end_frame(&*device_ptr, &*queue_ptr)
+                                };
+                                
+                                if let Err(e) = result {
+                                    log::warn!("Failed to end UI frame: {}", e);
+                                } else if let Err(e) = ui_renderer.submit_to_render_pass(&mut render_pass) {
+                                    log::warn!("Failed to submit UI to render pass: {}", e);
+                                } else {
+                                    log::debug!("UI elements rendered successfully: toolbar + panels");
+                                }
+                            }
                         }
                         
                         // Submit the rendering work
