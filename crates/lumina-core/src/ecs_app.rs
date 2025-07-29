@@ -113,7 +113,6 @@ impl<T: EcsApp> EcsAppRunner<T> {
     
     /// Run the application with the complete ECS-driven architecture
     pub async fn run(mut self) -> Result<()> {
-        env_logger::init();
         
         // Create event loop and window
         let event_loop = EventLoop::new()

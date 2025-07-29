@@ -5,86 +5,41 @@
 //! are built using the engine itself.
 
 use anyhow::Result;
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{EventLoop, EventLoopWindowTarget},
-    window::{Window, WindowBuilder},
-};
+use lumina_core::EcsAppRunner;
 
 pub mod app;
+pub mod assets;
 pub mod panels;
 pub mod project;
-pub mod ui_integration;
+pub mod scene;
 
 pub use app::EditorApp;
+pub use assets::{GameAsset, AssetType, AssetBrowser, AssetDatabase};
 pub use project::EditorProject;
+pub use panels::{SceneObject, ObjectType};
+pub use scene::{Scene, SceneManager, ObjectProperty};
 
-/// Main editor runner that handles window management and event loop
-pub struct EditorRunner {
-    event_loop: EventLoop<()>,
-    window: Window,
-}
+/// Main editor runner that handles ECS architecture setup
+pub struct EditorRunner;
 
 impl EditorRunner {
-    /// Create a new editor runner with default configuration
+    /// Create a new editor runner
     pub fn new() -> Result<Self> {
-        let event_loop = EventLoop::new()?;
-        let window = WindowBuilder::new()
-            .with_title("Lumina Engine - Visual Editor")
-            .with_inner_size(winit::dpi::LogicalSize::new(1400, 900))
-            .with_min_inner_size(winit::dpi::LogicalSize::new(800, 600))
-            .build(&event_loop)?;
-
-        Ok(Self {
-            event_loop,
-            window,
-        })
+        Ok(Self)
     }
 
-    /// Run the editor
+    /// Run the editor using ECS architecture
     pub async fn run(self) -> Result<()> {
-        let window_id = self.window.id();
-        let mut app = EditorApp::new(self.window).await?;
-
-        Ok(self.event_loop.run(move |event, elwt| {
-            elwt.set_control_flow(winit::event_loop::ControlFlow::Poll);
-
-            match event {
-                Event::WindowEvent {
-                    ref event,
-                    window_id: event_window_id,
-                } if event_window_id == window_id => {
-                    if !app.handle_window_event(event) {
-                        match event {
-                            WindowEvent::CloseRequested => {
-                                log::info!("Editor closing");
-                                elwt.exit()
-                            },
-                            WindowEvent::Resized(physical_size) => {
-                                app.resize(*physical_size);
-                            },
-                            WindowEvent::ScaleFactorChanged { .. } => {
-                                // Handle scale factor changes
-                                let size = app.size();
-                                app.resize(size);
-                            },
-                            _ => {}
-                        }
-                    }
-                },
-                Event::AboutToWait => {
-                    app.update();
-                    match app.render() {
-                        Ok(_) => {},
-                        Err(wgpu::SurfaceError::Lost) => app.resize(app.size()),
-                        Err(wgpu::SurfaceError::OutOfMemory) => elwt.exit(),
-                        Err(e) => log::error!("Render error: {:?}", e),
-                    }
-                    app.request_redraw();
-                },
-                _ => {}
-            }
-        })?)
+        log::info!("Starting Lumina Editor with ECS architecture");
+        
+        // Create the editor application
+        let editor_app = EditorApp::new()?;
+        
+        // Create ECS app runner
+        let runner = EcsAppRunner::new(editor_app);
+        
+        // Run the application
+        runner.run().await
     }
 }
 

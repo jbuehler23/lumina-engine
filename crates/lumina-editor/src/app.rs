@@ -1,40 +1,36 @@
-//! Main editor application that integrates UI framework with WGPU rendering
+//! Main editor application that integrates UI framework with ECS rendering
 
 use anyhow::Result;
 use glam::Vec2;
-use lumina_render::UiRenderer;
+use lumina_core::{EcsApp, WindowConfig};
+use lumina_ecs::World;
+use lumina_render::RenderConfig;
 use lumina_ui::{
     UiFramework, Theme, InputEvent, MouseButton, KeyCode, Modifiers,
 };
 use winit::{
     event::{WindowEvent, ElementState},
-    window::Window,
     keyboard::{Key, NamedKey},
-    raw_window_handle::{HasRawWindowHandle, HasRawDisplayHandle},
 };
-use log::{info, debug, warn, error};
+use log::{info, debug};
 
-use std::sync::Arc;
-
-use crate::panels::{MenuBar, ProjectPanel, ScenePanel, PropertiesPanel, ConsolePanel, VisualScriptingPanel};
+use crate::panels::{MenuBar, ProjectPanel, ScenePanel, PropertiesPanel, ConsolePanel, VisualScriptingPanel, AssetBrowserPanel};
 use crate::project::EditorProject;
+use crate::scene::SceneManager;
+use crate::assets::AssetBrowser;
 
-/// Main editor application that manages UI and rendering
+/// Main editor application that manages ECS world and UI
 pub struct EditorApp {
-    // Window
-    window: Arc<Window>,
-    // Rendering components
-    surface: wgpu::Surface<'static>,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    size: winit::dpi::PhysicalSize<u32>,
+    // ECS World
+    world: World,
     
-    // UI Framework
+    // UI Framework (managed as ECS resource)
     ui_framework: UiFramework,
     
     // Editor state
     current_project: Option<EditorProject>,
+    scene_manager: SceneManager,
+    asset_browser: AssetBrowser,
     panels: EditorPanels,
     
     // Input tracking
@@ -49,93 +45,76 @@ pub struct EditorPanels {
     pub properties_panel: PropertiesPanel,
     pub console_panel: ConsolePanel,
     pub visual_scripting_panel: VisualScriptingPanel,
+    pub asset_browser_panel: AssetBrowserPanel,
 }
 
 impl EditorApp {
-    /// Create a new editor application
-    pub async fn new(window: Window) -> Result<Self> {
-        let window = Arc::new(window);
-        let size = window.inner_size();
+    /// Create a new editor application with ECS architecture
+    pub fn new() -> Result<Self> {
+        debug!("Creating editor application...");
         
-        // Initialize WGPU
-        debug!("Initializing WGPU instance...");
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        // Initialize ECS World
+        let world = World::new();
         
-        let surface = instance.create_surface(Arc::clone(&window))?;
-        
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .ok_or_else(|| anyhow::anyhow!("Failed to find suitable adapter"))?;
-        
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: Some("Editor Device"),
-                    required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
-                },
-                None,
-            )
-            .await?;
-        
-        let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps
-            .formats
-            .iter()
-            .copied()
-            .find(|f| f.is_srgb())
-            .unwrap_or(surface_caps.formats[0]);
-        
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
-            width: size.width,
-            height: size.height,
-            present_mode: surface_caps.present_modes[0],
-            alpha_mode: surface_caps.alpha_modes[0],
-            view_formats: vec![],
-            desired_maximum_frame_latency: 2,
-        };
-        surface.configure(&device, &config);
-        
-        // Create UI renderer and framework
-        debug!("Creating UI renderer...");
-        let ui_renderer = UiRenderer::new(&device, &queue, config.clone()).await?;
+        // Create UI framework with dark theme
         debug!("Setting up UI framework with dark theme...");
         let theme = Theme::dark();
         let mut ui_framework = UiFramework::new(theme);
-        ui_framework.set_renderer(ui_renderer);
         
         // Initialize editor panels
         debug!("Initializing editor panels...");
         let panels = EditorPanels::new(&mut ui_framework)?;
         
-        info!("Editor app initialized with {}x{} window", size.width, size.height);
+        info!("Editor app initialized");
         
         Ok(Self {
-            window,
-            surface,
-            device,
-            queue,
-            config,
-            size,
+            world,
             ui_framework,
             current_project: None,
+            scene_manager: SceneManager::new(),
+            asset_browser: AssetBrowser::new(),
             panels,
             mouse_position: Vec2::ZERO,
         })
     }
     
-    /// Handle window events, returns true if handled
-    pub fn handle_window_event(&mut self, event: &WindowEvent) -> bool {
+}
+
+impl EcsApp for EditorApp {
+    fn setup(&mut self, _world: &mut World) -> Result<()> {
+        info!("Setting up editor ECS systems...");
+        debug!("Editor ECS setup complete");
+        Ok(())
+    }
+    
+    fn window_config(&self) -> WindowConfig {
+        WindowConfig {
+            title: "Lumina Engine - Visual Editor".to_string(),
+            size: winit::dpi::LogicalSize::new(1400, 900),
+            resizable: true,
+        }
+    }
+    
+    fn render_config(&self) -> RenderConfig {
+        RenderConfig::default()
+    }
+    
+    fn theme(&self) -> Theme {
+        Theme::dark()
+    }
+    
+    fn update(&mut self, _world: &mut World) -> Result<()> {
+        // Update editor panels
+        self.panels.update(&mut self.ui_framework);
+        
+        // Update UI layout
+        let screen_size = Vec2::new(1400.0, 900.0); // TODO: Get from window size
+        self.ui_framework.update_layout(screen_size);
+        
+        Ok(())
+    }
+    
+    fn handle_event(&mut self, _world: &mut World, event: &WindowEvent) -> Result<bool> {
         match event {
             WindowEvent::CursorMoved { position, .. } => {
                 self.mouse_position = Vec2::new(position.x as f32, position.y as f32);
@@ -144,14 +123,14 @@ impl EditorApp {
                     delta: Vec2::ZERO, // TODO: Calculate actual delta
                 };
                 self.ui_framework.handle_input(input_event);
-                true
+                Ok(true)
             },
             WindowEvent::MouseInput { state, button, .. } => {
                 let mouse_button = match button {
                     winit::event::MouseButton::Left => MouseButton::Left,
                     winit::event::MouseButton::Right => MouseButton::Right,
                     winit::event::MouseButton::Middle => MouseButton::Middle,
-                    _ => return false,
+                    _ => return Ok(false),
                 };
                 
                 let input_event = match state {
@@ -168,7 +147,7 @@ impl EditorApp {
                 };
                 
                 self.ui_framework.handle_input(input_event);
-                true
+                Ok(true)
             },
             WindowEvent::KeyboardInput { 
                 event, .. 
@@ -182,7 +161,7 @@ impl EditorApp {
                     Key::Character(ref s) if s == "s" => KeyCode::S,
                     Key::Character(ref s) if s == "d" => KeyCode::D,
                     Key::Character(ref s) if s == "w" => KeyCode::W,
-                    _ => return false,
+                    _ => return Ok(false),
                 };
                 
                 let input_event = match event.state {
@@ -197,90 +176,15 @@ impl EditorApp {
                 };
                 
                 self.ui_framework.handle_input(input_event);
-                true
+                Ok(true)
             },
-            _ => false,
+            _ => Ok(false),
         }
     }
-    
-    /// Resize the application
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
-        if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
-            self.config.width = new_size.width;
-            self.config.height = new_size.height;
-            self.surface.configure(&self.device, &self.config);
-            
-            // Update UI framework size
-            if let Some(renderer) = &mut self.ui_framework.renderer {
-                renderer.resize(Vec2::new(new_size.width as f32, new_size.height as f32));
-            }
-            
-            debug!("Editor resized to {}x{}", new_size.width, new_size.height);
-        }
-    }
-    
-    /// Update the editor
-    pub fn update(&mut self) {
-        // Update UI layout
-        let screen_size = Vec2::new(self.size.width as f32, self.size.height as f32);
-        self.ui_framework.update_layout(screen_size);
-        
-        // Update panels
-        self.panels.update(&mut self.ui_framework);
-    }
-    
-    /// Render the editor
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let output = self.surface.get_current_texture()?;
-        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-        
-        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Editor Render Encoder"),
-        });
-        
-        // Render everything in a single render pass
-        {
-            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("Editor Render Pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.06, // Dark background matching theme
-                            g: 0.06,
-                            b: 0.14,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-            
-            // Render UI into the render pass
-            self.ui_framework.render(&mut render_pass, &self.queue);
-        }
-        
-        self.queue.submit(std::iter::once(encoder.finish()));
-        output.present();
-        
-        Ok(())
-    }
-    
-    /// Get the current window size
-    pub fn size(&self) -> winit::dpi::PhysicalSize<u32> {
-        self.size
-    }
-    
-    /// Request a redraw from the window
-    pub fn request_redraw(&self) {
-        self.window.request_redraw();
-    }
-    
+}
+
+// Additional editor-specific methods
+impl EditorApp {
     /// Create a new project
     pub fn new_project(&mut self, name: String, path: String) -> Result<()> {
         info!("Creating new project: {} at {}", name, path);
@@ -303,6 +207,26 @@ impl EditorApp {
     pub fn current_project(&self) -> Option<&EditorProject> {
         self.current_project.as_ref()
     }
+
+    /// Get the scene manager
+    pub fn scene_manager(&self) -> &SceneManager {
+        &self.scene_manager
+    }
+
+    /// Get a mutable reference to the scene manager
+    pub fn scene_manager_mut(&mut self) -> &mut SceneManager {
+        &mut self.scene_manager
+    }
+
+    /// Get the asset browser
+    pub fn asset_browser(&self) -> &AssetBrowser {
+        &self.asset_browser
+    }
+
+    /// Get a mutable reference to the asset browser
+    pub fn asset_browser_mut(&mut self) -> &mut AssetBrowser {
+        &mut self.asset_browser
+    }
 }
 
 impl EditorPanels {
@@ -314,6 +238,7 @@ impl EditorPanels {
         let properties_panel = PropertiesPanel::new(ui)?;
         let console_panel = ConsolePanel::new(ui)?;
         let visual_scripting_panel = VisualScriptingPanel::new(ui)?;
+        let asset_browser_panel = AssetBrowserPanel::new(ui)?;
         
         Ok(Self {
             menu_bar,
@@ -322,6 +247,7 @@ impl EditorPanels {
             properties_panel,
             console_panel,
             visual_scripting_panel,
+            asset_browser_panel,
         })
     }
     
@@ -333,5 +259,6 @@ impl EditorPanels {
         self.properties_panel.update(ui);
         self.console_panel.update(ui);
         self.visual_scripting_panel.update(ui);
+        self.asset_browser_panel.update(ui);
     }
 }
