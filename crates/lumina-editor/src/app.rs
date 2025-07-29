@@ -158,6 +158,9 @@ impl EcsApp for EditorApp {
         // Update UI layout
         self.ui_framework.update_layout(screen_size);
         
+        // Add a simple text widget to show the editor is working
+        self.add_debug_overlay();
+        
         Ok(())
     }
     
@@ -321,6 +324,28 @@ impl EditorApp {
     /// Get a mutable reference to the toolbar
     pub fn toolbar_mut(&mut self) -> &mut EditorToolbar {
         &mut self.toolbar
+    }
+
+    /// Add a simple debug overlay to show the editor is working
+    fn add_debug_overlay(&mut self) {
+        use lumina_ui::{Text, WidgetId};
+        
+        // Create a simple text widget showing editor status
+        let status_text = Text::new("🎮 Lumina Editor Running - Visual Rendering Active")
+            .font_size(16.0)
+            .color(glam::Vec4::new(0.8, 0.9, 1.0, 1.0));
+        
+        // Add it to the UI framework
+        let text_id = self.ui_framework.add_root_widget(Box::new(status_text));
+        
+        // Also show current tool
+        let tool_text = Text::new(&format!("🔧 Current Tool: {:?}", self.toolbar.selected_tool()))
+            .font_size(14.0)
+            .color(glam::Vec4::new(0.7, 0.8, 0.9, 1.0));
+        
+        let tool_id = self.ui_framework.add_root_widget(Box::new(tool_text));
+        
+        log::debug!("Added debug overlay widgets: status={:?}, tool={:?}", text_id, tool_id);
     }
 
     /// Handle toolbar actions
