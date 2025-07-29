@@ -20,6 +20,7 @@ use crate::scene::SceneManager;
 use crate::assets::AssetBrowser;
 use crate::layout::DockingManager;
 use crate::dockable_scene_panel::DockableScenePanel;
+use crate::toolbar::{EditorToolbar, ToolbarAction};
 
 /// Main editor application that manages ECS world and UI
 pub struct EditorApp {
@@ -34,6 +35,7 @@ pub struct EditorApp {
     scene_manager: SceneManager,
     asset_browser: AssetBrowser,
     docking_manager: DockingManager,
+    toolbar: EditorToolbar,
     panels: EditorPanels,
     
     // Input tracking
@@ -53,28 +55,39 @@ pub struct EditorPanels {
 impl EditorApp {
     /// Create a new editor application with ECS architecture
     pub fn new() -> Result<Self> {
+        println!("🔧 [DEBUG] EditorApp::new() starting...");
         debug!("Creating editor application...");
         
         // Initialize ECS World
+        println!("🔧 [DEBUG] Creating ECS World...");
         let world = World::new();
         
         // Create UI framework with dark theme
+        println!("🔧 [DEBUG] Setting up UI framework with dark theme...");
         debug!("Setting up UI framework with dark theme...");
         let theme = Theme::dark();
         let mut ui_framework = UiFramework::new(theme);
         
         // Initialize docking manager
+        println!("🔧 [DEBUG] Initializing docking manager...");
         debug!("Initializing docking manager...");
         let mut docking_manager = DockingManager::with_default_layout();
         
         // Register dockable panels
+        println!("🔧 [DEBUG] Creating DockableScenePanel...");
         let scene_panel = Box::new(DockableScenePanel::new());
+        println!("🔧 [DEBUG] Adding scene panel to docking manager...");
         docking_manager.add_panel(scene_panel);
         
         // Initialize editor panels (non-dockable ones)
+        println!("🔧 [DEBUG] Initializing editor panels...");
         debug!("Initializing editor panels...");
         let panels = EditorPanels::new(&mut ui_framework)?;
         
+        println!("🔧 [DEBUG] Creating EditorToolbar...");
+        let toolbar = EditorToolbar::new();
+        
+        println!("🔧 [DEBUG] EditorApp::new() completed successfully");
         info!("Editor app initialized");
         
         Ok(Self {
@@ -84,6 +97,7 @@ impl EditorApp {
             scene_manager: SceneManager::new(),
             asset_browser: AssetBrowser::new(),
             docking_manager,
+            toolbar,
             panels,
             mouse_position: Vec2::ZERO,
         })
@@ -93,8 +107,10 @@ impl EditorApp {
 
 impl EcsApp for EditorApp {
     fn setup(&mut self, _world: &mut World) -> Result<()> {
+        println!("🔧 [DEBUG] EditorApp::setup() starting...");
         info!("Setting up editor ECS systems...");
         debug!("Editor ECS setup complete");
+        println!("🔧 [DEBUG] EditorApp::setup() completed successfully");
         Ok(())
     }
     
@@ -115,12 +131,23 @@ impl EcsApp for EditorApp {
     }
     
     fn update(&mut self, _world: &mut World) -> Result<()> {
+        let screen_size = Vec2::new(1400.0, 900.0); // TODO: Get from window size
+        
+        // Update toolbar
+        self.toolbar.update();
+        
+        // Render toolbar
+        let toolbar_bounds = crate::layout::types::Rect::new(0.0, 0.0, screen_size.x, 40.0);
+        self.toolbar.set_bounds(toolbar_bounds);
+        if let Err(e) = self.toolbar.render(&mut self.ui_framework) {
+            log::warn!("Failed to render toolbar: {}", e);
+        }
+        
         // Update docking manager
         self.docking_manager.update();
         
-        // Render docked panels
-        let screen_size = Vec2::new(1400.0, 900.0); // TODO: Get from window size
-        let docking_bounds = crate::layout::types::Rect::new(0.0, 32.0, screen_size.x, screen_size.y - 64.0); // Leave space for menu and status
+        // Render docked panels (leave space for toolbar and status bar)
+        let docking_bounds = crate::layout::types::Rect::new(0.0, 40.0, screen_size.x, screen_size.y - 80.0);
         if let Err(e) = self.docking_manager.render(&mut self.ui_framework, docking_bounds) {
             log::warn!("Failed to render docking manager: {}", e);
         }
@@ -170,8 +197,11 @@ impl EcsApp for EditorApp {
                     },
                 };
                 
-                // Handle input through docking manager first
-                if !self.docking_manager.handle_input(&input_event) {
+                // Handle input through toolbar first, then docking manager
+                let toolbar_action = self.toolbar.handle_click(self.mouse_position);
+                if !matches!(toolbar_action, ToolbarAction::None) {
+                    self.handle_toolbar_action(toolbar_action);
+                } else if !self.docking_manager.handle_input(&input_event) {
                     self.ui_framework.handle_input(input_event);
                 }
                 Ok(true)
@@ -201,6 +231,21 @@ impl EcsApp for EditorApp {
                         modifiers: Modifiers::default(),
                     },
                 };
+                
+                // Handle keyboard shortcuts first (only on key down)
+                if matches!(event.state, ElementState::Pressed) {
+                    let key_string = match &event.logical_key {
+                        Key::Character(s) => s.to_string(),
+                        Key::Named(NamedKey::Space) => "space".to_string(),
+                        _ => "".to_string(),
+                    };
+                    
+                    let toolbar_action = self.toolbar.handle_keyboard_shortcut(&key_string);
+                    if !matches!(toolbar_action, ToolbarAction::None) {
+                        self.handle_toolbar_action(toolbar_action);
+                        return Ok(true);
+                    }
+                }
                 
                 // Handle input through docking manager first
                 if !self.docking_manager.handle_input(&input_event) {
@@ -266,6 +311,64 @@ impl EditorApp {
     /// Get a mutable reference to the docking manager
     pub fn docking_manager_mut(&mut self) -> &mut DockingManager {
         &mut self.docking_manager
+    }
+
+    /// Get the toolbar
+    pub fn toolbar(&self) -> &EditorToolbar {
+        &self.toolbar
+    }
+
+    /// Get a mutable reference to the toolbar
+    pub fn toolbar_mut(&mut self) -> &mut EditorToolbar {
+        &mut self.toolbar
+    }
+
+    /// Handle toolbar actions
+    fn handle_toolbar_action(&mut self, action: ToolbarAction) {
+        match action {
+            ToolbarAction::ToolSelected(tool) => {
+                debug!("Tool selected: {:?}", tool);
+                // TODO: Update scene editor with selected tool
+            }
+            ToolbarAction::NewProject => {
+                debug!("New project requested");
+                // TODO: Show new project dialog
+            }
+            ToolbarAction::OpenProject => {
+                debug!("Open project requested");
+                // TODO: Show open project dialog
+            }
+            ToolbarAction::SaveProject => {
+                debug!("Save project requested");
+                if let Some(project) = &self.current_project {
+                    debug!("Saving project: {}", project.name);
+                    // TODO: Implement project saving
+                } else {
+                    debug!("No project to save");
+                }
+            }
+            ToolbarAction::Undo => {
+                debug!("Undo requested");
+                // TODO: Implement undo system
+            }
+            ToolbarAction::Redo => {
+                debug!("Redo requested");
+                // TODO: Implement redo system
+            }
+            ToolbarAction::Play => {
+                debug!("Play requested");
+                // TODO: Start game preview
+            }
+            ToolbarAction::Pause => {
+                debug!("Pause requested");
+                // TODO: Pause game preview
+            }
+            ToolbarAction::Stop => {
+                debug!("Stop requested");
+                // TODO: Stop game preview
+            }
+            ToolbarAction::None => {}
+        }
     }
 }
 

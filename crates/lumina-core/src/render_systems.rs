@@ -96,17 +96,69 @@ pub fn ui_update_system(world: &mut World) -> Result<()> {
 /// This system queries for the RenderContext and UiFramework resources
 /// and renders the UI using the WGPU render pass.
 pub fn ui_render_system(world: &mut World) -> Result<()> {
-    // Simplified rendering for demonstration
-    // In a real implementation, this would handle the full rendering pipeline
-    
-    // Check if we have the required resources
+    // Get the required resources
     let has_render_context = world.has_resource::<RenderContext>();
     let has_ui_framework = world.has_resource::<UiFramework>();
     
     if has_render_context && has_ui_framework {
-        // For now, just log that rendering would happen
-        // A full implementation would extract resources and perform actual rendering
-        log::debug!("UI render system executed - would render UI through WGPU");
+        // Begin the frame and perform basic rendering
+        world.with_resource_mut::<RenderContext, _>(|mut render_context_opt| {
+            if let Some(render_context) = render_context_opt.as_mut() {
+                match render_context.begin_frame() {
+                    Ok(Some(output)) => {
+                        // Create a command encoder to submit rendering work
+                        let mut encoder = render_context.device().create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor {
+                                label: Some("Render Encoder"),
+                            }
+                        );
+                        
+                        // Create a render pass for UI rendering
+                        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                        {
+                            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                                label: Some("UI Render Pass"),
+                                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                    view: &view,
+                                    resolve_target: None,
+                                    ops: wgpu::Operations {
+                                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                                            r: 0.1,
+                                            g: 0.1,
+                                            b: 0.15,
+                                            a: 1.0,
+                                        }),
+                                        store: wgpu::StoreOp::Store,
+                                    },
+                                })],
+                                depth_stencil_attachment: None,
+                                occlusion_query_set: None,
+                                timestamp_writes: None,
+                            });
+                            
+                            // Render UI elements
+                            // This is a bit tricky due to borrow checker - need to handle carefully
+                            // For now, we'll skip UI rendering and just clear the screen
+                            // TODO: Implement proper UI rendering integration
+                        }
+                        
+                        // Submit the rendering work
+                        render_context.queue().submit(std::iter::once(encoder.finish()));
+                        
+                        // Present the frame
+                        render_context.end_frame(Some(output));
+                    }
+                    Ok(None) => {
+                        log::warn!("No surface texture available");
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to begin frame: {}", e);
+                    }
+                }
+            }
+        });
+        
+        log::debug!("UI render system executed with clear screen");
     }
     
     Ok(())

@@ -14,12 +14,16 @@ pub mod project;
 pub mod scene;
 pub mod layout;
 pub mod dockable_scene_panel;
+pub mod toolbar;
 
 pub use app::EditorApp;
 pub use assets::{GameAsset, AssetType, AssetBrowser, AssetDatabase};
 pub use project::EditorProject;
 pub use panels::{SceneObject, ObjectType};
 pub use scene::{Scene, SceneManager, ObjectProperty};
+pub use layout::DockingManager;
+pub use dockable_scene_panel::DockableScenePanel;
+pub use toolbar::{EditorToolbar, ToolType, ToolbarAction};
 
 /// Main editor runner that handles ECS architecture setup
 pub struct EditorRunner;

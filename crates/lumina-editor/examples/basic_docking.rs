@@ -1,7 +1,7 @@
 //! Basic example demonstrating the dockable panel system
 
-use lumina_editor::layout::{DockingManager, types::BuiltinPanelId};
-use lumina_editor::dockable_scene_panel::DockableScenePanel;
+use lumina_editor::{DockingManager, DockableScenePanel};
+use lumina_editor::layout::types::BuiltinPanelId;
 
 fn main() {
     println!("🎯 Basic Docking System Example");

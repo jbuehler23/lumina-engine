@@ -113,11 +113,15 @@ impl<T: EcsApp> EcsAppRunner<T> {
     
     /// Run the application with the complete ECS-driven architecture
     pub async fn run(mut self) -> Result<()> {
+        println!("🔧 [DEBUG] Starting EcsAppRunner::run()");
         
         // Create event loop and window
+        println!("🔧 [DEBUG] Creating event loop...");
         let event_loop = EventLoop::new()
             .map_err(|e| LuminaError::InitializationError(format!("Failed to create event loop: {}", e)))?;
+        println!("🔧 [DEBUG] Event loop created successfully");
         
+        println!("🔧 [DEBUG] Creating window...");
         let window = Arc::new(
             WindowBuilder::new()
                 .with_title(&self.window_config.title)
@@ -126,15 +130,20 @@ impl<T: EcsApp> EcsAppRunner<T> {
                 .build(&event_loop)
                 .map_err(|e| LuminaError::InitializationError(format!("Failed to create window: {}", e)))?
         );
+        println!("🔧 [DEBUG] Window created successfully");
         
         // Initialize core resources
+        println!("🔧 [DEBUG] Initializing core resources...");
         self.initialize_resources(window.clone()).await?;
+        println!("🔧 [DEBUG] Core resources initialized");
         
         // Setup the application
+        println!("🔧 [DEBUG] Setting up application...");
         {
             let mut world = self.world.lock().unwrap();
             self.app.setup(&mut world)?;
         }
+        println!("🔧 [DEBUG] Application setup complete");
         
         println!("🚀 Lumina ECS Application started!");
         println!("💡 Architecture features:");
@@ -143,6 +152,9 @@ impl<T: EcsApp> EcsAppRunner<T> {
         println!("   • UI rendering through lumina-core systems");
         println!("   • Complete separation of concerns");
         
+        println!("🔧 [DEBUG] Starting event loop...");
+        println!("✨ Window should now be visible with dark blue background");
+        println!("💡 Press Ctrl+C or close the window to exit");
         // Run the main event loop
         event_loop.run(move |event, elwt| {
             match event {
@@ -153,6 +165,8 @@ impl<T: EcsApp> EcsAppRunner<T> {
                     self.handle_window_event(event, elwt);
                 }
                 Event::AboutToWait => {
+                    // Request a redraw for continuous rendering
+                    // This should be fine now that we properly present frames
                     window.request_redraw();
                 }
                 Event::LoopExiting => {
@@ -168,18 +182,24 @@ impl<T: EcsApp> EcsAppRunner<T> {
     
     /// Initialize all core resources
     async fn initialize_resources(&mut self, window: Arc<Window>) -> Result<()> {
+        println!("🔧 [DEBUG] Locking world for resource initialization...");
         let mut world = self.world.lock().unwrap();
         
         // Initialize render context resource
+        println!("🔧 [DEBUG] Creating render context...");
         let render_context = RenderContext::new(window.clone(), self.render_config.clone())
             .await
             .map_err(|e| LuminaError::InitializationError(format!("Failed to create render context: {}", e)))?;
+        println!("🔧 [DEBUG] Render context created, adding to world...");
         world.add_resource(render_context);
         
         // Initialize UI framework resource
+        println!("🔧 [DEBUG] Creating UI framework...");
         let ui_framework = UiFramework::new(self.theme.clone());
+        println!("🔧 [DEBUG] UI framework created, adding to world...");
         world.add_resource(ui_framework);
         
+        println!("🔧 [DEBUG] All resources added to world successfully");
         Ok(())
     }
     
