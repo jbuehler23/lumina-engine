@@ -5,7 +5,7 @@
 use crate::{WindowConfig, RenderResult};
 use winit::{
     event_loop::EventLoop,
-    window::{Window, WindowBuilder},
+    window::{Window, WindowAttributes},
 };
 use std::sync::Arc;
 
@@ -24,12 +24,14 @@ impl WindowManager {
             crate::RenderError::InvalidOperation(format!("Failed to create event loop: {}", e))
         })?;
 
-        let window = WindowBuilder::new()
+        let window_attributes = WindowAttributes::default()
             .with_title(&config.title)
             .with_inner_size(winit::dpi::LogicalSize::new(config.size.0, config.size.1))
             .with_resizable(config.resizable)
-            .with_decorations(config.decorations)
-            .build(&event_loop)
+            .with_decorations(config.decorations);
+            
+        let window = event_loop
+            .create_window(window_attributes)
             .map_err(|e| {
                 crate::RenderError::InvalidOperation(format!("Failed to create window: {}", e))
             })?;

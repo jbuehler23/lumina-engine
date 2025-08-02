@@ -23,9 +23,7 @@ pub struct RenderContext {
 impl RenderContext {
     /// Create a new RenderContext with the given window and config
     pub async fn new(window: Arc<Window>, config: RenderConfig) -> RenderResult<Self> {
-        let mut renderer = Renderer::new(config).await?;
-        renderer.create_surface(window.clone())?;
-        renderer.init_ui_renderer().await?;
+        let renderer = Renderer::new(config, window.clone()).await?;
         
         Ok(Self {
             renderer,

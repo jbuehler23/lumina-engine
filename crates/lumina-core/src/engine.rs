@@ -1,4 +1,4 @@
-use crate::{event::EventBus, input::Input, time::Time, Result, LuminaError};
+use crate::{event::EventBus, time::Time, Result, LuminaError};
 use parking_lot::RwLock;
 use std::sync::Arc;
 
@@ -8,27 +8,26 @@ pub trait System: Send + Sync {
     fn shutdown(&mut self, context: &mut SystemContext) -> Result<()>;
 }
 
+/// DEPRECATED: Use EcsAppRunner and lumina-input for new projects
+#[deprecated(note = "Use EcsAppRunner and lumina-input for new projects")]
 pub struct SystemContext {
     pub event_bus: Arc<EventBus>,
-    pub input: Arc<Input>,
     pub time: Arc<RwLock<Time>>,
 }
 
 impl SystemContext {
     pub fn new() -> Self {
         let event_bus = Arc::new(EventBus::new());
-        let input = Arc::new(Input::new());
-        
-        input.setup_event_handlers(&event_bus);
         
         Self {
             event_bus,
-            input,
             time: Arc::new(RwLock::new(Time::new())),
         }
     }
 }
 
+/// DEPRECATED: Use EcsAppRunner for new projects
+#[deprecated(note = "Use EcsAppRunner for new projects - see examples/pong")]
 pub struct Engine {
     context: SystemContext,
     systems: Vec<Box<dyn System>>,
@@ -82,7 +81,7 @@ impl Engine {
             system.update(&mut self.context)?;
         }
 
-        self.context.input.update();
+        // Input update removed - use lumina-input with EcsAppRunner instead
         Ok(())
     }
 

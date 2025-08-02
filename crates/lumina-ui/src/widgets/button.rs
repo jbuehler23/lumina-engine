@@ -47,7 +47,7 @@ use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
 /// Button widget for user interactions
-pub struct Button {
+'''pub struct Button {
     /// Base widget properties
     base: BaseWidget,
     /// Button text
@@ -58,11 +58,13 @@ pub struct Button {
     state: AnimationState,
     /// Click callback
     on_click: Option<Box<dyn Fn() + Send + Sync>>,
+    /// Action to be performed when the button is clicked
+    action: Option<String>,
     /// Whether the button is currently pressed
     is_pressed: bool,
     /// Whether the button is currently hovered
     is_hovered: bool,
-}
+}''
 
 impl std::fmt::Debug for Button {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -72,6 +74,7 @@ impl std::fmt::Debug for Button {
             .field("variant", &self.variant)
             .field("state", &self.state)
             .field("on_click", &"<callback>")
+            .field("action", &self.action)
             .field("is_pressed", &self.is_pressed)
             .field("is_hovered", &self.is_hovered)
             .finish()
@@ -100,6 +103,7 @@ impl Button {
             variant: ButtonVariant::Primary,
             state: AnimationState::Normal,
             on_click: None,
+            action: None,
             is_pressed: false,
             is_hovered: false,
         }
@@ -121,6 +125,12 @@ impl Button {
     pub fn on_click<F>(mut self, callback: F) -> Self 
     where F: Fn() + Send + Sync + 'static {
         self.on_click = Some(Box::new(callback));
+        self
+    }
+
+    /// Set the action to be performed when the button is clicked
+    pub fn action(mut self, action: impl Into<String>) -> Self {
+        self.action = Some(action.into());
         self
     }
     
@@ -259,6 +269,10 @@ impl Widget for Button {
                     if let Some(callback) = &self.on_click {
                         callback();
                     }
+                    if let Some(action) = &self.action {
+                        // This is where we would send the action to the application
+                        println!("Button action: {}", action);
+                    }
                 }
                 self.is_pressed = false;
                 self.state = if self.is_hovered {
@@ -273,6 +287,10 @@ impl Widget for Button {
                 if self.is_hovered {
                     if let Some(callback) = &self.on_click {
                         callback();
+                    }
+                    if let Some(action) = &self.action {
+                        // This is where we would send the action to the application
+                        println!("Button action: {}", action);
                     }
                     InputResponse::Handled
                 } else {
@@ -406,6 +424,12 @@ impl ButtonBuilder {
     pub fn on_click<F>(mut self, callback: F) -> Self 
     where F: Fn() + Send + Sync + 'static {
         self.button = self.button.on_click(callback);
+        self
+    }
+
+    /// Set the action to be performed when the button is clicked
+    pub fn action(mut self, action: impl Into<String>) -> Self {
+        self.button = self.button.action(action);
         self
     }
     

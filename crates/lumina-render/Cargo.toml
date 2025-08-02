@@ -20,7 +20,7 @@ glam = { workspace = true }
 image = { workspace = true }
 
 # Font rendering with glyphon for better WGPU integration
-glyphon = "0.5"
+glyphon = { workspace = true }
 
 # Error handling and logging
 anyhow = { workspace = true }

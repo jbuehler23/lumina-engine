@@ -7,11 +7,10 @@ members = [
     "crates/lumina-audio",
     "crates/lumina-physics",
     "crates/lumina-scripting",
+    "crates/lumina-input",
     "crates/lumina-editor",
     "crates/lumina-ui",
-    "crates/lumina-web-editor",
-    "examples/basic-game",
-    "examples/platformer",
+    "crates/lumina-web-editor"
 ]
 resolver = "2"
 
@@ -33,8 +32,8 @@ glam = { version = "0.24", features = ["serde"] }
 bytemuck = { version = "1.14", features = ["derive"] }
 
 # Graphics and windowing
-wgpu = "0.19"
-winit = "0.29"
+wgpu = "26.0.1"
+winit = "0.30"
 raw-window-handle = "0.6"
 
 # Audio
@@ -50,9 +49,6 @@ mlua = { version = "0.9", features = ["lua54", "vendored"] }
 wasmtime = "14.0"
 
 # Editor UI
-egui = "0.26"
-egui-wgpu = "0.26"
-egui-winit = "0.26"
 tauri = { version = "1.5", features = ["api-all"] }
 
 # Asset loading
@@ -65,6 +61,7 @@ fontdue = "0.7"
 ttf-parser = "0.20"
 futures = "0.3"
 pollster = "0.3"
+glyphon = "0.9.0"
 
 # Web support
 wasm-bindgen = "0.2"
@@ -93,9 +90,16 @@ lumina-physics = { path = "crates/lumina-physics" }
 lumina-scripting = { path = "crates/lumina-scripting" }
 lumina-editor = { path = "crates/lumina-editor" }
 
+# Example dependencies
+lumina-input = { path = "crates/lumina-input" }
+lumina-ui = { path = "crates/lumina-ui" }
+
 anyhow.workspace = true
 log.workspace = true
 env_logger.workspace = true
+glam.workspace = true
+winit.workspace = true
+parking_lot.workspace = true
 tokio = { version = "1.0", features = ["full"] }
 
 [[bin]]
@@ -105,3 +109,16 @@ path = "src/editor.rs"
 [[bin]]
 name = "lumina-runtime"
 path = "src/runtime.rs"
+
+# Examples - demonstrating engine capabilities
+[[example]]
+name = "pong"
+path = "examples/pong.rs"
+
+[[example]]
+name = "basic_game"
+path = "examples/basic_game.rs"
+
+[[example]]
+name = "simple_render_test"
+path = "examples/simple_render_test.rs"

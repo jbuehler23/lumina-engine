@@ -28,13 +28,15 @@ impl Pipeline {
             layout: Some(&layout),
             vertex: wgpu::VertexState {
                 module: shader,
-                entry_point: vertex_entry,
+                entry_point: Some(vertex_entry),
                 buffers: vertex_buffers,
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: shader,
-                entry_point: fragment_entry,
+                entry_point: Some(fragment_entry),
                 targets,
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -52,6 +54,7 @@ impl Pipeline {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
 
         Ok(Self {

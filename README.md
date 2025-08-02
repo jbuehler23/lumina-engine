@@ -4,73 +4,63 @@ A comprehensive, high-performance game engine built in Rust, designed to empower
 
 ## ✨ Features
 
-### 🚀 **Core Engine**
-- **High-Performance ECS**: Custom Entity Component System for optimal performance
-- **Cross-Platform**: Runs on Windows, macOS, Linux, and Web (WASM)
-- **Memory Safe**: Built in Rust for guaranteed memory safety
-- **Multithreaded**: Parallel system execution using Rayon
+Lumina Engine provides a robust set of features for game development:
 
-### 🎨 **Graphics & Rendering**
-- **Modern Graphics API**: Built on wgpu for cross-platform GPU acceleration
-- **2D & 3D Support**: Flexible rendering pipeline supporting both 2D and 3D games
-- **Asset Pipeline**: Efficient loading and management of textures, meshes, and animations
-- **Shader System**: Custom shader support with hot-reloading
+### 🚀 Core Engine
+-   **High-Performance ECS**: Custom Entity Component System for optimal performance.
+-   **Cross-Platform**: Runs on Windows, macOS, Linux, and Web (WASM).
+-   **Memory Safe**: Built in Rust for guaranteed memory safety.
+-   **Multithreaded**: Parallel system execution using Rayon.
 
-### 🎵 **Audio System**
-- **Spatial Audio**: 3D positional audio support
-- **Multiple Formats**: Support for common audio formats (MP3, OGG, WAV, FLAC)
-- **Real-time Effects**: Audio processing and effects pipeline
+### 🎨 Graphics & Rendering
+-   **Modern Graphics API**: Built on wgpu for cross-platform GPU acceleration.
+-   **2D & 3D Support**: Flexible rendering pipeline supporting both 2D and 3D games.
+-   **Asset Pipeline**: Efficient loading and management of textures, meshes, and animations.
+-   **Shader System**: Custom shader support with hot-reloading.
 
-### ⚡ **Physics Integration**
-- **2D Physics**: Rapier2D integration for 2D games
-- **3D Physics**: Rapier3D integration for 3D games
-- **Collision Detection**: Efficient broad and narrow phase collision detection
+### 🎵 Audio System
+-   **Spatial Audio**: 3D positional audio support.
+-   **Multiple Formats**: Support for common audio formats (MP3, OGG, WAV, FLAC).
+-   **Real-time Effects**: Audio processing and effects pipeline.
 
-### 📝 **Scripting Support**
-- **Lua Integration**: Embedded Lua scripting for game logic
-- **WebAssembly**: WASM support for performance-critical scripts
-- **Hot Reloading**: Live script editing without restarts
+### ⚡ Physics Integration
+-   **2D Physics**: Rapier2D integration for 2D games.
+-   **3D Physics**: Rapier3D integration for 3D games.
+-   **Collision Detection**: Efficient broad and narrow phase collision detection.
 
-### 🛠️ **Development Tools**
-- **Visual Editor**: ✅ **COMPLETED** - Comprehensive editor with multiple panels (Project, Scene, Properties, Console, Visual Scripting)
-- **UI Framework**: ✅ **COMPLETED** - Custom immediate-mode UI with responsive layout system
-- **Font Rendering**: ✅ **COMPLETED** - TTF font support with fontdue integration and glyph caching
-- **Asset Management**: ✅ **COMPLETED** - Asset directory structure with font loading system
-- **Visual Scripting**: ✅ **COMPLETED** - Node-based programming with example scripts and drag-drop nodes
-- **Debug Tools**: ✅ **COMPLETED** - Comprehensive logging system with debug levels and timestamps
-- **Web Editor**: 🚧 **WIP** - Browser-based editor for accessibility
+### 📝 Scripting Support
+-   **Lua Integration**: Embedded Lua scripting for game logic.
+-   **WebAssembly**: WASM support for performance-critical scripts.
+-   **Hot Reloading**: Live script editing without restarts.
 
-## 🏗️ Architecture
+### 🛠️ Development Tools
+-   **Visual Editor**: Comprehensive editor with multiple panels (Project, Scene, Properties, Console, Visual Scripting).
+-   **UI Framework**: Custom immediate-mode UI with responsive layout system.
+-   **Font Rendering**: TTF font support with fontdue integration and glyph caching.
+-   **Asset Management**: Asset directory structure with font loading system.
+-   **Visual Scripting**: Node-based programming with example scripts and drag-drop nodes.
+-   **Debug Tools**: Comprehensive logging system with debug levels and timestamps.
+-   **Web Editor**: Browser-based editor for accessibility (Work in Progress).
 
-```
-lumina-engine/
-├── crates/
-│   ├── lumina-core/      # ✅ Core engine systems (time, events, input, math)
-│   ├── lumina-ecs/       # ✅ Entity Component System with parallel queries
-│   ├── lumina-render/    # ✅ WGPU-based rendering with UI and text systems
-│   ├── lumina-ui/        # ✅ Immediate-mode UI framework with responsive layout
-│   ├── lumina-assets/    # ✅ Asset management and font loading
-│   ├── lumina-audio/     # 🚧 Audio system (planned)
-│   ├── lumina-physics/   # 🚧 Physics integration (planned)
-│   ├── lumina-scripting/ # ✅ Visual scripting with node-based programming
-│   ├── lumina-editor/    # ✅ Native editor with panels and font rendering
-│   └── lumina-web-editor/# 🚧 Web-based editor (planned)
-├── assets/
-│   └── fonts/           # ✅ Font assets (Inter-Regular.ttf, etc.)
-├── examples/
-│   ├── basic-game/       # 🚧 Simple example game (planned)
-│   └── platformer/       # 🚧 2D platformer example (planned)
-└── src/
-    ├── main.rs          # 🚧 Engine demo (planned)
-    ├── editor.rs        # ✅ Editor binary - launches visual editor
-    └── runtime.rs       # 🚧 Game runtime (planned)
-```
+## 📚 Documentation & Architecture
+
+For a deep dive into the Lumina Engine's architecture, development roadmap, and detailed guides, please refer to the `docs/` directory:
+
+-   **[Architecture Overview](docs/ARCHITECTURE.md)**: Understand the UI-first design, modular crate structure, and ECS-driven rendering.
+-   **[Development Roadmap](docs/ROADMAP.md)**: See the current status, future phases, and strategic priorities for the engine and editor.
+-   **[Demo Guide](docs/DEMO_GUIDE.md)**: Learn how to run existing demos and understand key features.
+-   **[Editor Implementation Plan](docs/IMPLEMENTATION_PLAN.md)**: Detailed steps for implementing interactive editor features.
+
+### Crate-Specific Documentation
+
+-   **[Lumina Editor README](crates/lumina-editor/README.md)**: Detailed status and plans for the native editor.
+-   **[Lumina UI README](crates/lumina-ui/README.md)**: Guide to the easy-to-use UI API.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Rust 1.70+ (latest stable recommended)
-- Git
+-   Rust 1.70+ (latest stable recommended)
+-   Git
 
 ### Building the Engine
 
@@ -177,10 +167,10 @@ fn main() -> Result<()> {
 
 Lumina Engine is designed for high performance:
 
-- **Zero-cost abstractions**: Rust's zero-cost abstractions ensure minimal runtime overhead
-- **Memory efficient**: Custom allocators and memory pools for optimal memory usage
-- **Parallel execution**: Systems run in parallel where possible
-- **Cache-friendly**: Data structures optimized for CPU cache performance
+-   **Zero-cost abstractions**: Rust's zero-cost abstractions ensure minimal runtime overhead.
+-   **Memory efficient**: Custom allocators and memory pools for optimal memory usage.
+-   **Parallel execution**: Systems run in parallel where possible.
+-   **Cache-friendly**: Data structures optimized for CPU cache performance.
 
 ### Benchmarks
 
@@ -190,23 +180,6 @@ Lumina Engine is designed for high performance:
 | Component queries | Sub-microsecond iteration |
 | Memory usage | <50MB base footprint |
 | Startup time | <100ms cold start |
-
-## 🛠️ Development Tools
-
-### Lumina Editor
-The visual editor provides:
-- Scene composition and hierarchy
-- Component inspector and editor
-- Asset browser and importer
-- Real-time preview and testing
-- Performance profiler
-
-### Web Editor
-Access the editor from any browser:
-- No installation required
-- Full feature parity with native editor
-- Cloud project storage
-- Collaborative editing
 
 ## 🌐 Platform Support
 
@@ -218,15 +191,6 @@ Access the editor from any browser:
 | Web (WASM) | ✅ Full | WebGL 2.0, WebGPU |
 | iOS | 🚧 WIP | Metal |
 | Android | 🚧 WIP | Vulkan, OpenGL ES |
-
-## 📚 Documentation
-
-- [Getting Started Guide](docs/getting-started.md)
-- [API Reference](docs/api/index.md)
-- [Architecture Overview](docs/architecture.md)
-- [Performance Guide](docs/performance.md)
-- [Editor Manual](docs/editor.md)
-- [Examples and Tutorials](docs/examples.md)
 
 ## 🤝 Contributing
 
@@ -252,18 +216,18 @@ cargo clippy --all-targets --all-features
 ## 📄 License
 
 Licensed under either of:
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT License ([LICENSE-MIT](LICENSE-MIT))
+-   Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+-   MIT License ([LICENSE-MIT](LICENSE-MIT))
 
 at your option.
 
 ## 🙏 Acknowledgments
 
-- [wgpu](https://github.com/gfx-rs/wgpu) - Modern graphics API
-- [winit](https://github.com/rust-windowing/winit) - Cross-platform windowing
-- [rapier](https://github.com/dimforge/rapier) - Physics simulation
-- [rodio](https://github.com/RustAudio/rodio) - Audio playback
-- [egui](https://github.com/emilk/egui) - Immediate mode GUI
+-   [wgpu](https://github.com/gfx-rs/wgpu) - Modern graphics API
+-   [winit](https://github.com/rust-windowing/winit) - Cross-platform windowing
+-   [rapier](https://github.com/dimforge/rapier) - Physics simulation
+-   [rodio](https://github.com/RustAudio/rodio) - Audio playback
+-   [egui](https://github.com/emilk/egui) - Immediate mode GUI
 
 ---
 

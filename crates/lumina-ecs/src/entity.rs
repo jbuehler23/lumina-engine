@@ -97,8 +97,9 @@ impl EntityBuilder {
     }
 
     pub fn with<T: crate::Component>(mut self, component: T) -> Self {
+        let entity = self.entity; // Capture entity before move
         self.components.push(Box::new(move |world| {
-            world.add_component(self.entity, component);
+            world.add_component(entity, component);
         }));
         self
     }

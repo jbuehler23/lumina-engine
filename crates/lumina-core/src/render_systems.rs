@@ -3,13 +3,14 @@
 //! This module implements rendering systems that integrate with the core Engine
 //! and follow the ECS-driven architecture outlined in ARCHITECTURE.md.
 
-use crate::{System, SystemContext, Result, LuminaError};
-use lumina_render::RenderContext;
+use crate::{System, SystemContext, Result};
+use lumina_render::{RenderContext, Rect};
 use lumina_ui::UiFramework;
 use lumina_ecs::World;
+use lumina_input::InputEvents;
 use std::sync::Arc;
 use parking_lot::Mutex;
-use glam::Vec2;
+use glam::{Vec2, Vec4};
 
 /// UI button with click detection
 #[derive(Debug, Clone)]
@@ -37,26 +38,6 @@ pub struct UiState {
     pub last_mouse_position: Vec2,
 }
 
-/// Input events resource for storing input until they can be processed
-#[derive(Default)]
-pub struct InputEvents {
-    pub mouse_clicks: Vec<(Vec2, winit::event::MouseButton)>,
-    pub mouse_position: Option<Vec2>,
-}
-
-impl InputEvents {
-    pub fn add_click(&mut self, position: Vec2, button: winit::event::MouseButton) {
-        self.mouse_clicks.push((position, button));
-    }
-    
-    pub fn set_mouse_position(&mut self, position: Vec2) {
-        self.mouse_position = Some(position);
-    }
-    
-    pub fn clear_clicks(&mut self) {
-        self.mouse_clicks.clear();
-    }
-}
 
 /// Render system that manages the complete rendering pipeline
 /// 
@@ -97,7 +78,7 @@ impl System for RenderSystem {
         // Execute UI update system
         ui_update_system(&mut world)?;
         
-        // Execute UI render system
+        // Execute UI render system (includes game object rendering within proper frame setup)
         ui_render_system(&mut world)?;
         
         Ok(())
@@ -144,6 +125,7 @@ pub fn ui_update_system(world: &mut World) -> Result<()> {
 /// This system queries for the RenderContext and UiFramework resources
 /// and renders the UI using the WGPU render pass.
 pub fn ui_render_system(world: &mut World) -> Result<()> {
+    log::debug!("🎮 UI render system called");
     // Get the required resources
     let has_render_context = world.has_resource::<RenderContext>();
     let has_ui_framework = world.has_resource::<UiFramework>();
@@ -436,6 +418,29 @@ pub fn ui_render_system(world: &mut World) -> Result<()> {
                                     );
                                 }
                                 
+                                // *** RENDER GAME OBJECTS HERE (within active frame) ***
+                                // Render all entities that have Renderable components
+                                let mut render_count = 0;
+                                for (_entity, renderable) in world.query::<Renderable>() {
+                                    render_count += 1;
+                                    let bounds = Rect {
+                                        position: renderable.position,
+                                        size: renderable.size,
+                                    };
+                                    ui_renderer.draw_rect(bounds, renderable.color);
+                                    
+                                    if render_count <= 3 { // Only log first few to avoid spam
+                                        log::debug!("🎮 Rendering game object at {:?} with size {:?} and color {:?}", 
+                                                   renderable.position, renderable.size, renderable.color);
+                                    }
+                                }
+                                
+                                if render_count > 0 {
+                                    log::debug!("🎮 Total rendered game objects: {}", render_count);
+                                } else {
+                                    log::warn!("⚠️  No Renderable components found in world");
+                                }
+                                
                                 // End UI frame and submit to render pass
                                 let result = unsafe {
                                     ui_renderer.end_frame(&*device_ptr, &*queue_ptr)
@@ -517,9 +522,10 @@ pub fn input_system(world: &mut World, event: &winit::event::WindowEvent) -> Res
                 // Store the click for later processing
                 world.with_resource_mut::<InputEvents, _>(|mut input_events_opt| {
                     if let Some(input_events) = input_events_opt.as_mut() {
-                        if let Some(mouse_pos) = input_events.mouse_position {
-                            input_events.add_click(mouse_pos, *button);
-                            log::debug!("🖱️ Stored click at position: {:?}", mouse_pos);
+                        if let Some(mouse_pos) = input_events.mouse_position() {
+                            input_events.add_click(mouse_pos, *button, true);
+                            println!("🖱️ CLICK STORED at position: {:?}", mouse_pos);
+                            log::info!("🖱️ Click stored at position: {:?}", mouse_pos);
                         }
                     }
                 });
@@ -567,8 +573,8 @@ pub fn process_input_events(world: &mut World) -> Result<Vec<String>> {
     // Get any pending mouse clicks
     let clicks = world.with_resource_mut::<InputEvents, _>(|mut input_events_opt| {
         if let Some(input_events) = input_events_opt.as_mut() {
-            let clicks = input_events.mouse_clicks.clone();
-            input_events.clear_clicks();
+            let clicks = input_events.mouse_clicks().to_vec();
+            input_events.clear();
             clicks
         } else {
             Vec::new()
@@ -579,9 +585,10 @@ pub fn process_input_events(world: &mut World) -> Result<Vec<String>> {
     if !clicks.is_empty() {
         world.with_resource::<UiState, _>(|ui_state_opt| {
             if let Some(ui_state) = ui_state_opt {
-                for (click_pos, _button) in &clicks {
+                for click in &clicks {
                     for (_index, ui_button) in ui_state.toolbar_buttons.iter().enumerate() {
-                        if ui_button.contains_point(*click_pos) {
+                        if ui_button.contains_point(click.position) {
+                            println!("🖱️ BUTTON CLICKED: {} ({})", ui_button.label, ui_button.action);
                             log::info!("🖱️ Button clicked: {} ({})", ui_button.label, ui_button.action);
                             actions.push(ui_button.action.clone());
                         }
@@ -653,4 +660,13 @@ pub fn ui_event_handler_system(_world: &mut World) -> Result<()> {
     // and processes them here to modify ECS components
     
     Ok(())
+}
+
+/// Simple renderable component for game objects
+/// Games can add this component to entities to make them render as colored rectangles
+#[derive(Debug, Clone)]
+pub struct Renderable {
+    pub position: Vec2,
+    pub size: Vec2,
+    pub color: Vec4,
 }

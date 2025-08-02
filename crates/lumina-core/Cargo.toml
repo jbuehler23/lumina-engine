@@ -20,6 +20,7 @@ lumina-scripting = { path = "../lumina-scripting" }
 lumina-render = { path = "../lumina-render" }
 lumina-ui = { path = "../lumina-ui" }
 lumina-ecs = { path = "../lumina-ecs" }
+lumina-input = { path = "../lumina-input" }
 wgpu.workspace = true
 winit.workspace = true
 

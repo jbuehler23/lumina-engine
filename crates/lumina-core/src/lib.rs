@@ -1,7 +1,6 @@
 pub mod app;
 pub mod engine;
 pub mod event;
-pub mod input;
 pub mod math;
 pub mod memory;
 pub mod time;
@@ -13,18 +12,20 @@ pub mod ecs_app;
 pub use app::*;
 pub use engine::*;
 pub use event::*;
-pub use input::*;
 pub use math::*;
 pub use memory::*;
 pub use time::*;
 pub use utils::*;
 pub use render_systems::*;
 pub use ecs_app::*;
+
+// Essential components for game development
+pub use render_systems::Renderable;
+
+// Re-export input types from lumina-input for convenience
+pub use lumina_input as input;
 // Re-export visual scripting from lumina-scripting
 pub use lumina_scripting::*;
-
-// Re-export MouseButton from event module for convenience
-pub use event::MouseButton;
 
 pub type Result<T> = anyhow::Result<T>;
 

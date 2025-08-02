@@ -10,7 +10,7 @@ use lumina_ui::{UiFramework, Theme};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::EventLoop,
-    window::{Window, WindowBuilder},
+    window::{Window, WindowAttributes},
     dpi::LogicalSize,
 };
 use std::sync::{Arc, Mutex};
@@ -129,12 +129,12 @@ impl<T: EcsApp> EcsAppRunner<T> {
         println!("🔧 [DEBUG] Event loop created successfully");
         
         println!("🔧 [DEBUG] Creating window...");
+        let window_attributes = WindowAttributes::default()
+            .with_title(&self.window_config.title)
+            .with_inner_size(self.window_config.size)
+            .with_resizable(self.window_config.resizable);
         let window = Arc::new(
-            WindowBuilder::new()
-                .with_title(&self.window_config.title)
-                .with_inner_size(self.window_config.size)
-                .with_resizable(self.window_config.resizable)
-                .build(&event_loop)
+            event_loop.create_window(window_attributes)
                 .map_err(|e| LuminaError::InitializationError(format!("Failed to create window: {}", e)))?
         );
         println!("🔧 [DEBUG] Window created successfully");
@@ -170,10 +170,13 @@ impl<T: EcsApp> EcsAppRunner<T> {
                     window_id,
                 } if window_id == window.id() => {
                     self.handle_window_event(event, elwt);
+                    
+                    // Always request a redraw after handling window events to ensure continuous rendering
+                    window.request_redraw();
                 }
                 Event::AboutToWait => {
-                    // Request a redraw for continuous rendering
-                    // This should be fine now that we properly present frames
+                    // Ensure continuous rendering
+                    log::debug!("🔄 AboutToWait - requesting redraw");
                     window.request_redraw();
                 }
                 Event::LoopExiting => {
@@ -208,7 +211,7 @@ impl<T: EcsApp> EcsAppRunner<T> {
         
         // Initialize input events resource
         println!("🔧 [DEBUG] Creating input events resource...");
-        world.add_resource(crate::render_systems::InputEvents::default());
+        world.add_resource(lumina_input::InputEvents::default());
         
         println!("🔧 [DEBUG] All resources added to world successfully");
         Ok(())
@@ -240,6 +243,8 @@ impl<T: EcsApp> EcsAppRunner<T> {
                     });
                 }
                 WindowEvent::RedrawRequested => {
+                    log::debug!("🎨 RedrawRequested - starting rendering");
+                    
                     // Update the application
                     if let Err(e) = self.app.update(&mut world) {
                         eprintln!("Update error: {}", e);
@@ -265,6 +270,8 @@ impl<T: EcsApp> EcsAppRunner<T> {
                         }
                         Err(e) => eprintln!("Input processing error: {}", e),
                     }
+                    
+                    log::debug!("🎨 RedrawRequested - completed rendering");
                 }
                 _ => {
                     // Forward other input events to the input system

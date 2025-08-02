@@ -8,7 +8,7 @@ use lumina_render::UiRenderer;
 use winit::{
     event::{Event, WindowEvent, ElementState},
     event_loop::EventLoop,
-    window::{Window, WindowBuilder},
+    window::{Window, WindowAttributes},
     dpi::{LogicalSize, PhysicalSize},
 };
 use std::sync::Arc;
@@ -266,13 +266,13 @@ where
     // Note: Logging can be initialized by the application if needed
     
     let event_loop = EventLoop::new()?;
+    let window_attributes = WindowAttributes::default()
+        .with_title(&config.title)
+        .with_inner_size(LogicalSize::new(config.size.0, config.size.1))
+        .with_resizable(config.resizable)
+        .with_decorations(config.decorations);
     let window = Arc::new(
-        WindowBuilder::new()
-            .with_title(&config.title)
-            .with_inner_size(LogicalSize::new(config.size.0, config.size.1))
-            .with_resizable(config.resizable)
-            .with_decorations(config.decorations)
-            .build(&event_loop)?
+        event_loop.create_window(window_attributes)?
     );
     
     let mut ui_app = pollster::block_on(UiApp::new(window.clone()))?;

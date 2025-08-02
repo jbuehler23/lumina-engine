@@ -165,7 +165,35 @@ impl EcsApp for EditorApp {
     }
     
     fn handle_ui_action(&mut self, _world: &mut World, action: String) -> Result<()> {
-        self.handle_ui_action(action);
+        if action.starts_with("select_tool") {
+            let tool_str = action.strip_prefix("select_tool_").unwrap();
+            let tool = match tool_str {
+                "Select" => ToolType::Select,
+                "Move" => ToolType::Move,
+                "Rotate" => ToolType::Rotate,
+                "Scale" => ToolType::Scale,
+                "Brush" => ToolType::Brush,
+                "Eraser" => ToolType::Eraser,
+                _ => return Ok(()),
+            };
+            self.toolbar.set_selected_tool(tool);
+            self.handle_toolbar_action(ToolbarAction::ToolSelected(tool));
+        } else {
+            match action.as_str() {
+                "new_project" => self.handle_toolbar_action(ToolbarAction::NewProject),
+                "open_project" => self.handle_toolbar_action(ToolbarAction::OpenProject),
+                "save_project" => self.handle_toolbar_action(ToolbarAction::SaveProject),
+                "undo" => self.handle_toolbar_action(ToolbarAction::Undo),
+                "redo" => self.handle_toolbar_action(ToolbarAction::Redo),
+                "play" => self.handle_toolbar_action(ToolbarAction::Play),
+                "pause" => self.handle_toolbar_action(ToolbarAction::Pause),
+                "stop" => self.handle_toolbar_action(ToolbarAction::Stop),
+                _ => {
+                    println!("🖱️ UNKNOWN UI ACTION: {}", action);
+                    info!("🖱️ Unknown UI action: {}", action);
+                }
+            }
+        }
         Ok(())
     }
     
@@ -361,47 +389,57 @@ impl EditorApp {
     fn handle_ui_action(&mut self, action: String) {
         match action.as_str() {
             "select" => {
+                println!("🖱️ SELECT TOOL ACTIVATED");
                 info!("🖱️ Select tool activated");
                 // TODO: Activate select tool in scene editor
             }
             "move" => {
+                println!("🖱️ MOVE TOOL ACTIVATED");
                 info!("🖱️ Move tool activated");
                 // TODO: Activate move tool in scene editor
             }
             "rotate" => {
+                println!("🖱️ ROTATE TOOL ACTIVATED");
                 info!("🖱️ Rotate tool activated");
                 // TODO: Activate rotate tool in scene editor
             }
             "scale" => {
+                println!("🖱️ SCALE TOOL ACTIVATED");
                 info!("🖱️ Scale tool activated");
                 // TODO: Activate scale tool in scene editor
             }
             "brush" => {
+                println!("🖱️ BRUSH TOOL ACTIVATED");
                 info!("🖱️ Brush tool activated");
                 // TODO: Activate brush tool in scene editor
             }
             "eraser" => {
+                println!("🖱️ ERASER TOOL ACTIVATED");
                 info!("🖱️ Eraser tool activated");
                 // TODO: Activate eraser tool in scene editor
             }
             "new" => {
+                println!("🖱️ NEW PROJECT REQUESTED");
                 info!("🖱️ New project requested");
                 // TODO: Show new project dialog
             }
             "open" => {
+                println!("🖱️ OPEN PROJECT REQUESTED");
                 info!("🖱️ Open project requested");
                 // TODO: Show open project dialog
             }
             "save" => {
+                println!("🖱️ SAVE PROJECT REQUESTED");
                 info!("🖱️ Save project requested");
                 if let Some(project) = &self.current_project {
                     info!("Saving project: {}", project.name);
-                    // TODO: Implement project saving
                 } else {
+                    println!("No project to save");
                     info!("No project to save");
                 }
             }
             _ => {
+                println!("🖱️ UNKNOWN UI ACTION: {}", action);
                 info!("🖱️ Unknown UI action: {}", action);
             }
         }

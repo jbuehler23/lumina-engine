@@ -29,22 +29,24 @@ pub struct Renderer {
 
 impl Renderer {
     /// Create a new renderer with the given configuration
-    pub async fn new(config: RenderConfig) -> RenderResult<Self> {
+    pub async fn new(config: RenderConfig, window: Arc<winit::window::Window>) -> RenderResult<Self> {
         // Create WGPU instance
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: Self::backends_from_preference(config.backend),
             ..Default::default()
         });
+
+        let surface = instance.create_surface(window)?;
 
         // Request adapter
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: None,
+                compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
             })
             .await
-            .ok_or(RenderError::AdapterNotFound)?;
+            .unwrap();
 
         // Request device and queue
         let (device, queue) = adapter
@@ -53,20 +55,42 @@ impl Renderer {
                     label: Some("Lumina Render Device"),
                     required_features: wgpu::Features::empty(),
                     required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::default(),
                 },
-                None,
+                None, // Trace path
             )
             .await?;
 
         let screen_size = Vec2::new(config.window.size.0 as f32, config.window.size.1 as f32);
+
+        let surface_caps = surface.get_capabilities(&adapter);
+        let surface_format = surface_caps
+            .formats
+            .iter()
+            .copied()
+            .find(|f| f.is_srgb())
+            .unwrap_or(surface_caps.formats[0]);
+
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            format: surface_format,
+            width: screen_size.x as u32,
+            height: screen_size.y as u32,
+            present_mode: surface_caps.present_modes[0],
+            alpha_mode: surface_caps.alpha_modes[0],
+            view_formats: vec![],
+            desired_maximum_frame_latency: 2,
+        };
+
+        surface.configure(&device, &config);
 
         Ok(Self {
             instance,
             adapter,
             device,
             queue,
-            surface: None,
-            surface_config: None,
+            surface: Some(surface),
+            surface_config: Some(config),
             ui_renderer: None,
             screen_size,
         })

@@ -14,6 +14,8 @@ pub struct EditorToolbar {
     widgets: Vec<WidgetId>,
     selected_tool: ToolType,
     bounds: Rect,
+    /// Actions triggered by toolbar buttons that need to be processed
+    pending_actions: Vec<ToolbarAction>,
 }
 
 /// Types of tools available in the toolbar
@@ -103,6 +105,7 @@ impl EditorToolbar {
             widgets: Vec::new(),
             selected_tool: ToolType::Select,
             bounds: Rect::new(0.0, 0.0, 0.0, 0.0),
+            pending_actions: Vec::new(),
         }
     }
 
@@ -186,21 +189,24 @@ impl EditorToolbar {
     fn render_file_section(&mut self, ui: &mut UiFramework, parent_id: WidgetId) -> Result<()> {
         // New project button
         let new_btn = Button::new("📄 New")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("new_project");
         let new_id = ui.add_widget(Box::new(new_btn));
         ui.add_child_to_parent(parent_id, new_id);
         self.widgets.push(new_id);
 
         // Open project button
         let open_btn = Button::new("📂 Open")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("open_project");
         let open_id = ui.add_widget(Box::new(open_btn));
         ui.add_child_to_parent(parent_id, open_id);
         self.widgets.push(open_id);
 
         // Save project button
         let save_btn = Button::new("💾 Save")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("save_project");
         let save_id = ui.add_widget(Box::new(save_btn));
         ui.add_child_to_parent(parent_id, save_id);
         self.widgets.push(save_id);
@@ -211,14 +217,16 @@ impl EditorToolbar {
     fn render_edit_section(&mut self, ui: &mut UiFramework, parent_id: WidgetId) -> Result<()> {
         // Undo button
         let undo_btn = Button::new("↶ Undo")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("undo");
         let undo_id = ui.add_widget(Box::new(undo_btn));
         ui.add_child_to_parent(parent_id, undo_id);
         self.widgets.push(undo_id);
 
         // Redo button  
         let redo_btn = Button::new("↷ Redo")
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("redo");
         let redo_id = ui.add_widget(Box::new(redo_btn));
         ui.add_child_to_parent(parent_id, redo_id);
         self.widgets.push(redo_id);
@@ -245,8 +253,11 @@ impl EditorToolbar {
             };
 
             let button_text = format!("{} {}", tool.icon(), tool.display_name());
+            let tool_copy = *tool; // Copy for closure
+            
             let tool_btn = Button::new(&button_text)
-                .variant(variant);
+                .variant(variant)
+                .action(format!("select_tool_{:?}", tool_copy));
 
             let tool_id = ui.add_widget(Box::new(tool_btn));
             ui.add_child_to_parent(parent_id, tool_id);
@@ -259,21 +270,24 @@ impl EditorToolbar {
     fn render_playback_section(&mut self, ui: &mut UiFramework, parent_id: WidgetId) -> Result<()> {
         // Play button
         let play_btn = Button::new("▶️ Play")
-            .variant(ButtonVariant::Primary);
+            .variant(ButtonVariant::Primary)
+            .action("play");
         let play_id = ui.add_widget(Box::new(play_btn));
         ui.add_child_to_parent(parent_id, play_id);
         self.widgets.push(play_id);
 
         // Pause button
         let pause_btn = Button::new("⏸️ Pause")
-            .variant(ButtonVariant::Secondary);
+            .variant(ButtonVariant::Secondary)
+            .action("pause");
         let pause_id = ui.add_widget(Box::new(pause_btn));
         ui.add_child_to_parent(parent_id, pause_id);
         self.widgets.push(pause_id);
 
         // Stop button
         let stop_btn = Button::new("⏹️ Stop") 
-            .variant(ButtonVariant::Ghost);
+            .variant(ButtonVariant::Ghost)
+            .action("stop");
         let stop_id = ui.add_widget(Box::new(stop_btn));
         ui.add_child_to_parent(parent_id, stop_id);
         self.widgets.push(stop_id);
@@ -281,19 +295,15 @@ impl EditorToolbar {
         Ok(())
     }
 
-    /// Handle mouse clicks on toolbar elements
-    pub fn handle_click(&mut self, position: Vec2) -> ToolbarAction {
-        if !self.bounds.contains(position) {
-            return ToolbarAction::None;
-        }
-
-        // For now, just log the click
-        debug!("Toolbar clicked at {:?}", position);
-        
-        // TODO: Implement proper click detection based on widget bounds
-        // This would require mapping clicks to specific buttons
-        
-        ToolbarAction::None
+    /// Get and clear pending actions from toolbar button clicks
+    pub fn take_pending_actions(&mut self) -> Vec<ToolbarAction> {
+        std::mem::take(&mut self.pending_actions)
+    }
+    
+    /// Add an action to the pending actions queue
+    fn add_action(&mut self, action: ToolbarAction) {
+        debug!("Toolbar action queued: {:?}", action);
+        self.pending_actions.push(action);
     }
 
     /// Handle keyboard shortcuts for tools
