@@ -47,7 +47,8 @@ use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
 /// Button widget for user interactions
-'''pub struct Button {
+#[derive(Debug)]
+pub struct Button {
     /// Base widget properties
     base: BaseWidget,
     /// Button text
@@ -64,21 +65,6 @@ use serde::{Deserialize, Serialize};
     is_pressed: bool,
     /// Whether the button is currently hovered
     is_hovered: bool,
-}''
-
-impl std::fmt::Debug for Button {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Button")
-            .field("base", &self.base)
-            .field("text", &self.text)
-            .field("variant", &self.variant)
-            .field("state", &self.state)
-            .field("on_click", &"<callback>")
-            .field("action", &self.action)
-            .field("is_pressed", &self.is_pressed)
-            .field("is_hovered", &self.is_hovered)
-            .finish()
-    }
 }
 
 /// Button style variants

@@ -1,0 +1,544 @@
+{
+  "metadata": {
+    "name": "Simple RPG",
+    "description": "A basic RPG with player character, NPCs, and combat",
+    "resolution": [1280, 720],
+    "background_color": [0.2, 0.5, 0.2, 1.0],
+    "physics": {
+      "enabled": true,
+      "gravity": [0.0, 0.0],
+      "timestep": 0.016667
+    },
+    "audio": {
+      "enabled": true,
+      "master_volume": 1.0,
+      "music_volume": 0.6,
+      "sfx_volume": 0.8
+    }
+  },
+  "entities": [
+    {
+      "name": "Player",
+      "tags": ["player", "character"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [200.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "hero.png",
+            "color": [1.0, 1.0, 1.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Player": {
+          "type": "Player",
+          "data": {
+            "speed": 150.0,
+            "jump_force": 0.0,
+            "health": 100,
+            "max_health": 100
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 32.0,
+              "height": 48.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Kinematic",
+            "mass": 1.0,
+            "linear_damping": 0.5,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "NPC_Merchant",
+      "tags": ["npc", "merchant"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [500.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "merchant.png",
+            "color": [1.0, 1.0, 1.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 32.0,
+              "height": 48.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Enemy_Goblin",
+      "tags": ["enemy", "monster"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [800.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "goblin.png",
+            "color": [0.8, 1.0, 0.8, 1.0],
+            "flip_x": true,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Enemy": {
+          "type": "Enemy",
+          "data": {
+            "damage": 10,
+            "attack_range": 50.0,
+            "ai_type": "aggressive"
+          }
+        },
+        "Health": {
+          "type": "Health",
+          "data": {
+            "current": 30,
+            "maximum": 30
+          }
+        },
+        "Velocity": {
+          "type": "Velocity",
+          "data": {
+            "linear": [-20.0, 0.0],
+            "angular": 0.0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 32.0,
+              "height": 40.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Dynamic",
+            "mass": 1.0,
+            "linear_damping": 0.3,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Treasure_Chest",
+      "tags": ["treasure", "collectible"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [1000.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "chest.png",
+            "color": [0.8, 0.6, 0.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collectible": {
+          "type": "Collectible",
+          "data": {
+            "points": 100,
+            "effect": "gold"
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 48.0,
+              "height": 32.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "HealthDisplay",
+      "tags": ["ui", "health"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [100.0, 650.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Text": {
+          "type": "Text",
+          "data": {
+            "content": "Health: 100/100",
+            "font": "default",
+            "size": 20.0,
+            "color": [1.0, 0.0, 0.0, 1.0],
+            "alignment": "Left"
+          }
+        }
+      }
+    },
+    {
+      "name": "GoldDisplay",
+      "tags": ["ui", "score"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [100.0, 600.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Text": {
+          "type": "Text",
+          "data": {
+            "content": "Gold: 0",
+            "font": "default",
+            "size": 20.0,
+            "color": [1.0, 1.0, 0.0, 1.0],
+            "alignment": "Left"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "GameState": {
+      "type": "GameState",
+      "data": {
+        "score": 0,
+        "level": 1,
+        "lives": 1,
+        "time_remaining": 0.0
+      }
+    }
+  },
+  "scripts": [
+    {
+      "id": "player_move_up",
+      "name": "Player Move Up",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "W"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [0.0, 1.0],
+            "speed": 150.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_down",
+      "name": "Player Move Down",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "S"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [0.0, -1.0],
+            "speed": 150.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_left",
+      "name": "Player Move Left",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "A"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [-1.0, 0.0],
+            "speed": 150.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_right",
+      "name": "Player Move Right",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "D"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [1.0, 0.0],
+            "speed": 150.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_attack",
+      "name": "Player Attack",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "Space"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "sword_swing.wav",
+            "volume": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "combat_with_goblin",
+      "name": "Combat with Goblin",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "Enemy_Goblin"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ModifyHealth",
+          "data": {
+            "entity": "Player",
+            "change": -10
+          }
+        },
+        {
+          "type": "ModifyHealth",
+          "data": {
+            "entity": "Enemy_Goblin",
+            "change": -25
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "combat_hit.wav",
+            "volume": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "id": "talk_to_merchant",
+      "name": "Interact with Merchant",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "NPC_Merchant"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Welcome to my shop, adventurer!",
+            "duration": 3.0
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "npc_greeting.wav",
+            "volume": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "id": "collect_treasure",
+      "name": "Collect Treasure",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "Treasure_Chest"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 100
+          }
+        },
+        {
+          "type": "DestroyEntity",
+          "data": {
+            "entity": "Treasure_Chest"
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "treasure_collect.wav",
+            "volume": 0.9
+          }
+        },
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Found 100 gold!",
+            "duration": 2.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "enemy_death",
+      "name": "Enemy Death Check",
+      "script_type": "System",
+      "triggers": [
+        {
+          "type": "HealthReduced",
+          "data": {
+            "entity": "Enemy_Goblin",
+            "threshold": 0
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "DestroyEntity",
+          "data": {
+            "entity": "Enemy_Goblin"
+          }
+        },
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 50
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "enemy_death.wav",
+            "volume": 0.8
+          }
+        }
+      ]
+    }
+  ]
+}

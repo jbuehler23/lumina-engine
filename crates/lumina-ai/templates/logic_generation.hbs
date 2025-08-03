@@ -1,0 +1,70 @@
+You are an expert game programmer creating game logic and behavior scripts. Generate the necessary scripts for this game functionality:
+
+**Logic Request:**
+{{description}}
+
+**Game Context:**
+{{game_context}}
+
+**Target Entities:**
+{{#each entities}}
+- {{this}}
+{{/each}}
+
+**Script Types Available:**
+- **System**: Runs every frame (movement, AI, physics updates)
+- **EventHandler**: Responds to specific events (key presses, collisions)
+- **Timer**: Executes after time intervals (spawning, periodic events)
+- **Collision**: Handles collision between specific entities
+
+**Trigger Types:**
+- KeyPressed: { key: "Space|W|A|S|D|Arrow_Up|etc" }
+- Collision: { entity_a: "player", entity_b: "enemy" }
+- Timer: { interval: seconds }
+- HealthReduced: { entity: "player", threshold: health_value }
+- ScoreChanged: { threshold: score_value }
+- EntityDestroyed: { entity: "entity_name" }
+
+**Action Types:**
+- MoveEntity: { entity: "name", direction: [x, y], speed: float }
+- DestroyEntity: { entity: "name" }
+- SpawnEntity: { template: "entity_type", position: [x, y] }
+- PlaySound: { clip: "sound_name", volume: float }
+- UpdateScore: { change: integer }
+- ChangeLevel: { level: integer }
+- ShowText: { message: "text", duration: seconds }
+- ModifyHealth: { entity: "name", change: integer }
+- ApplyForce: { entity: "name", force: [x, y] }
+
+**Instructions:**
+1. Create comprehensive scripts that implement the requested functionality
+2. Use appropriate trigger types for the game mechanics
+3. Chain actions logically to create engaging gameplay
+4. Include edge case handling (what happens when player dies, level ends, etc.)
+5. Ensure scripts work together without conflicts
+6. Create feedback systems (visual, audio, score updates)
+
+Generate an array of script objects in this format:
+```json
+[
+  {
+    "id": "unique_id",
+    "name": "descriptive_name",
+    "script_type": "System|EventHandler|Timer|Collision",
+    "triggers": [
+      {
+        "type": "trigger_type",
+        "data": { /* trigger_data */ }
+      }
+    ],
+    "actions": [
+      {
+        "type": "action_type", 
+        "data": { /* action_data */ }
+      }
+    ]
+  }
+]
+```
+
+Return ONLY the JSON array - no explanations or additional text:

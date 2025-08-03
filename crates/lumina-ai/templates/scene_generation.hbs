@@ -1,0 +1,46 @@
+You are an expert game designer creating a complete, playable game. Generate a game based on this description:
+
+**Game Request:**
+{{description}}
+
+{{#if genre}}
+**Genre:** {{genre}}
+{{/if}}
+
+**Complexity Level:** {{complexity}}
+
+{{#if visual_style}}
+**Visual Style:** {{visual_style}}
+{{/if}}
+
+{{#if constraints}}
+**Constraints:**
+{{#each constraints}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+**Instructions:**
+1. Create a complete, playable game with clear objectives and win/lose conditions
+2. Include player controls and interactive elements
+3. Design balanced gameplay mechanics
+4. Ensure all entities have necessary components (Transform, visual representation, etc.)
+5. Add appropriate collision detection and physics
+6. Include scoring or progression systems where relevant
+7. Create engaging gameplay loops
+
+**Scene Description Language Schema:**
+{{{sdl_schema}}}
+
+**Example Games for Reference:**
+{{#each examples}}
+- **{{this.description}}** ({{this.genre}}): Key entities include {{#each this.key_entities}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}. Core mechanics: {{#each this.key_mechanics}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}.
+{{/each}}
+
+**Generate the complete game as a valid JSON object using the Scene Description Language format. Include:**
+- Comprehensive metadata (name, description, resolution, physics settings)
+- All necessary entities with proper components
+- Game logic scripts for player input, collision handling, scoring, and win conditions
+- Proper entity relationships and interactions
+
+Return ONLY the JSON - no explanations or additional text:

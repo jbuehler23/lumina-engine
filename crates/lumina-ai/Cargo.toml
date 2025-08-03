@@ -1,0 +1,51 @@
+[package]
+name = "lumina-ai"
+version = "0.1.0"
+edition = "2021"
+description = "AI integration layer for Lumina Engine - text-to-game generation"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core dependencies
+anyhow.workspace = true
+thiserror.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+uuid.workspace = true
+log.workspace = true
+futures.workspace = true
+
+# Math
+glam.workspace = true
+
+# HTTP client for AI API calls
+reqwest = { version = "0.11", features = ["json", "stream"] }
+tokio = { version = "1.0", features = ["full"] }
+
+# Training and fine-tuning (optional dependencies)
+candle-core = { version = "0.3", optional = true }
+candle-nn = { version = "0.3", optional = true }
+candle-transformers = { version = "0.3", optional = true }
+tokenizers = { version = "0.15", optional = true }
+hf-hub = { version = "0.3", optional = true }
+
+# Template engine for prompt generation
+handlebars = "4.4"
+
+# Internal dependencies
+lumina-ecs = { path = "../lumina-ecs" }
+lumina-core = { path = "../lumina-core" }
+lumina-assets = { path = "../lumina-assets" }
+lumina-render = { path = "../lumina-render" }
+lumina-ui = { path = "../lumina-ui" }
+
+[features]
+default = ["ollama"]
+openai = []
+anthropic = []
+ollama = []
+local = []
+training = ["candle-core", "candle-nn", "candle-transformers", "tokenizers", "hf-hub"]
+
+[dev-dependencies]
+tokio-test = "0.4"

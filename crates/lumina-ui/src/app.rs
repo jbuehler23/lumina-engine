@@ -76,13 +76,13 @@ impl<'a> UiApp<'a> {
         let size = window.inner_size();
         
         // Initialize WGPU with sensible defaults
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
-        
-        let surface = instance.create_surface(window.clone())?;
-        
+
+        let surface = unsafe { instance.create_surface(&window.clone()) }.unwrap();
+
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
@@ -90,18 +90,20 @@ impl<'a> UiApp<'a> {
                 force_fallback_adapter: false,
             })
             .await
-            .ok_or("Failed to find suitable adapter")?;
-        
+            .unwrap();
+
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
-                    label: Some("Device"),
+                    label: Some("Lumina UI Device"),
                     required_features: wgpu::Features::empty(),
                     required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::default(),
+                    trace: wgpu::Trace::Off,
                 },
-                None,
             )
-            .await?;
+            .await
+            .unwrap();
         
         let surface_caps = surface.get_capabilities(&adapter);
         let surface_format = surface_caps
@@ -233,17 +235,17 @@ impl<'a> UiApp<'a> {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.08, // Dark theme background
-                            g: 0.08,
-                            b: 0.10,
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
-                timestamp_writes: None,
                 occlusion_query_set: None,
+                timestamp_writes: None,
             });
 
             // Render the UI

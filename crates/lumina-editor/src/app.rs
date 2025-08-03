@@ -449,48 +449,93 @@ impl EditorApp {
     fn handle_toolbar_action(&mut self, action: ToolbarAction) {
         match action {
             ToolbarAction::ToolSelected(tool) => {
-                debug!("Tool selected: {:?}", tool);
+                println!("🔧 Tool selected: {:?}", tool);
+                info!("Tool selected: {:?}", tool);
                 // TODO: Update scene editor with selected tool
             }
             ToolbarAction::NewProject => {
-                debug!("New project requested");
-                // TODO: Show new project dialog
+                println!("📄 New project requested");
+                info!("New project requested");
+                // TODO: Show new project dialog and call self.new_project()
             }
             ToolbarAction::OpenProject => {
-                debug!("Open project requested");
-                // TODO: Show open project dialog
+                println!("📂 Open project requested");
+                info!("Open project requested");
+                // TODO: Show open project dialog and call self.load_project()
             }
             ToolbarAction::SaveProject => {
-                debug!("Save project requested");
-                if let Some(project) = &self.current_project {
-                    debug!("Saving project: {}", project.name);
-                    // TODO: Implement project saving
-                } else {
-                    debug!("No project to save");
+                println!("💾 Save project requested");
+                info!("Save project requested");
+                if let Err(e) = self.save_project() {
+                    println!("Error saving project: {}", e);
+                    log::error!("Error saving project: {}", e);
                 }
             }
             ToolbarAction::Undo => {
-                debug!("Undo requested");
+                println!("↶ Undo requested");
+                info!("Undo requested");
                 // TODO: Implement undo system
             }
             ToolbarAction::Redo => {
-                debug!("Redo requested");
+                println!("↷ Redo requested");
+                info!("Redo requested");
                 // TODO: Implement redo system
             }
             ToolbarAction::Play => {
-                debug!("Play requested");
+                println!("▶️ Play requested");
+                info!("Play requested");
                 // TODO: Start game preview
             }
             ToolbarAction::Pause => {
-                debug!("Pause requested");
+                println!("⏸️ Pause requested");
+                info!("Pause requested");
                 // TODO: Pause game preview
             }
             ToolbarAction::Stop => {
-                debug!("Stop requested");
+                println!("⏹️ Stop requested");
+                info!("Stop requested");
                 // TODO: Stop game preview
             }
             ToolbarAction::None => {}
         }
+    }
+}
+
+impl EditorApp {
+    /// Create a new project
+    pub fn new_project(&mut self, name: String, path: String) -> Result<()> {
+        info!("Creating new project: {} at {}", name, path);
+        let project = EditorProject::new(name, path)?;
+        self.current_project = Some(project);
+        info!("Successfully created new project");
+        Ok(())
+    }
+    
+    /// Load an existing project
+    pub fn load_project(&mut self, path: String) -> Result<()> {
+        info!("Loading project from: {}", path);
+        let project = EditorProject::load(path)?;
+        self.current_project = Some(project);
+        info!("Successfully loaded project");
+        Ok(())
+    }
+
+    /// Save the current project
+    pub fn save_project(&mut self) -> Result<()> {
+        if let Some(project) = &self.current_project {
+            info!("Saving project: {}", project.name);
+            // Placeholder for actual saving logic
+            // In a real scenario, you would serialize the project state to disk
+            println!("Project '{}' saved successfully (placeholder).", project.name);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("No project to save"))
+        }
+    }
+    
+    /// Get the current project
+    pub fn current_project(&self) -> Option<&EditorProject> {
+        self.current_project.as_ref()
     }
 }
 

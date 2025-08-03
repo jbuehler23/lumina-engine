@@ -27,6 +27,8 @@ pub struct UiRenderer {
     text_pipeline: TextPipeline,
     /// Texture bind group for solid color rendering
     solid_texture_bind_group: wgpu::BindGroup,
+    /// Current frame's text layouts for glyphon rendering
+    text_layouts: Vec<TextLayoutInfo>,
     /// Current frame's vertices
     vertices: Vec<UiVertex>,
     /// Current frame's indices
@@ -329,14 +331,14 @@ impl UiRenderer {
         
         // Write white pixel data
         queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &white_texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
             &[255u8, 255u8, 255u8, 255u8], // White RGBA
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4),
                 rows_per_image: Some(1),
@@ -423,17 +425,12 @@ impl UiRenderer {
     }
     
     /// End the current frame and submit all draw commands
-    pub fn end_frame(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> RenderResult<()> {
-        // Prepare text for rendering
-        let text_areas = self.text_pipeline.create_text_area(
-            // This is a placeholder, in a real application you would have a list of text areas
-            "Hello, world!",
-            Vec2::new(10.0, 10.0),
-            Vec2::new(200.0, 50.0),
-            glyphon::Color::rgb(255, 255, 255),
-        );
-        self.text_pipeline.prepare_text(device, queue, &[text_areas])?;
-
+    pub fn end_frame(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Prepare text layouts for glyphon rendering
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.prepare_text_layouts(device, queue, &self.text_layouts)?;
+        }
+        
         // Update vertex and index buffers for solid/textured quads
         if !self.vertices.is_empty() {
             queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
@@ -446,7 +443,7 @@ impl UiRenderer {
     }
     
     /// Submit the rendered UI to a render pass
-    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) -> RenderResult<()> {
+    pub fn submit_to_render_pass<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) -> Result<(), crate::text::TextError> {
         // Render solid/textured quads first
         if !self.vertices.is_empty() && !self.indices.is_empty() {
             // Set vertex and index buffers
@@ -466,7 +463,9 @@ impl UiRenderer {
         }
         
         // Render text using glyphon
-        self.text_pipeline.render_text(render_pass)?;
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.render_text_areas(render_pass)?;
+        }
         
         Ok(())
     }
@@ -496,16 +495,23 @@ impl UiRenderer {
     }
 
     /// Draw text using glyphon TextPipeline
-    pub fn draw_text(&mut self, text: &str, position: Vec2, size: f32, color: Vec4) {
-        let text_area = self.text_pipeline.create_text_area(
+    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4, _queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Queue text for layout using the glyphon-based TextPipeline
+        let color_array = [color.x, color.y, color.z, color.w];
+        let layout_info = self.text_pipeline.queue_text(
             text,
+            font,
+            size,
             position,
-            Vec2::new(size, size), // This is a placeholder, in a real application you would calculate the size
-            glyphon::Color::rgba(color.x, color.y, color.z, color.w),
-        );
-        // In a real application, you would store the text areas and prepare them all at once
-        // For now, we'll just log that the text has been queued
+            color_array,
+            _queue,
+        )?;
+        
+        // Add text layout to our frame's text layouts for glyphon rendering
+        self.text_layouts.push(layout_info);
+        
         log::debug!("Queued text '{}' for glyphon rendering at position {:?}", text, position);
+        Ok(())
     }
     
     

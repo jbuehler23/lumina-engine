@@ -10,7 +10,8 @@ members = [
     "crates/lumina-input",
     "crates/lumina-editor",
     "crates/lumina-ui",
-    "crates/lumina-web-editor"
+    "crates/lumina-web-editor",
+    "crates/lumina-ai"
 ]
 resolver = "2"
 
@@ -61,7 +62,7 @@ fontdue = "0.7"
 ttf-parser = "0.20"
 futures = "0.3"
 pollster = "0.3"
-glyphon = "0.9.0"
+# glyphon = "0.9.0"
 
 # Web support
 wasm-bindgen = "0.2"
@@ -69,6 +70,11 @@ web-sys = "0.3"
 js-sys = "0.3"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
+
+# AI integration
+reqwest = { version = "0.11", features = ["json", "stream"] }
+handlebars = "4.4"
+chrono = { version = "0.4", features = ["serde"] }
 
 [package]
 name = "lumina-engine"
@@ -89,6 +95,7 @@ lumina-audio = { path = "crates/lumina-audio" }
 lumina-physics = { path = "crates/lumina-physics" }
 lumina-scripting = { path = "crates/lumina-scripting" }
 lumina-editor = { path = "crates/lumina-editor" }
+lumina-ai = { path = "crates/lumina-ai" }
 
 # Example dependencies
 lumina-input = { path = "crates/lumina-input" }
@@ -122,3 +129,23 @@ path = "examples/basic_game.rs"
 [[example]]
 name = "simple_render_test"
 path = "examples/simple_render_test.rs"
+
+[[example]]
+name = "ai_game_generator"
+path = "examples/ai_game_generator.rs"
+
+[[example]]
+name = "train_gamedev_model"
+path = "examples/train_gamedev_model.rs"
+
+[[example]]
+name = "create_specialized_datasets"
+path = "examples/create_specialized_datasets.rs"
+
+[[example]]
+name = "train_all_models"
+path = "examples/train_all_models.rs"
+
+[[example]]
+name = "test_model_pipeline"
+path = "examples/test_model_pipeline.rs"

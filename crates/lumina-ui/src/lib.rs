@@ -20,7 +20,8 @@ pub mod ecs_integration;
 pub mod web;
 
 // Re-export commonly used types  
-pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container, Draggable};
+pub use widgets::{Panel, Text, TextInput, Canvas, Container, Draggable};
+pub use widgets::button::Button;
 pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign, containers::*};
 pub use theming::Theme;
 pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler, DragData};
