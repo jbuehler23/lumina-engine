@@ -1,0 +1,277 @@
+[
+  {
+    "prompt": "Create a modular dialogue system with branching conversations and character relationships",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Advanced Dialogue System",
+          "description": "Interactive dialogue with branching paths and relationship tracking"
+        },
+        "entities": [
+          {
+            "name": "NPC_Merchant",
+            "components": {
+              "Transform": {"position": [5, 0, 2], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "DialogueSystem": {
+                "conversation_id": "merchant_intro",
+                "current_node": "greeting",
+                "relationship_level": 0,
+                "conversation_history": []
+              },
+              "ConversationTree": {
+                "nodes": {
+                  "greeting": {
+                    "text": "Welcome to my shop, traveler!",
+                    "conditions": ["first_meeting"],
+                    "responses": [
+                      {"text": "What do you have for sale?", "goto": "shop_menu", "relationship_change": 1},
+                      {"text": "Just browsing.", "goto": "casual_browse", "relationship_change": 0},
+                      {"text": "Not interested.", "goto": "dismissive", "relationship_change": -1}
+                    ]
+                  },
+                  "shop_menu": {
+                    "text": "I have the finest weapons and armor!",
+                    "actions": ["open_shop_interface"],
+                    "responses": [
+                      {"text": "Show me your weapons.", "goto": "weapon_category"},
+                      {"text": "I need armor.", "goto": "armor_category"}
+                    ]
+                  }
+                }
+              },
+              "RelationshipTracker": {
+                "relationship_levels": {"Hostile": -50, "Unfriendly": -10, "Neutral": 0, "Friendly": 25, "Allied": 50},
+                "current_relationship": "Neutral",
+                "reputation_modifiers": {"Guild_Member": 10, "Criminal": -20}
+              }
+            },
+            "tags": ["npc", "dialogue", "merchant"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Implement a dynamic weather system that affects gameplay mechanics",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Dynamic Weather System",
+          "description": "Weather system that impacts visibility, movement, and combat"
+        },
+        "entities": [
+          {
+            "name": "WeatherController",
+            "components": {
+              "WeatherSystem": {
+                "current_weather": "Clear",
+                "weather_intensity": 0.0,
+                "transition_duration": 30.0,
+                "weather_patterns": {
+                  "Clear": {"probability": 0.4, "duration_range": [300, 600]},
+                  "Rain": {"probability": 0.3, "duration_range": [120, 300]},
+                  "Storm": {"probability": 0.1, "duration_range": [60, 180]},
+                  "Fog": {"probability": 0.2, "duration_range": [180, 420]}
+                }
+              },
+              "GameplayEffects": {
+                "weather_effects": {
+                  "Rain": {
+                    "visibility_reduction": 0.3,
+                    "movement_speed_modifier": 0.8,
+                    "fire_damage_reduction": 0.5,
+                    "lightning_damage_boost": 1.5
+                  },
+                  "Storm": {
+                    "visibility_reduction": 0.6,
+                    "movement_speed_modifier": 0.6,
+                    "accuracy_penalty": 0.2,
+                    "lightning_strike_chance": 0.02
+                  },
+                  "Fog": {
+                    "visibility_reduction": 0.8,
+                    "stealth_bonus": 0.4,
+                    "sound_dampening": 0.6
+                  }
+                }
+              }
+            },
+            "tags": ["weather", "system", "environmental"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Design a crafting system with resource chains and quality mechanics",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Advanced Crafting System",
+          "description": "Complex crafting with resource processing and quality tiers"
+        },
+        "entities": [
+          {
+            "name": "CraftingStation",
+            "components": {
+              "Transform": {"position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [2, 1, 2]},
+              "CraftingInterface": {
+                "station_type": "Smithy",
+                "crafting_level": 3,
+                "available_recipes": ["iron_sword", "steel_armor", "enchanted_ring"],
+                "crafting_time_modifier": 0.8,
+                "quality_bonus": 0.15
+              },
+              "ResourceProcessor": {
+                "input_slots": 6,
+                "output_slots": 2,
+                "fuel_slot": 1,
+                "processing_chains": {
+                  "iron_ore": {"processes_to": "iron_ingot", "fuel_required": "coal", "time": 30},
+                  "iron_ingot": {"processes_to": "steel_ingot", "additional_materials": ["carbon"], "time": 60}
+                }
+              },
+              "QualitySystem": {
+                "quality_tiers": ["Poor", "Common", "Uncommon", "Rare", "Epic", "Legendary"],
+                "quality_factors": {
+                  "material_quality": 0.4,
+                  "crafter_skill": 0.3,
+                  "station_bonus": 0.2,
+                  "random_factor": 0.1
+                },
+                "quality_effects": {
+                  "durability_multiplier": [0.7, 1.0, 1.3, 1.7, 2.2, 3.0],
+                  "stat_multiplier": [0.8, 1.0, 1.2, 1.5, 2.0, 2.8]
+                }
+              }
+            },
+            "tags": ["crafting", "station", "processing"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Create a stealth gameplay system with line of sight and sound detection",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Stealth Mechanics",
+          "description": "Advanced stealth system with multiple detection methods"
+        },
+        "entities": [
+          {
+            "name": "StealthGuard",
+            "components": {
+              "Transform": {"position": [10, 0, 5], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "VisionSystem": {
+                "sight_range": 8.0,
+                "sight_angle": 90.0,
+                "night_vision": false,
+                "vision_quality": "Normal",
+                "detection_time": 2.5,
+                "investigation_behavior": "SearchLastKnown"
+              },
+              "HearingSystem": {
+                "hearing_range": 6.0,
+                "sound_sensitivity": 0.8,
+                "sound_memory_duration": 5.0,
+                "investigation_duration": 10.0
+              },
+              "AlertSystem": {
+                "alert_level": "Calm",
+                "alert_levels": {
+                  "Calm": {"movement_speed": 1.0, "reaction_time": 1.5},
+                  "Suspicious": {"movement_speed": 1.2, "reaction_time": 1.0},
+                  "Alert": {"movement_speed": 1.5, "reaction_time": 0.5},
+                  "Combat": {"movement_speed": 2.0, "reaction_time": 0.2}
+                },
+                "alert_decay_rate": 0.1
+              },
+              "PatrolPath": {
+                "waypoints": [[10, 0, 5], [15, 0, 5], [15, 0, 10], [10, 0, 10]],
+                "patrol_speed": 2.0,
+                "wait_time_at_waypoint": 3.0,
+                "investigation_interrupt": true
+              }
+            },
+            "tags": ["guard", "ai", "stealth", "patrol"]
+          },
+          {
+            "name": "StealthPlayer",
+            "components": {
+              "Transform": {"position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "StealthMetrics": {
+                "visibility": 1.0,
+                "noise_level": 0.0,
+                "movement_type": "Walking",
+                "cover_bonus": 0.0,
+                "lighting_modifier": 1.0
+              },
+              "StealthActions": {
+                "crouch": {"visibility_reduction": 0.4, "noise_reduction": 0.6, "speed_modifier": 0.5},
+                "lean": {"visibility_peek_bonus": 0.3, "detection_range_increase": 1.5},
+                "distraction": {"noise_radius": 5.0, "duration": 8.0, "cooldown": 15.0}
+              }
+            },
+            "tags": ["player", "stealth", "infiltration"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Implement a faction warfare system with territory control and influence",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Faction Warfare",
+          "description": "Strategic faction system with territory control and dynamic conflicts"
+        },
+        "entities": [
+          {
+            "name": "FactionManager",
+            "components": {
+              "FactionSystem": {
+                "active_factions": ["Empire", "Rebels", "Merchants", "Pirates"],
+                "faction_relationships": {
+                  "Empire": {"Rebels": -80, "Merchants": 20, "Pirates": -60},
+                  "Rebels": {"Empire": -80, "Merchants": -10, "Pirates": 30},
+                  "Merchants": {"Empire": 20, "Rebels": -10, "Pirates": -40},
+                  "Pirates": {"Empire": -60, "Rebels": 30, "Merchants": -40}
+                },
+                "player_reputation": {"Empire": 0, "Rebels": 10, "Merchants": 5, "Pirates": -20}
+              },
+              "TerritoryControl": {
+                "territories": {
+                  "Central_Hub": {"controller": "Empire", "influence": 85, "contested": false},
+                  "Trade_Route": {"controller": "Merchants", "influence": 70, "contested": true},
+                  "Asteroid_Field": {"controller": "Pirates", "influence": 60, "contested": true}
+                },
+                "influence_factors": {
+                  "military_presence": 0.4,
+                  "economic_control": 0.3,
+                  "popular_support": 0.2,
+                  "strategic_resources": 0.1
+                }
+              },
+              "ConflictResolution": {
+                "active_conflicts": [
+                  {
+                    "location": "Trade_Route",
+                    "participants": ["Merchants", "Pirates"],
+                    "conflict_type": "Economic",
+                    "duration": 72,
+                    "intensity": "Medium"
+                  }
+                ],
+                "resolution_methods": ["Diplomatic", "Military", "Economic", "Covert"]
+              }
+            },
+            "tags": ["faction", "warfare", "strategy", "management"]
+          }
+        ]
+      }
+    }
+  }
+]

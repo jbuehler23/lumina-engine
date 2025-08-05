@@ -1,0 +1,423 @@
+[
+  {
+    "prompt": "Create detailed asset specifications for a medieval fantasy RPG",
+    "expected_output": {
+      "asset_specifications": {
+        "characters": {
+          "player_knight": {
+            "model_requirements": {
+              "polygon_count": "3000-5000 tris",
+              "texture_resolution": "1024x1024 diffuse, normal, specular",
+              "animation_set": ["idle", "walk", "run", "attack_sword", "block", "hurt", "death"],
+              "attachment_points": ["hand_right", "hand_left", "back", "head"]
+            },
+            "visual_style": {
+              "art_direction": "Realistic medieval with fantasy elements",
+              "armor_design": "Plate mail with heraldic details",
+              "color_palette": ["#8B4513", "#C0C0C0", "#FFD700", "#8B0000"],
+              "weathering": "Battle-worn but maintained"
+            }
+          },
+          "goblin_warrior": {
+            "model_requirements": {
+              "polygon_count": "1500-2500 tris",
+              "texture_resolution": "512x512 diffuse, normal",
+              "animation_set": ["idle", "walk", "attack_claw", "hurt", "death"],
+              "scale_factor": 0.7
+            }
+          }
+        },
+        "environments": {
+          "dungeon_tileset": {
+            "tile_specifications": {
+              "floor_stone": {
+                "dimensions": "2x2 meters",
+                "texture_resolution": "256x256",
+                "variants": 4,
+                "material_properties": {
+                  "roughness": 0.8,
+                  "metallic": 0.0,
+                  "normal_intensity": 0.6
+                }
+              },
+              "wall_brick": {
+                "dimensions": "2x3 meters",
+                "texture_resolution": "512x512",
+                "variants": 6,
+                "collision": "full_block"
+              }
+            },
+            "lighting_requirements": {
+              "torch_placement": "Every 4-6 meters",
+              "ambient_color": "#1a1a2e",
+              "fog_settings": {
+                "density": 0.02,
+                "color": "#2c2c54"
+              }
+            }
+          }
+        },
+        "props": {
+          "treasure_chest": {
+            "model_requirements": {
+              "polygon_count": "800-1200 tris",
+              "texture_resolution": "512x512",
+              "animation_set": ["closed", "opening", "open"],
+              "interaction_points": ["lid_handle"]
+            },
+            "gameplay_integration": {
+              "loot_tables": ["common_items", "rare_items", "gold"],
+              "unlock_requirements": ["key_bronze", "lockpick_skill_5"],
+              "respawn_timer": 300
+            }
+          }
+        },
+        "ui_elements": {
+          "health_bar": {
+            "dimensions": "200x20 pixels",
+            "style": {
+              "background": "#333333",
+              "foreground": "#ff0000",
+              "border": "#ffffff",
+              "font": "medieval_bold_14pt"
+            },
+            "animation": "smooth_lerp_0.5s"
+          }
+        },
+        "audio": {
+          "ambient_tracks": {
+            "dungeon_ambient": {
+              "format": "OGG Vorbis",
+              "duration": "3-5 minutes",
+              "loop_points": "seamless",
+              "mood": "mysterious, foreboding"
+            }
+          },
+          "sound_effects": {
+            "sword_clash": {
+              "format": "WAV 44.1kHz",
+              "variations": 3,
+              "falloff": "3D positioned",
+              "max_distance": 50
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Design asset pipeline for a sci-fi space exploration game",
+    "expected_output": {
+      "asset_pipeline": {
+        "workflow_stages": {
+          "concept_phase": {
+            "deliverables": ["mood_boards", "reference_sheets", "style_guide"],
+            "approval_gates": ["art_director_review", "technical_feasibility"],
+            "timeline": "1-2 weeks per major asset category"
+          },
+          "production_phase": {
+            "modeling": {
+              "software": "Blender 3.6+",
+              "standards": {
+                "units": "meters",
+                "up_axis": "Z",
+                "polygon_budget": "strict_adherence",
+                "naming_convention": "category_name_lod_variant"
+              }
+            },
+            "texturing": {
+              "software": "Substance Painter",
+              "texture_sets": ["albedo", "normal", "metallic_roughness", "emission"],
+              "resolution_tiers": [256, 512, 1024, 2048],
+              "compression": "BC7 for color, BC5 for normal maps"
+            }
+          },
+          "optimization_phase": {
+            "lod_generation": {
+              "automatic_decimation": "Simplygon",
+              "lod_distances": [25, 50, 100, 200],
+              "quality_thresholds": [1.0, 0.7, 0.4, 0.2]
+            },
+            "texture_streaming": {
+              "mip_generation": "automatic",
+              "streaming_budget": "64MB per scene",
+              "priority_system": "distance + screen_coverage"
+            }
+          }
+        },
+        "asset_categories": {
+          "spaceships": {
+            "player_fighter": {
+              "complexity": "hero_asset",
+              "polygon_budget": "15000-20000 tris",
+              "texture_budget": "4x2048 textures",
+              "special_requirements": [
+                "modular_weapon_attachments",
+                "damage_state_variants",
+                "interior_cockpit_detail"
+              ]
+            },
+            "enemy_cruiser": {
+              "complexity": "mid_tier",
+              "polygon_budget": "8000-12000 tris",
+              "lod_requirements": "4_levels",
+              "animation_requirements": ["weapon_rotation", "shield_effects"]
+            }
+          },
+          "space_stations": {
+            "modular_sections": {
+              "connection_system": "standardized_docking_ports",
+              "section_types": ["command", "residential", "industrial", "docking"],
+              "lighting_integration": "dynamic_interior_exterior"
+            }
+          }
+        },
+        "technical_requirements": {
+          "performance_targets": {
+            "draw_calls": "max_150_per_frame",
+            "triangle_count": "max_1M_visible",
+            "texture_memory": "max_512MB_active"
+          },
+          "platform_considerations": {
+            "pc_high": "full_quality_assets",
+            "pc_medium": "automatic_lod_bias",
+            "mobile": "aggressive_optimization_preset"
+          }
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Specify procedural generation assets for an open world survival game",
+    "expected_output": {
+      "procedural_systems": {
+        "terrain_generation": {
+          "heightmap_generation": {
+            "algorithm": "multi_octave_perlin_noise",
+            "parameters": {
+              "octaves": 6,
+              "frequency": 0.01,
+              "amplitude": 100,
+              "persistence": 0.5,
+              "lacunarity": 2.0
+            },
+            "post_processing": [
+              "hydraulic_erosion",
+              "thermal_erosion",
+              "ridge_sharpening"
+            ]
+          },
+          "biome_distribution": {
+            "temperature_map": "gradient_noise_based",
+            "humidity_map": "separate_noise_layer",
+            "biome_rules": {
+              "desert": {"temperature": ">0.7", "humidity": "<0.3"},
+              "forest": {"temperature": "0.3-0.8", "humidity": ">0.4"},
+              "tundra": {"temperature": "<0.2", "humidity": ">0.2"}
+            }
+          }
+        },
+        "vegetation_placement": {
+          "density_maps": {
+            "tree_density": "biome_specific_multipliers",
+            "grass_density": "slope_and_altitude_based",
+            "rock_scatter": "geological_simulation"
+          },
+          "asset_variations": {
+            "pine_tree": {
+              "base_model": "pine_tree_base.fbx",
+              "variation_parameters": {
+                "height_scale": "0.8-1.3",
+                "branch_density": "0.7-1.2",
+                "color_tint": "seasonal_adjustment"
+              },
+              "placement_rules": {
+                "min_spacing": 2.0,
+                "slope_tolerance": 35,
+                "altitude_range": [200, 2000]
+              }
+            }
+          }
+        },
+        "resource_distribution": {
+          "ore_deposits": {
+            "iron_ore": {
+              "spawn_conditions": {
+                "biome": ["mountain", "hill"],
+                "altitude": ">500",
+                "geological_layer": "sedimentary"
+              },
+              "cluster_properties": {
+                "cluster_size": "3-8_nodes",
+                "richness": "exponential_distribution",
+                "depletion_rate": "0.1_per_extraction"
+              }
+            }
+          },
+          "wildlife_spawning": {
+            "deer": {
+              "habitat_preferences": {
+                "biome": ["forest", "grassland"],
+                "distance_from_water": "<200m",
+                "player_avoidance": ">100m"
+              },
+              "population_dynamics": {
+                "max_density": "0.5_per_hectare",
+                "reproduction_rate": "seasonal",
+                "migration_patterns": "food_availability_based"
+              }
+            }
+          }
+        },
+        "structure_generation": {
+          "ruins_placement": {
+            "frequency": "0.1_per_square_km",
+            "structure_types": [
+              "abandoned_cabin",
+              "ancient_tower",
+              "crashed_vehicle"
+            ],
+            "loot_integration": {
+              "loot_table": "exploration_rewards",
+              "condition_degradation": "age_based",
+              "respawn_timer": "7_days"
+            }
+          }
+        },
+        "weather_systems": {
+          "dynamic_weather": {
+            "pressure_simulation": "cellular_automata",
+            "cloud_formation": "moisture_based",
+            "precipitation": "temperature_humidity_interaction",
+            "seasonal_cycles": "365_day_year_simulation"
+          },
+          "weather_effects": {
+            "rain": {
+              "visibility_reduction": "0.3_multiplier",
+              "fire_suppression": "enabled",
+              "crop_growth_bonus": "1.5x",
+              "player_comfort": "-0.2_per_minute"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Create asset optimization guidelines for mobile game development",
+    "expected_output": {
+      "mobile_optimization": {
+        "performance_constraints": {
+          "target_devices": {
+            "high_end": {
+              "ram": "6GB+",
+              "gpu": "Adreno 640+, Mali G76+",
+              "target_fps": 60,
+              "resolution": "1080p+"
+            },
+            "mid_range": {
+              "ram": "3-4GB",
+              "gpu": "Adreno 530+, Mali G52+",
+              "target_fps": 30,
+              "resolution": "720p"
+            },
+            "low_end": {
+              "ram": "2-3GB",
+              "gpu": "Adreno 505+, Mali G51+",
+              "target_fps": 30,
+              "resolution": "540p"
+            }
+          }
+        },
+        "asset_budgets": {
+          "texture_guidelines": {
+            "ui_elements": {
+              "max_resolution": "512x512",
+              "format": "ASTC_4x4",
+              "atlas_usage": "mandatory_for_small_elements"
+            },
+            "character_textures": {
+              "hero_characters": "1024x1024",
+              "background_characters": "512x512",
+              "format": "ASTC_6x6_for_diffuse",
+              "normal_maps": "reduced_to_essentials_only"
+            },
+            "environment_textures": {
+              "ground_tiles": "256x256_max",
+              "building_facades": "512x512_tiled",
+              "skybox": "512x512_per_face"
+            }
+          },
+          "model_complexity": {
+            "character_models": {
+              "hero_player": "3000_triangles_max",
+              "npcs": "1500_triangles_max",
+              "background_crowd": "500_triangles_max",
+              "lod_system": "mandatory_3_levels"
+            },
+            "environment_props": {
+              "interactive_objects": "800_triangles_max",
+              "decorative_props": "300_triangles_max",
+              "collision_meshes": "simplified_convex_hulls"
+            }
+          }
+        },
+        "optimization_techniques": {
+          "texture_streaming": {
+            "implementation": "unity_addressables",
+            "cache_size": "128MB_max",
+            "preload_strategy": "current_level_plus_adjacent",
+            "compression": "platform_specific_optimal"
+          },
+          "mesh_optimization": {
+            "vertex_welding": "enabled",
+            "tangent_generation": "runtime_only_if_needed",
+            "index_optimization": "vertex_cache_friendly",
+            "instancing": "used_for_repeated_objects"
+          },
+          "shader_optimization": {
+            "variant_reduction": "aggressive_stripping",
+            "precision": "mediump_default",
+            "branching": "avoided_in_fragment_shaders",
+            "custom_shaders": "mobile_specific_versions"
+          }
+        },
+        "memory_management": {
+          "loading_strategies": {
+            "scene_transitions": "async_with_progress_bar",
+            "asset_unloading": "immediate_after_scene_exit",
+            "garbage_collection": "manual_triggers_at_safe_points",
+            "memory_pools": "pre_allocated_for_frequent_objects"
+          },
+          "profiling_requirements": {
+            "memory_usage": "continuous_monitoring",
+            "frame_time": "60fps_budget_16.67ms",
+            "draw_calls": "max_50_per_frame",
+            "overdraw": "minimize_transparent_surfaces"
+          }
+        },
+        "platform_specific": {
+          "android": {
+            "gradle_optimization": {
+              "proguard": "enabled_with_game_specific_rules",
+              "app_bundle": "dynamic_delivery_for_assets",
+              "compression": "lz4_for_frequent_access"
+            },
+            "device_adaptation": {
+              "dynamic_resolution": "based_on_gpu_benchmark",
+              "quality_settings": "user_selectable_presets",
+              "thermal_throttling": "quality_reduction_on_overheat"
+            }
+          },
+          "ios": {
+            "metal_optimization": {
+              "shader_compilation": "offline_when_possible",
+              "texture_formats": "preferred_native_formats",
+              "memory_warnings": "aggressive_asset_cleanup"
+            }
+          }
+        }
+      }
+    }
+  }
+]

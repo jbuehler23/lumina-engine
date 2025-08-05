@@ -163,6 +163,7 @@ pub fn ui_render_system(world: &mut World) -> Result<()> {
                                         }),
                                         store: wgpu::StoreOp::Store,
                                     },
+                                    depth_slice: None,
                                 })],
                                 depth_stencil_attachment: None,
                                 occlusion_query_set: None,
@@ -183,7 +184,6 @@ pub fn ui_render_system(world: &mut World) -> Result<()> {
                                 }
                                 
                                 // Draw toolbar background
-                                use lumina_render::Rect;
                                 use glam::Vec4;
                                 
                                 let toolbar_height = 64.0;
@@ -538,23 +538,25 @@ pub fn input_system(world: &mut World, event: &winit::event::WindowEvent) -> Res
                     _ => return Ok(()),
                 };
                 
-                world.with_resource::<InputEvents, _>(|input_events_opt| {
-                    if let Some(input_events) = input_events_opt {
-                        if let Some(mouse_pos) = input_events.mouse_position {
-                            let ui_event = InputEvent::MouseClick {
-                                button: mouse_button,
-                                position: mouse_pos,
-                                modifiers: lumina_ui::Modifiers::default(),
-                            };
-                            
-                            world.with_resource_mut::<UiFramework, _>(|mut ui_framework_opt| {
-                                if let Some(ui_framework) = ui_framework_opt.as_mut() {
-                                    ui_framework.handle_input(ui_event);
-                                }
-                            });
-                        }
-                    }
+                // Get mouse position first to avoid nested world borrows
+                let mouse_pos = world.with_resource::<InputEvents, _>(|input_events_opt| {
+                    input_events_opt.and_then(|input_events| input_events.mouse_position)
                 });
+                
+                // Then use it to create and send UI event
+                if let Some(mouse_pos) = mouse_pos {
+                    let ui_event = InputEvent::MouseClick {
+                        button: mouse_button,
+                        position: mouse_pos,
+                        modifiers: lumina_ui::Modifiers::default(),
+                    };
+                    
+                    world.with_resource_mut::<UiFramework, _>(|mut ui_framework_opt| {
+                        if let Some(ui_framework) = ui_framework_opt.as_mut() {
+                            ui_framework.handle_input(ui_event);
+                        }
+                    });
+                }
             }
         }
         _ => {}

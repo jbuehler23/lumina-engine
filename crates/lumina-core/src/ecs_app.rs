@@ -9,7 +9,7 @@ use lumina_render::{RenderContext, RenderConfig};
 use lumina_ui::{UiFramework, Theme};
 use winit::{
     event::{Event, WindowEvent},
-    event_loop::EventLoop,
+    event_loop::{EventLoop, ActiveEventLoop},
     window::{Window, WindowAttributes},
     dpi::LogicalSize,
 };
@@ -218,7 +218,7 @@ impl<T: EcsApp> EcsAppRunner<T> {
     }
     
     /// Handle window events
-    fn handle_window_event(&mut self, event: &WindowEvent, elwt: &winit::event_loop::EventLoopWindowTarget<()>) {
+    fn handle_window_event(&mut self, event: &WindowEvent, elwt: &ActiveEventLoop) {
         let mut world = self.world.lock().unwrap();
         
         // Let the application handle the event first

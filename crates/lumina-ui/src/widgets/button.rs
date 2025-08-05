@@ -47,7 +47,6 @@ use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
 /// Button widget for user interactions
-#[derive(Debug)]
 pub struct Button {
     /// Base widget properties
     base: BaseWidget,
@@ -455,4 +454,19 @@ pub fn ghost_button(text: impl Into<String>) -> ButtonBuilder {
 /// Convenience function for creating a danger button
 pub fn danger_button(text: impl Into<String>) -> ButtonBuilder {
     ButtonBuilder::new(text).variant(ButtonVariant::Danger)
+}
+
+impl std::fmt::Debug for Button {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Button")
+            .field("base", &self.base)
+            .field("text", &self.text)
+            .field("variant", &self.variant)
+            .field("state", &self.state)
+            .field("on_click", &self.on_click.is_some())
+            .field("action", &self.action)
+            .field("is_pressed", &self.is_pressed)
+            .field("is_hovered", &self.is_hovered)
+            .finish()
+    }
 }

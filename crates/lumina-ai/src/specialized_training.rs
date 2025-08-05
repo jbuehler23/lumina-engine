@@ -9,10 +9,10 @@ use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
 use log::{info, warn, error};
 
-use crate::training::{TrainingConfig, TrainingExample, DifficultyLevel, ModelTrainer};
+use crate::training::{TrainingConfig, TrainingExample, DifficultyLevel, ModelTrainer, TrainingDatasetBuilder};
 
 /// Specialized model types for different game development tasks
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum ModelSpecialty {
     /// Game design and mechanics
     Design,
@@ -101,6 +101,9 @@ impl SpecializedModelTrainer {
     pub async fn generate_all_datasets(&mut self) -> Result<()> {
         info!("Generating specialized training datasets...");
 
+        // Create output directory if it doesn't exist
+        std::fs::create_dir_all(&self.config.output_dir)?;
+
         for model_config in &self.config.models {
             info!("Generating dataset for {:?} model", model_config.specialty);
             
@@ -113,10 +116,21 @@ impl SpecializedModelTrainer {
                 ModelSpecialty::Deployment => self.generate_deployment_dataset().await?,
             };
 
+            // Save dataset to file
+            let dataset_path = self.config.output_dir.join(format!("{}_dataset.jsonl", model_config.model_name));
+            let mut file_content = String::new();
+            for example in &dataset {
+                let json_line = serde_json::to_string(example)?;
+                file_content.push_str(&json_line);
+                file_content.push('\n');
+            }
+            std::fs::write(&dataset_path, file_content)?;
+            info!("Saved {} examples to {:?}", dataset.len(), dataset_path);
+
             self.datasets.insert(model_config.specialty.clone(), dataset);
         }
 
-        info!("All datasets generated successfully");
+        info!("All datasets generated and saved successfully");
         Ok(())
     }
 
@@ -170,95 +184,179 @@ impl SpecializedModelTrainer {
 
     /// Generate design-focused training dataset
     async fn generate_design_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Game mechanics examples
-        examples.extend(self.create_mechanics_examples());
+        info!("Generating comprehensive design dataset...");
         
-        // Balancing examples
-        examples.extend(self.create_balancing_examples());
+        // Create a training dataset builder with correct base model for design
+        let training_config = TrainingConfig {
+            base_model: "llama3.1:8b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
         
-        // Genre analysis examples
-        examples.extend(self.create_genre_examples());
+        let mut builder = TrainingDatasetBuilder::new(training_config);
         
-        // Player psychology examples
-        examples.extend(self.create_psychology_examples());
-
-        Ok(examples)
+        // Generate comprehensive game development dataset
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for design-related categories
+        let all_examples = builder.get_examples();
+        let design_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "comprehensive_mechanics" | "design_patterns" | "platformer" | "shooter" | "puzzle" | "rpg" | "racing")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} design-focused examples", design_examples.len());
+        Ok(design_examples)
     }
 
     /// Generate scene-focused training dataset
     async fn generate_scene_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Load existing SDL examples
-        examples.extend(self.load_sdl_examples()?);
+        info!("Generating comprehensive scene dataset...");
         
-        // Generate component relationship examples
-        examples.extend(self.create_component_examples());
+        let training_config = TrainingConfig {
+            base_model: "codellama:7b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
         
-        // Entity composition patterns
-        examples.extend(self.create_entity_patterns());
-
-        Ok(examples)
+        let mut builder = TrainingDatasetBuilder::new(training_config);
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for scene/SDL-related categories
+        let all_examples = builder.get_examples();
+        let scene_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "advanced_sdl" | "comprehensive_mechanics" | "platformer" | "shooter" | "puzzle" | "rpg" | "racing")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} scene-focused examples", scene_examples.len());
+        Ok(scene_examples)
     }
 
     /// Generate asset-focused training dataset
     async fn generate_assets_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Sprite specification examples
-        examples.extend(self.create_sprite_examples());
+        info!("Generating comprehensive assets dataset...");
         
-        // Audio specification examples
-        examples.extend(self.create_audio_examples());
+        let training_config = TrainingConfig {
+            base_model: "mistral:7b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
         
-        // UI design examples
-        examples.extend(self.create_ui_examples());
-
-        Ok(examples)
+        let mut builder = TrainingDatasetBuilder::new(training_config);
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for asset-related categories
+        let all_examples = builder.get_examples();
+        let asset_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "asset_specifications")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} asset-focused examples", asset_examples.len());
+        Ok(asset_examples)
     }
 
     /// Generate script-focused training dataset
     async fn generate_scripts_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Event system examples
-        examples.extend(self.create_event_examples());
+        info!("Generating comprehensive scripts dataset...");
         
-        // State machine examples
-        examples.extend(self.create_state_machine_examples());
+        let training_config = TrainingConfig {
+            base_model: "codellama:13b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
         
-        // Logic pattern examples
-        examples.extend(self.create_logic_examples());
-
-        Ok(examples)
+        let mut builder = TrainingDatasetBuilder::new(training_config);
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for scripting-related categories
+        let all_examples = builder.get_examples();
+        let script_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "scripting_patterns")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} script-focused examples", script_examples.len());
+        Ok(script_examples)
     }
 
     /// Generate performance-focused training dataset
     async fn generate_performance_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Performance analysis examples
-        examples.extend(self.create_performance_examples());
+        info!("Generating comprehensive performance dataset...");
         
-        // Optimization strategy examples
-        examples.extend(self.create_optimization_examples());
-
-        Ok(examples)
+        let training_config = TrainingConfig {
+            base_model: "llama3:8b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
+        
+        let mut builder = TrainingDatasetBuilder::new(training_config);
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for performance-related categories
+        let all_examples = builder.get_examples();
+        let perf_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "performance_optimization")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} performance-focused examples", perf_examples.len());
+        Ok(perf_examples)
     }
 
     /// Generate deployment-focused training dataset
     async fn generate_deployment_dataset(&self) -> Result<Vec<TrainingExample>> {
-        let mut examples = Vec::new();
-
-        // Platform configuration examples
-        examples.extend(self.create_platform_examples());
+        info!("Generating comprehensive deployment dataset...");
         
-        // Marketing copy examples
-        examples.extend(self.create_marketing_examples());
-
-        Ok(examples)
+        let training_config = TrainingConfig {
+            base_model: "llama3.1:8b".to_string(),
+            dataset_path: self.config.output_dir.join("temp_dataset.json"),
+            output_dir: self.config.output_dir.clone(),
+            hyperparameters: crate::training::TrainingHyperparameters::default(),
+            specialization: crate::training::ModelSpecialization::default(),
+        };
+        
+        let mut builder = TrainingDatasetBuilder::new(training_config);
+        builder.generate_gamedev_dataset()?;
+        
+        // Filter for deployment-related categories
+        let all_examples = builder.get_examples();
+        let deploy_examples: Vec<TrainingExample> = all_examples.iter()
+            .filter(|example| {
+                matches!(example.category.as_str(), 
+                    "deployment_strategies")
+            })
+            .cloned()
+            .collect();
+        
+        info!("Generated {} deployment-focused examples", deploy_examples.len());
+        Ok(deploy_examples)
     }
 
     /// Create Ollama Modelfile for a specialized model
@@ -518,10 +616,22 @@ TEMPLATE """<|system|>
     }
 
     /// Create a mock scene for testing (replace with actual SDL generation)
-    fn create_mock_scene_for_prompt(&self, prompt: &str) -> crate::scene_description::SceneDescription {
-        use crate::scene_description::*;
-        
-        SceneDescription::new(format!("Mock scene for: {}", prompt))
+    fn create_mock_scene_for_prompt(&self, prompt: &str) -> String {
+        format!(r#"{{
+    "metadata": {{
+        "name": "Mock Scene",
+        "description": "Mock scene for: {}"
+    }},
+    "entities": [
+        {{
+            "name": "MockEntity",
+            "components": {{
+                "Transform": {{"position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]}}
+            }},
+            "tags": ["mock"]
+        }}
+    ]
+}}"#, prompt)
     }
 }
 

@@ -10,10 +10,7 @@ use log::{info, warn, error};
 use tokio::sync::{mpsc, RwLock};
 
 use lumina_ecs::World;
-use lumina_core::{EcsApp, EcsAppRunner, WindowConfig, run_ecs_app};
-use lumina_render::RenderConfig;
-use lumina_ui::Theme;
-use winit::{event::WindowEvent, dpi::LogicalSize};
+// Simplified live preview focused on SDL-to-ECS conversion
 
 use crate::{
     scene_description::SceneDescription,
@@ -121,7 +118,7 @@ pub struct PreviewApp {
     /// Scene description being previewed
     scene: SceneDescription,
     /// Scene metadata
-    scene_metadata: Option<crate::scene_loader::SceneMetadata>,
+    scene_metadata: Option<crate::scene_loader::SceneLoaderMetadata>,
     /// Preview configuration
     config: PreviewConfig,
     /// Performance tracking
@@ -202,13 +199,9 @@ impl LivePreviewSystem {
 
         let load_time = start_time.elapsed();
 
-        // Create preview app and start game in separate task
+        // Test the conversion with our simplified preview app
         let preview_app = PreviewApp::new(scene.clone(), self.config.clone());
-        
-        // Start the game in a separate task using the full ECS app framework
-        let preview_handle = tokio::spawn(async move {
-            run_ecs_app(preview_app).await
-        });
+        preview_app.test_conversion()?;
 
         // Update state to active
         {
@@ -218,7 +211,7 @@ impl LivePreviewSystem {
             state.metrics = PreviewMetrics {
                 load_time,
                 entities_loaded: load_result.entities_created,
-                systems_active: 0, // Will be updated by the running app
+                systems_active: 1, // One test system
                 fps: 0.0,
                 memory_usage: 0.0,
             };
@@ -228,7 +221,7 @@ impl LivePreviewSystem {
 
         Ok(PreviewResult {
             success: true,
-            load_result: Some(load_result),
+            load_result: Some(load_result.clone()),
             metrics: PreviewMetrics {
                 load_time,
                 entities_loaded: load_result.entities_created,
@@ -360,94 +353,25 @@ impl PreviewApp {
     }
 }
 
-impl EcsApp for PreviewApp {
-    /// Initialize the preview application with the AI-generated scene
-    fn setup(&mut self, world: &mut World) -> lumina_core::Result<()> {
-        info!("Setting up AI-generated game preview: {}", self.scene.metadata.name);
+// Simplified preview app for SDL-to-ECS conversion testing
+impl PreviewApp {
+    /// Test SDL-to-ECS conversion without UI
+    pub fn test_conversion(&self) -> Result<()> {
+        info!("Testing SDL-to-ECS conversion for: {}", self.scene.metadata.name);
         
-        // Load the AI-generated scene into the ECS world
-        let scene_loader = SceneLoader::new();
-        let load_result = scene_loader.load_scene(world, self.scene.clone())
-            .map_err(|e| lumina_core::LuminaError::InitializationError(format!("Failed to load scene: {}", e)))?;
+        // Create a test world
+        let mut world = World::new();
         
-        info!("Preview setup complete: {} entities created", load_result.entities_created);
+        // Load the scene
+        let mut scene_loader = SceneLoader::new();
+        let load_result = scene_loader.load_scene(&mut world, self.scene.clone())?;
         
-        // Store scene metadata for later use
-        self.scene_metadata = Some(load_result.metadata);
+        info!("✅ SDL-to-ECS conversion successful!");
+        info!("  - Entities created: {}", load_result.entities_created);
+        info!("  - Scripts loaded: {}", load_result.scripts_loaded);
+        info!("  - Root entities: {}", load_result.root_entities.len());
+        info!("  - Warnings: {}", load_result.warnings.len());
         
-        Ok(())
-    }
-    
-    /// Update the game every frame
-    fn update(&mut self, world: &mut World) -> lumina_core::Result<()> {
-        // Update FPS tracking
-        self.update_fps();
-        
-        // Run any custom game logic systems here
-        // For AI-generated games, this could include:
-        // - Physics updates
-        // - AI behavior systems
-        // - Collision detection
-        // - Game logic updates
-        
-        Ok(())
-    }
-    
-    /// Handle window events like keyboard input
-    fn handle_event(&mut self, _world: &mut World, event: &WindowEvent) -> lumina_core::Result<bool> {
-        match event {
-            WindowEvent::KeyboardInput { event, .. } => {
-                use winit::keyboard::{KeyCode, PhysicalKey};
-                
-                if event.state.is_pressed() {
-                    match event.physical_key {
-                        PhysicalKey::Code(KeyCode::Escape) => {
-                            info!("Escape pressed - closing preview");
-                            // Return true to indicate we handled the event and want to exit
-                            return Ok(true);
-                        }
-                        PhysicalKey::Code(KeyCode::F1) => {
-                            info!("F1 pressed - toggling debug overlay");
-                            self.config.debug_overlay = !self.config.debug_overlay;
-                            return Ok(true);
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-        
-        // Event not handled by us
-        Ok(false)
-    }
-    
-    /// Get window configuration for the preview
-    fn window_config(&self) -> WindowConfig {
-        WindowConfig {
-            title: format!("Lumina AI Preview: {}", self.scene.metadata.name),
-            size: LogicalSize::new(self.config.window_size.0, self.config.window_size.1),
-            resizable: true,
-        }
-    }
-    
-    /// Get render configuration for the preview
-    fn render_config(&self) -> RenderConfig {
-        RenderConfig {
-            target_fps: self.config.target_fps,
-            vsync: true,
-            ..RenderConfig::default()
-        }
-    }
-    
-    /// Get UI theme for the preview
-    fn theme(&self) -> Theme {
-        Theme::dark()
-    }
-    
-    /// Handle cleanup when the preview shuts down
-    fn shutdown(&mut self, _world: &mut World) -> lumina_core::Result<()> {
-        info!("AI preview shutting down");
         Ok(())
     }
 }

@@ -371,7 +371,10 @@ Generated on: {}
             .map(|name| format!("- {}", name))
             .collect::<Vec<_>>()
             .join("\n"),
-        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| format!("Timestamp: {}", d.as_secs()))
+            .unwrap_or_else(|_| "Timestamp: unknown".to_string())
     );
 
     let instructions_path = config.output_dir.join("SETUP_INSTRUCTIONS.md");

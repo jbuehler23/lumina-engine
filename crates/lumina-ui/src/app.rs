@@ -81,7 +81,7 @@ impl<'a> UiApp<'a> {
             ..Default::default()
         });
 
-        let surface = unsafe { instance.create_surface(&window.clone()) }.unwrap();
+        let surface = instance.create_surface(window.clone()).unwrap();
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -242,6 +242,7 @@ impl<'a> UiApp<'a> {
                         }),
                         store: wgpu::StoreOp::Store,
                     },
+                    depth_slice: None,
                 })],
                 depth_stencil_attachment: None,
                 occlusion_query_set: None,

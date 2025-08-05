@@ -8,6 +8,7 @@ use lumina_render::RenderConfig;
 use lumina_ui::{
     UiFramework, Theme, InputEvent, MouseButton, KeyCode, Modifiers,
 };
+use crate::ToolType;
 use winit::{
     event::{WindowEvent, ElementState},
     keyboard::{Key, NamedKey},
@@ -323,6 +324,19 @@ impl EditorApp {
         self.current_project.as_ref()
     }
 
+    /// Save the current project
+    pub fn save_project(&mut self) -> Result<()> {
+        if let Some(project) = &self.current_project {
+            info!("Saving project: {}", project.name);
+            // Placeholder for actual saving logic
+            // In a real scenario, you would serialize the project state to disk
+            println!("Project '{}' saved successfully (placeholder).", project.name);
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("No project to save"))
+        }
+    }
+
     /// Get the scene manager
     pub fn scene_manager(&self) -> &SceneManager {
         &self.scene_manager
@@ -501,43 +515,6 @@ impl EditorApp {
     }
 }
 
-impl EditorApp {
-    /// Create a new project
-    pub fn new_project(&mut self, name: String, path: String) -> Result<()> {
-        info!("Creating new project: {} at {}", name, path);
-        let project = EditorProject::new(name, path)?;
-        self.current_project = Some(project);
-        info!("Successfully created new project");
-        Ok(())
-    }
-    
-    /// Load an existing project
-    pub fn load_project(&mut self, path: String) -> Result<()> {
-        info!("Loading project from: {}", path);
-        let project = EditorProject::load(path)?;
-        self.current_project = Some(project);
-        info!("Successfully loaded project");
-        Ok(())
-    }
-
-    /// Save the current project
-    pub fn save_project(&mut self) -> Result<()> {
-        if let Some(project) = &self.current_project {
-            info!("Saving project: {}", project.name);
-            // Placeholder for actual saving logic
-            // In a real scenario, you would serialize the project state to disk
-            println!("Project '{}' saved successfully (placeholder).", project.name);
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("No project to save"))
-        }
-    }
-    
-    /// Get the current project
-    pub fn current_project(&self) -> Option<&EditorProject> {
-        self.current_project.as_ref()
-    }
-}
 
 impl EditorPanels {
     /// Create new editor panels

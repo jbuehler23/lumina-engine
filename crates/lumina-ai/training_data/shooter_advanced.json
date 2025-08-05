@@ -1,0 +1,34 @@
+{
+  "prompt": "Create an advanced space shooter with multiple weapon types, enemy formations, and power-ups",
+  "expected_output": {
+    "scene": {
+      "metadata": {
+        "name": "Advanced Space Shooter",
+        "description": "A sophisticated space shooter with multiple weapons and enemy formations"
+      },
+      "entities": [
+        {
+          "name": "Player",
+          "components": {
+            "Transform": { "position": [0, -8, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] },
+            "Player": { "health": 100, "speed": 8.0 },
+            "Collider": { "shape": "Box", "size": [1.0, 1.0, 1.0] },
+            "Weapon": { "type": "Laser", "damage": 25, "fire_rate": 0.2 }
+          },
+          "tags": ["player", "ship"]
+        },
+        {
+          "name": "EnemyFormation",
+          "components": {
+            "Transform": { "position": [0, 8, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] },
+            "Health": { "current": 50, "maximum": 50 },
+            "Collider": { "shape": "Box", "size": [1.0, 1.0, 1.0] },
+            "AI": { "behavior": "Formation", "pattern": "Sine" },
+            "Weapon": { "type": "Plasma", "damage": 15, "fire_rate": 1.0 }
+          },
+          "tags": ["enemy", "ship"]
+        }
+      ]
+    }
+  }
+}

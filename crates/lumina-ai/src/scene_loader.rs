@@ -8,8 +8,8 @@ use anyhow::{Result, Context, anyhow};
 use log::{info, warn, error};
 use glam::Vec2;
 
-use lumina_ecs::{World, Entity, Commands};
-use lumina_core::components::*;
+use lumina_ecs::{World, Entity};
+// use lumina_core::components::*; // Removed: module does not exist
 
 use crate::scene_description::{
     SceneDescription, EntityDescription, ComponentDescription, 
@@ -36,6 +36,7 @@ struct PendingReference {
 
 /// Result of loading a scene
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct SceneLoadResult {
     /// Number of entities created
     pub entities_created: usize,
@@ -121,7 +122,7 @@ impl SceneLoader {
         }
 
         // Set up scene metadata as a resource
-        world.insert_resource(SceneMetadata {
+        world.add_resource(SceneLoaderMetadata {
             name: scene.metadata.name.clone(),
             description: scene.metadata.description.clone(),
             background_color: scene.metadata.background_color,
@@ -132,7 +133,7 @@ impl SceneLoader {
 
     /// Create an entity in the ECS world
     fn create_entity(&self, world: &mut World, entity_desc: &EntityDescription) -> Result<Entity> {
-        let entity = world.spawn_empty().id();
+        let entity = world.spawn().build(world);
         
         // Add tags as components if they represent special entity types
         for tag in &entity_desc.tags {
@@ -274,7 +275,7 @@ impl SceneLoader {
             ComponentDescription::Camera { target, .. } => {
                 if let Some(target_name) = target {
                     self.pending_references.push(PendingReference {
-                        entity: Entity::from_raw(0), // Will be filled in later
+                        entity: Entity::from(0), // Will be filled in later
                         component_type: "Camera".to_string(),
                         reference_name: "target".to_string(),
                         target_entity_name: target_name.clone(),
@@ -310,42 +311,42 @@ impl SceneLoader {
         match component_name {
             "Transform" => {
                 if let Ok(transform) = component.downcast::<Transform>() {
-                    world.entity_mut(entity).insert(*transform);
+                    world.add_component(entity, *transform);
                 }
             }
             "Sprite" => {
                 if let Ok(sprite) = component.downcast::<Sprite>() {
-                    world.entity_mut(entity).insert(*sprite);
+                    world.add_component(entity, *sprite);
                 }
             }
             "Player" => {
                 if let Ok(player) = component.downcast::<Player>() {
-                    world.entity_mut(entity).insert(*player);
+                    world.add_component(entity, *player);
                 }
             }
             "Velocity" => {
                 if let Ok(velocity) = component.downcast::<Velocity>() {
-                    world.entity_mut(entity).insert(*velocity);
+                    world.add_component(entity, *velocity);
                 }
             }
             "Health" => {
                 if let Ok(health) = component.downcast::<Health>() {
-                    world.entity_mut(entity).insert(*health);
+                    world.add_component(entity, *health);
                 }
             }
             "Collider" => {
                 if let Ok(collider) = component.downcast::<Collider>() {
-                    world.entity_mut(entity).insert(*collider);
+                    world.add_component(entity, *collider);
                 }
             }
             "Text" => {
                 if let Ok(text) = component.downcast::<Text>() {
-                    world.entity_mut(entity).insert(*text);
+                    world.add_component(entity, *text);
                 }
             }
             "Camera" => {
                 if let Ok(camera) = component.downcast::<Camera>() {
-                    world.entity_mut(entity).insert(*camera);
+                    world.add_component(entity, *camera);
                 }
             }
             _ => {
@@ -422,7 +423,7 @@ impl ComponentDescriptionHelper for ComponentDescription {
 
 /// Scene metadata resource
 #[derive(Debug, Clone)]
-pub struct SceneMetadata {
+pub struct SceneLoaderMetadata {
     pub name: String,
     pub description: String,
     pub background_color: [f32; 4],

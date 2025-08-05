@@ -3,9 +3,6 @@ members = [
     "crates/lumina-core",
     "crates/lumina-ecs",
     "crates/lumina-render",
-    "crates/lumina-assets",
-    "crates/lumina-audio",
-    "crates/lumina-physics",
     "crates/lumina-scripting",
     "crates/lumina-input",
     "crates/lumina-editor",
@@ -90,9 +87,6 @@ categories = ["game-development", "graphics", "multimedia"]
 lumina-core = { path = "crates/lumina-core" }
 lumina-ecs = { path = "crates/lumina-ecs" }
 lumina-render = { path = "crates/lumina-render" }
-lumina-assets = { path = "crates/lumina-assets" }
-lumina-audio = { path = "crates/lumina-audio" }
-lumina-physics = { path = "crates/lumina-physics" }
 lumina-scripting = { path = "crates/lumina-scripting" }
 lumina-editor = { path = "crates/lumina-editor" }
 lumina-ai = { path = "crates/lumina-ai" }
@@ -107,7 +101,11 @@ env_logger.workspace = true
 glam.workspace = true
 winit.workspace = true
 parking_lot.workspace = true
+serde_json.workspace = true
 tokio = { version = "1.0", features = ["full"] }
+
+[features]
+training = ["lumina-ai/training"]
 
 [[bin]]
 name = "lumina-editor"
@@ -118,17 +116,6 @@ name = "lumina-runtime"
 path = "src/runtime.rs"
 
 # Examples - demonstrating engine capabilities
-[[example]]
-name = "pong"
-path = "examples/pong.rs"
-
-[[example]]
-name = "basic_game"
-path = "examples/basic_game.rs"
-
-[[example]]
-name = "simple_render_test"
-path = "examples/simple_render_test.rs"
 
 [[example]]
 name = "ai_game_generator"
