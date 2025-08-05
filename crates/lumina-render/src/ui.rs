@@ -4,7 +4,8 @@
 //! It handles batching, clipping, and efficient rendering of UI primitives like rectangles,
 //! text, and textured quads.
 
-use crate::{Rect, RenderError, RenderResult};
+use crate::{Rect, RenderResult};
+use crate::text::{TextLayoutInfo, TextPipeline};
 use glam::{Vec2, Vec4, Mat4};
 use bytemuck::{Pod, Zeroable};
 
@@ -12,8 +13,6 @@ use bytemuck::{Pod, Zeroable};
 pub struct UiRenderer {
     /// Surface configuration
     config: wgpu::SurfaceConfiguration,
-    /// Current render pass
-    current_pass: Option<wgpu::RenderPass<'static>>,
     /// Vertex buffer for UI quads
     vertex_buffer: wgpu::Buffer,
     /// Index buffer for UI quads
@@ -22,10 +21,14 @@ pub struct UiRenderer {
     uniform_buffer: wgpu::Buffer,
     /// Bind group for uniforms
     uniform_bind_group: wgpu::BindGroup,
-    /// Render pipeline for solid colors
-    solid_pipeline: wgpu::RenderPipeline,
     /// Render pipeline for textured quads
     texture_pipeline: wgpu::RenderPipeline,
+    /// Text pipeline for proper font-based text rendering
+    text_pipeline: TextPipeline,
+    /// Texture bind group for solid color rendering
+    solid_texture_bind_group: wgpu::BindGroup,
+    /// Current frame's text layouts for glyphon rendering
+    text_layouts: Vec<TextLayoutInfo>,
     /// Current frame's vertices
     vertices: Vec<UiVertex>,
     /// Current frame's indices
@@ -69,26 +72,40 @@ pub struct UiUniforms {
 pub enum DrawCommand {
     /// Draw a colored rectangle
     Rect {
+        /// The bounds of the rectangle
         bounds: Rect,
+        /// The color as RGBA components
         color: Vec4,
+        /// The border radius for rounded corners
         border_radius: f32,
     },
     /// Draw a textured rectangle
     TexturedRect {
+        /// The bounds of the rectangle
         bounds: Rect,
+        /// Handle to the texture to render
         texture: TextureHandle,
+        /// Tint color as RGBA components
         color: Vec4,
     },
     /// Draw text
     Text {
+        /// The text string to render
         text: String,
+        /// Position where to render the text
         position: Vec2,
+        /// Handle to the font to use
         font: FontHandle,
+        /// Font size in pixels
         size: f32,
+        /// Text color as RGBA components
         color: Vec4,
     },
     /// Push a clip rectangle
-    PushClip { bounds: Rect },
+    PushClip { 
+        /// The clipping bounds
+        bounds: Rect 
+    },
     /// Pop the last clip rectangle
     PopClip,
 }
@@ -110,17 +127,17 @@ impl UiRenderer {
     ) -> RenderResult<Self> {
         let screen_size = Vec2::new(config.width as f32, config.height as f32);
         
-        // Create buffers
+        // Create buffers with larger capacity for text rendering
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("UI Vertex Buffer"),
-            size: std::mem::size_of::<UiVertex>() as u64 * 10000, // Reserve space for many vertices
+            size: std::mem::size_of::<UiVertex>() as u64 * 100000, // Increased capacity for bitmap text
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         
         let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("UI Index Buffer"),
-            size: std::mem::size_of::<u16>() as u64 * 15000, // Reserve space for many indices
+            size: std::mem::size_of::<u16>() as u64 * 150000, // Increased capacity for bitmap text
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -209,22 +226,24 @@ impl UiRenderer {
         });
         
         // Create render pipelines
-        let solid_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let _solid_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("UI Solid Pipeline"),
             layout: Some(&solid_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &solid_shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[UiVertex::desc()],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &solid_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -242,6 +261,7 @@ impl UiRenderer {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
         
         let texture_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -249,17 +269,19 @@ impl UiRenderer {
             layout: Some(&texture_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &texture_shader,
-                entry_point: "vs_main",
+                entry_point: Some("vs_main"),
                 buffers: &[UiVertex::desc()],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
                 module: &texture_shader,
-                entry_point: "fs_main",
+                entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
             }),
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
@@ -277,6 +299,7 @@ impl UiRenderer {
                 alpha_to_coverage_enabled: false,
             },
             multiview: None,
+            cache: None,
         });
         
         // Create matrices
@@ -287,15 +310,91 @@ impl UiRenderer {
             -1.0, 1.0,
         );
         
+        // Create text pipeline using glyphon
+        let text_pipeline = TextPipeline::new(device, queue, config.format)?;
+        
+        // Create a simple white texture for solid color rendering
+        let white_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("White Texture"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        
+        // Write white pixel data
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &white_texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &[255u8, 255u8, 255u8, 255u8], // White RGBA
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(4),
+                rows_per_image: Some(1),
+            },
+            wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+        );
+        
+        // Create texture sampler
+        let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Solid Texture Sampler"),
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            compare: None,
+            lod_min_clamp: 0.0,
+            lod_max_clamp: 32.0,
+            border_color: None,
+            anisotropy_clamp: 1,
+        });
+        
+        // Create texture view
+        let white_texture_view = white_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        
+        // Create bind group for solid texture
+        let solid_texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Solid Texture Bind Group"),
+            layout: &texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&texture_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&white_texture_view),
+                },
+            ],
+        });
+        
         Ok(Self {
             config,
-            current_pass: None,
             vertex_buffer,
             index_buffer,
             uniform_buffer,
             uniform_bind_group,
-            solid_pipeline,
             texture_pipeline,
+            text_pipeline,
+            solid_texture_bind_group,
+            text_layouts: Vec::new(),
             vertices: Vec::new(),
             indices: Vec::new(),
             screen_size,
@@ -309,7 +408,11 @@ impl UiRenderer {
     pub fn begin_frame(&mut self, queue: &wgpu::Queue) {
         self.vertices.clear();
         self.indices.clear();
+        self.text_layouts.clear();
         self.clip_stack.clear();
+        
+        // Update text pipeline resolution
+        self.text_pipeline.set_resolution(self.screen_size.x as u32, self.screen_size.y as u32);
         
         // Update uniforms
         let uniforms = UiUniforms {
@@ -322,40 +425,56 @@ impl UiRenderer {
     }
     
     /// End the current frame and submit all draw commands
-    pub fn end_frame(&mut self, queue: &wgpu::Queue) {
-        // Update vertex and index buffers
+    pub fn end_frame(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Prepare text layouts for glyphon rendering
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.prepare_text_layouts(device, queue, &self.text_layouts)?;
+        }
+        
+        // Update vertex and index buffers for solid/textured quads
         if !self.vertices.is_empty() {
             queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(&self.vertices));
         }
         if !self.indices.is_empty() {
             queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(&self.indices));
         }
+        
+        Ok(())
     }
     
     /// Submit the rendered UI to a render pass
-    pub fn submit_to_render_pass<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        if self.vertices.is_empty() || self.indices.is_empty() {
-            return;
+    pub fn submit_to_render_pass<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>) -> Result<(), crate::text::TextError> {
+        // Render solid/textured quads first
+        if !self.vertices.is_empty() && !self.indices.is_empty() {
+            // Set vertex and index buffers
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            
+            // Use texture pipeline for solid quads with white texture
+            render_pass.set_pipeline(&self.texture_pipeline);
+            render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
+            render_pass.set_bind_group(1, &self.solid_texture_bind_group, &[]);
+            
+            // Draw all vertices
+            let num_indices = self.indices.len() as u32;
+            if num_indices > 0 {
+                render_pass.draw_indexed(0..num_indices, 0, 0..1);
+            }
         }
         
-        // Set the pipeline and bind groups
-        render_pass.set_pipeline(&self.solid_pipeline);
-        render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
-        
-        // Set vertex and index buffers
-        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        
-        // Draw all vertices
-        let num_indices = self.indices.len() as u32;
-        if num_indices > 0 {
-            render_pass.draw_indexed(0..num_indices, 0, 0..1);
+        // Render text using glyphon
+        if !self.text_layouts.is_empty() {
+            self.text_pipeline.render_text_areas(render_pass)?;
         }
+        
+        Ok(())
     }
     
     /// Draw a colored rectangle
     pub fn draw_rect(&mut self, bounds: Rect, color: Vec4) {
-        self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
+        // For solid color rendering, we'll use the center of the texture (0.5, 0.5)
+        // This should give us a white pixel in most texture atlases
+        self.add_quad(bounds, color, [0.5, 0.5], [0.5, 0.5]);
     }
     
     /// Draw a rectangle with rounded corners
@@ -366,15 +485,41 @@ impl UiRenderer {
     }
     
     /// Draw a textured rectangle
-    pub fn draw_textured_rect(&mut self, bounds: Rect, _texture: TextureHandle, color: Vec4) {
+    pub fn draw_textured_rect(&mut self, bounds: Rect, color: Vec4) {
         self.add_quad(bounds, color, [0.0, 0.0], [1.0, 1.0]);
     }
     
-    /// Draw text
-    pub fn draw_text(&mut self, _text: &str, _position: Vec2, _font: FontHandle, _size: f32, _color: Vec4) {
-        // TODO: Implement text rendering
-        // This will delegate to text renderer
+    /// Measure text dimensions without rendering (for layout calculations)
+    pub fn measure_text(&mut self, text: &str, font: FontHandle, size: f32) -> Result<crate::text::TextMeasurement, crate::text::TextError> {
+        self.text_pipeline.measure_text(text, font, size)
     }
+
+    /// Draw text using glyphon TextPipeline
+    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4, _queue: &wgpu::Queue) -> Result<(), crate::text::TextError> {
+        // Queue text for layout using the glyphon-based TextPipeline
+        let color_array = [color.x, color.y, color.z, color.w];
+        let layout_info = self.text_pipeline.queue_text(
+            text,
+            font,
+            size,
+            position,
+            color_array,
+            _queue,
+        )?;
+        
+        // Add text layout to our frame's text layouts for glyphon rendering
+        self.text_layouts.push(layout_info);
+        
+        log::debug!("Queued text '{}' for glyphon rendering at position {:?}", text, position);
+        Ok(())
+    }
+    
+    
+    // Glyphon handles glyph rendering internally - no manual glyph drawing needed
+    
+    
+    
+    
     
     /// Set clip rectangle
     pub fn push_clip(&mut self, bounds: Rect) {
@@ -403,6 +548,16 @@ impl UiRenderer {
         // Update configuration
         self.config.width = new_size.x as u32;
         self.config.height = new_size.y as u32;
+        
+        // Update text pipeline resolution
+        self.text_pipeline.set_resolution(new_size.x as u32, new_size.y as u32);
+    }
+    
+    /// Get the default font handle
+    pub fn get_default_font(&self) -> FontHandle {
+        let handle = self.text_pipeline.default_font().unwrap_or(FontHandle(0));
+        log::debug!("get_default_font() returning handle: {:?}", handle);
+        handle
     }
     
     /// Add a quad to the vertex buffer

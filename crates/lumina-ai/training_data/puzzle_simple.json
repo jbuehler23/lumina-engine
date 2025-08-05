@@ -1,0 +1,440 @@
+{
+  "metadata": {
+    "name": "Block Pusher",
+    "description": "A puzzle game where the player pushes blocks to solve levels",
+    "resolution": [1280, 720],
+    "background_color": [0.9, 0.9, 0.8, 1.0],
+    "physics": {
+      "enabled": true,
+      "gravity": [0.0, 0.0],
+      "timestep": 0.016667
+    },
+    "audio": {
+      "enabled": true,
+      "master_volume": 1.0,
+      "music_volume": 0.5,
+      "sfx_volume": 0.7
+    }
+  },
+  "entities": [
+    {
+      "name": "Player",
+      "tags": ["player"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [160.0, 160.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "player_puzzle.png",
+            "color": [0.2, 0.6, 1.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Player": {
+          "type": "Player",
+          "data": {
+            "speed": 64.0,
+            "jump_force": 0.0,
+            "health": 1,
+            "max_health": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 60.0,
+              "height": 60.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Kinematic",
+            "mass": 1.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Block1",
+      "tags": ["block", "pushable"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [320.0, 160.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "block.png",
+            "color": [0.8, 0.6, 0.4, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 64.0,
+              "height": 64.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Dynamic",
+            "mass": 1.0,
+            "linear_damping": 5.0,
+            "angular_damping": 1.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Block2",
+      "tags": ["block", "pushable"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [480.0, 320.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "block.png",
+            "color": [0.8, 0.6, 0.4, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 64.0,
+              "height": 64.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Dynamic",
+            "mass": 1.0,
+            "linear_damping": 5.0,
+            "angular_damping": 1.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Target1",
+      "tags": ["target", "goal"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [640.0, 160.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "target.png",
+            "color": [1.0, 0.0, 0.0, 0.5],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 64.0,
+              "height": 64.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Target2",
+      "tags": ["target", "goal"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [800.0, 320.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "target.png",
+            "color": [1.0, 0.0, 0.0, 0.5],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 64.0,
+              "height": 64.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "GameState": {
+      "type": "GameState",
+      "data": {
+        "score": 0,
+        "level": 1,
+        "lives": 1,
+        "time_remaining": 0.0
+      }
+    }
+  },
+  "scripts": [
+    {
+      "id": "player_move_up",
+      "name": "Player Move Up",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "W"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [0.0, 1.0],
+            "speed": 64.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_down",
+      "name": "Player Move Down",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "S"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [0.0, -1.0],
+            "speed": 64.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_left",
+      "name": "Player Move Left",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "A"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [-1.0, 0.0],
+            "speed": 64.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_move_right",
+      "name": "Player Move Right",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "D"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "MoveEntity",
+          "data": {
+            "entity": "Player",
+            "direction": [1.0, 0.0],
+            "speed": 64.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "block_on_target_1",
+      "name": "Block 1 on Target",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Block1",
+            "entity_b": "Target1"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "block_placed.wav",
+            "volume": 0.6
+          }
+        },
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "block_on_target_2",
+      "name": "Block 2 on Target",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Block2",
+            "entity_b": "Target2"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "block_placed.wav",
+            "volume": 0.6
+          }
+        },
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "level_complete_check",
+      "name": "Check Level Complete",
+      "script_type": "System",
+      "triggers": [
+        {
+          "type": "ScoreChanged",
+          "data": {
+            "threshold": 20
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Puzzle Solved!",
+            "duration": 3.0
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "level_complete.wav",
+            "volume": 1.0
+          }
+        },
+        {
+          "type": "ChangeLevel",
+          "data": {
+            "level": 2
+          }
+        }
+      ]
+    }
+  ]
+}

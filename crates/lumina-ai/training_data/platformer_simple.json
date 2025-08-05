@@ -1,0 +1,522 @@
+{
+  "metadata": {
+    "name": "Simple Platformer",
+    "description": "A basic platformer where the player jumps on platforms to collect coins",
+    "resolution": [1280, 720],
+    "background_color": [0.4, 0.7, 1.0, 1.0],
+    "physics": {
+      "enabled": true,
+      "gravity": [0.0, -9.81],
+      "timestep": 0.016667
+    },
+    "audio": {
+      "enabled": true,
+      "master_volume": 1.0,
+      "music_volume": 0.7,
+      "sfx_volume": 0.8
+    }
+  },
+  "entities": [
+    {
+      "name": "Player",
+      "tags": ["player"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [100.0, 200.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "player_sprite.png",
+            "color": [1.0, 1.0, 1.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Player": {
+          "type": "Player",
+          "data": {
+            "speed": 200.0,
+            "jump_force": 500.0,
+            "health": 1,
+            "max_health": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 32.0,
+              "height": 48.0
+            },
+            "is_sensor": false,
+            "friction": 0.7,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Dynamic",
+            "mass": 1.0,
+            "linear_damping": 0.1,
+            "angular_damping": 0.1
+          }
+        }
+      }
+    },
+    {
+      "name": "Ground",
+      "tags": ["platform"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [640.0, 50.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "ground_tile.png",
+            "color": [0.6, 0.4, 0.2, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 1280.0,
+              "height": 100.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Static",
+            "mass": 0.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Platform1",
+      "tags": ["platform"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [300.0, 250.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "platform.png",
+            "color": [0.8, 0.6, 0.4, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 150.0,
+              "height": 20.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Static",
+            "mass": 0.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Platform2",
+      "tags": ["platform"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [600.0, 350.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "platform.png",
+            "color": [0.8, 0.6, 0.4, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 150.0,
+              "height": 20.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.0
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Static",
+            "mass": 0.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Coin1",
+      "tags": ["collectible", "coin"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [300.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "coin.png",
+            "color": [1.0, 1.0, 0.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 2
+          }
+        },
+        "Collectible": {
+          "type": "Collectible",
+          "data": {
+            "points": 10,
+            "effect": "score"
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Circle",
+              "radius": 16.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Coin2",
+      "tags": ["collectible", "coin"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [600.0, 400.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "coin.png",
+            "color": [1.0, 1.0, 0.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 2
+          }
+        },
+        "Collectible": {
+          "type": "Collectible",
+          "data": {
+            "points": 10,
+            "effect": "score"
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Circle",
+              "radius": 16.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Goal",
+      "tags": ["goal"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [900.0, 200.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "flag.png",
+            "color": [0.0, 1.0, 0.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 32.0,
+              "height": 64.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "GameState": {
+      "type": "GameState",
+      "data": {
+        "score": 0,
+        "level": 1,
+        "lives": 3,
+        "time_remaining": 60.0
+      }
+    }
+  },
+  "scripts": [
+    {
+      "id": "player_movement",
+      "name": "Player Movement",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "A"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player",
+            "force": [-300.0, 0.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_movement_right",
+      "name": "Player Movement Right",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "D"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player",
+            "force": [300.0, 0.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "player_jump",
+      "name": "Player Jump",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "Space"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player",
+            "force": [0.0, 500.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "coin_collection",
+      "name": "Coin Collection",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "Coin1"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "coin_collect.wav",
+            "volume": 0.8
+          }
+        },
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 10
+          }
+        },
+        {
+          "type": "DestroyEntity",
+          "data": {
+            "entity": "Coin1"
+          }
+        }
+      ]
+    },
+    {
+      "id": "coin_collection_2",
+      "name": "Coin Collection 2",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "Coin2"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "coin_collect.wav",
+            "volume": 0.8
+          }
+        },
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 10
+          }
+        },
+        {
+          "type": "DestroyEntity",
+          "data": {
+            "entity": "Coin2"
+          }
+        }
+      ]
+    },
+    {
+      "id": "goal_reached",
+      "name": "Goal Reached",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player",
+            "entity_b": "Goal"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "victory.wav",
+            "volume": 1.0
+          }
+        },
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Level Complete!",
+            "duration": 3.0
+          }
+        },
+        {
+          "type": "ChangeLevel",
+          "data": {
+            "level": 2
+          }
+        }
+      ]
+    }
+  ]
+}

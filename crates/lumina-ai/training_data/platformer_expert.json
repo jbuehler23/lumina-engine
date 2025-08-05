@@ -1,0 +1,32 @@
+{
+  "prompt": "Create an expert-level platformer with complex mechanics, boss fights, and advanced gameplay systems",
+  "expected_output": {
+    "scene": {
+      "metadata": {
+        "name": "Expert Platformer",
+        "description": "An expert-level platformer with complex mechanics and boss encounters"
+      },
+      "entities": [
+        {
+          "name": "Player",
+          "components": {
+            "Transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] },
+            "Player": { "health": 100, "speed": 5.0 },
+            "Collider": { "shape": "Box", "size": [1.0, 2.0, 1.0] }
+          },
+          "tags": ["player"]
+        },
+        {
+          "name": "Boss",
+          "components": {
+            "Transform": { "position": [50, 0, 0], "rotation": [0, 0, 0, 1], "scale": [3, 3, 1] },
+            "Health": { "current": 500, "maximum": 500 },
+            "Collider": { "shape": "Box", "size": [3.0, 3.0, 1.0] },
+            "AI": { "behavior": "Boss", "attack_patterns": ["Charge", "Projectile", "AOE"] }
+          },
+          "tags": ["enemy", "boss"]
+        }
+      ]
+    }
+  }
+}

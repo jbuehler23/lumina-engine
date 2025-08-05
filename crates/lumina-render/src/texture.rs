@@ -2,7 +2,7 @@
 //!
 //! Provides utilities for loading, creating, and managing textures.
 
-use crate::{RenderResult, RenderError};
+use crate::{RenderResult};
 
 /// Texture handle
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,7 +41,7 @@ impl TextureManager {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        data: &[u8],
+        _data: &[u8],
         label: Option<&str>,
     ) -> RenderResult<TextureHandle> {
         // TODO: Implement proper texture loading
@@ -65,14 +65,14 @@ impl TextureManager {
         });
 
         queue.write_texture(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 texture: &texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
             &white_pixel,
-            wgpu::ImageDataLayout {
+            wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4),
                 rows_per_image: Some(1),

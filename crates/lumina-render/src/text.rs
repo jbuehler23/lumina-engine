@@ -1,112 +1,138 @@
-//! Text rendering implementation
+//! Text rendering pipeline - TEMPORARILY DISABLED due to glyphon version conflicts
 //!
-//! Provides font loading, glyph caching, and text rendering capabilities.
+//! This module will be re-enabled once glyphon version compatibility is resolved.
 
-use crate::{RenderResult, FontHandle};
-use glam::{Vec2, Vec4};
+// ENTIRE MODULE TEMPORARILY COMMENTED OUT - glyphon version conflicts with wgpu 0.20
+// This will be restored once we find a compatible glyphon version or upgrade everything together
 
-/// Text rendering system
+// Placeholder structs to prevent compilation errors in dependent code
+use glam::Vec2;
+
+/// Text layout information - placeholder while text rendering is disabled
+#[derive(Debug)]
+pub struct TextLayoutInfo {
+    pub position: Vec2,
+    pub size: Vec2,
+}
+
+/// Text measurement information - placeholder 
+#[derive(Debug, Clone)]
+pub struct TextMeasurement {
+    pub size: Vec2,
+    pub ascent: f32,
+    pub descent: f32,
+    pub baseline_offset: f32,
+}
+
+/// Text area information - placeholder
+#[derive(Debug)]
+pub struct TextAreaInfo {
+    pub size: Vec2,
+}
+
+/// Text rendering errors - placeholder
+#[derive(Debug)]
+pub enum TextError {
+    /// Temporarily disabled
+    Disabled,
+    /// Render error wrapper
+    RenderError(crate::RenderError),
+}
+
+impl std::fmt::Display for TextError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TextError::Disabled => write!(f, "Text rendering temporarily disabled"),
+            TextError::RenderError(e) => write!(f, "Render error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for TextError {}
+
+impl From<crate::RenderError> for TextError {
+    fn from(err: crate::RenderError) -> Self {
+        TextError::RenderError(err)
+    }
+}
+
+/// Text renderer - placeholder while disabled
 pub struct TextRenderer {
-    /// Font cache
-    fonts: Vec<Font>,
-    /// Glyph cache
-    glyph_cache: GlyphCache,
-}
-
-/// Font data and metrics
-pub struct Font {
-    /// Font name
-    pub name: String,
-    /// Font data
-    pub data: Vec<u8>,
-    /// Font metrics
-    pub metrics: fontdue::Metrics,
-}
-
-/// Glyph cache for efficient text rendering
-pub struct GlyphCache {
-    /// Cached glyphs
-    glyphs: std::collections::HashMap<(FontHandle, char, u32), CachedGlyph>,
-}
-
-/// A cached glyph with rendering data
-pub struct CachedGlyph {
-    /// Glyph metrics
-    pub metrics: fontdue::Metrics,
-    /// Glyph bitmap data
-    pub bitmap: Vec<u8>,
-    /// Texture coordinates if uploaded to GPU
-    pub texture_coords: Option<[f32; 4]>,
+    _placeholder: (),
 }
 
 impl TextRenderer {
-    /// Create a new text renderer
-    pub fn new(
-        _device: &wgpu::Device,
-        _queue: &wgpu::Queue,
-        _format: wgpu::TextureFormat,
-    ) -> RenderResult<Self> {
-        Ok(Self {
-            fonts: Vec::new(),
-            glyph_cache: GlyphCache {
-                glyphs: std::collections::HashMap::new(),
-            },
+    pub fn new(_device: &wgpu::Device, _queue: &wgpu::Queue, _format: wgpu::TextureFormat) -> crate::RenderResult<Self> {
+        Ok(Self { _placeholder: () })
+    }
+    
+    pub fn add_text(&mut self, _text: &str, _font_size: f32, _position: Vec2, _color: glam::Vec4) -> crate::RenderResult<TextLayoutInfo> {
+        Ok(TextLayoutInfo {
+            position: _position,
+            size: Vec2::new(100.0, 20.0), // Placeholder size
         })
     }
-
-    /// Load a font from bytes
-    pub fn load_font(&mut self, name: String, font_data: Vec<u8>) -> RenderResult<FontHandle> {
-        // TODO: Implement proper font loading
-        let metrics = fontdue::Metrics {
-            xmin: 0,
-            ymin: 0,
-            width: 12,
-            height: 16,
-            advance_width: 8.0,
-            advance_height: 16.0,
-            bounds: fontdue::OutlineBounds {
-                xmin: 0.0,
-                ymin: 0.0,
-                width: 12.0,
-                height: 16.0,
-            },
-        };
-        
-        self.fonts.push(Font {
-            name,
-            data: font_data,
-            metrics,
-        });
-
-        Ok(FontHandle((self.fonts.len() - 1) as u32))
+    
+    pub fn measure_text(&mut self, _text: &str, _font_size: f32) -> crate::RenderResult<TextMeasurement> {
+        Ok(TextMeasurement {
+            size: Vec2::new(100.0, 20.0),
+            ascent: 15.0,
+            descent: 5.0,
+            baseline_offset: 15.0,
+        })
     }
-
-    /// Load default system font
-    pub fn load_default_font(&mut self) -> RenderResult<FontHandle> {
-        // For now, use dummy font data - in a real implementation,
-        // we would load a system font or embedded font
-        let font_data = vec![0u8; 1024]; // Dummy font data
-        self.load_font("Default".to_string(), font_data)
+    
+    pub fn prepare(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue) -> crate::RenderResult<()> {
+        Ok(())
     }
-
-    /// Render text to the UI renderer
-    pub fn draw_text(&mut self, text: &str, position: Vec2, font: FontHandle, size: f32, color: Vec4) {
-        // TODO: Implement actual text rendering
-        // This would rasterize glyphs, upload to texture atlas, and generate quads
-        let _ = (text, position, font, size, color);
+    
+    pub fn render(&mut self, _render_pass: &mut wgpu::RenderPass) -> crate::RenderResult<()> {
+        // No-op while disabled
+        Ok(())
     }
+}
 
-    /// Get text dimensions for layout calculations
-    pub fn measure_text(&mut self, text: &str, _font: FontHandle, size: f32) -> Vec2 {
-        // TODO: Implement text measurement
-        // For now, return approximate dimensions
-        let char_width = size * 0.6;
-        let line_height = size;
-        Vec2::new(text.len() as f32 * char_width, line_height)
+/// Text pipeline - placeholder while disabled
+pub struct TextPipeline {
+    _placeholder: (),
+}
+
+impl TextPipeline {
+    pub fn new(_device: &wgpu::Device, _queue: &wgpu::Queue, _format: wgpu::TextureFormat) -> crate::RenderResult<Self> {
+        Ok(Self { _placeholder: () })
     }
-
-    /// Get font by handle
-    pub fn get_font(&self, handle: FontHandle) -> Option<&Font> {
-        self.fonts.get(handle.0 as usize)
+    
+    pub fn set_resolution(&mut self, _width: u32, _height: u32) {
+        // No-op while disabled
+    }
+    
+    pub fn prepare_text_layouts(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _layouts: &[TextLayoutInfo]) -> crate::RenderResult<()> {
+        // No-op while disabled
+        Ok(())
+    }
+    
+    pub fn render_text_areas(&mut self, _render_pass: &mut wgpu::RenderPass) -> crate::RenderResult<()> {
+        // No-op while disabled
+        Ok(())
+    }
+    
+    pub fn measure_text(&mut self, _text: &str, _font: crate::FontHandle, _size: f32) -> Result<TextMeasurement, TextError> {
+        Ok(TextMeasurement {
+            size: Vec2::new(100.0, 20.0),
+            ascent: 15.0,
+            descent: 5.0,
+            baseline_offset: 15.0,
+        })
+    }
+    
+    pub fn queue_text(&mut self, _text: &str, _font: crate::FontHandle, _size: f32, _position: Vec2, _color_array: [f32; 4], _queue: &wgpu::Queue) -> crate::RenderResult<TextLayoutInfo> {
+        Ok(TextLayoutInfo {
+            position: _position,
+            size: Vec2::new(100.0, 20.0),
+        })
+    }
+    
+    pub fn default_font(&self) -> Option<crate::FontHandle> {
+        Some(crate::FontHandle(0))
     }
 }

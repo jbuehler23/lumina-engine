@@ -1,0 +1,579 @@
+{
+  "metadata": {
+    "name": "Top-Down Racer",
+    "description": "A simple top-down racing game with checkpoints and obstacles",
+    "resolution": [1280, 720],
+    "background_color": [0.1, 0.6, 0.1, 1.0],
+    "physics": {
+      "enabled": true,
+      "gravity": [0.0, 0.0],
+      "timestep": 0.016667
+    },
+    "audio": {
+      "enabled": true,
+      "master_volume": 1.0,
+      "music_volume": 0.8,
+      "sfx_volume": 0.9
+    }
+  },
+  "entities": [
+    {
+      "name": "Player_Car",
+      "tags": ["player", "vehicle"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [200.0, 100.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "player_car.png",
+            "color": [1.0, 0.2, 0.2, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Player": {
+          "type": "Player",
+          "data": {
+            "speed": 250.0,
+            "jump_force": 0.0,
+            "health": 1,
+            "max_health": 1
+          }
+        },
+        "Velocity": {
+          "type": "Velocity",
+          "data": {
+            "linear": [0.0, 0.0],
+            "angular": 0.0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 48.0,
+              "height": 24.0
+            },
+            "is_sensor": false,
+            "friction": 0.7,
+            "restitution": 0.2
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Dynamic",
+            "mass": 1.0,
+            "linear_damping": 2.0,
+            "angular_damping": 3.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Checkpoint1",
+      "tags": ["checkpoint"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [400.0, 300.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "checkpoint.png",
+            "color": [1.0, 1.0, 0.0, 0.7],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 80.0,
+              "height": 20.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Checkpoint2",
+      "tags": ["checkpoint"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [800.0, 500.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "checkpoint.png",
+            "color": [1.0, 1.0, 0.0, 0.7],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 80.0,
+              "height": 20.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Finish_Line",
+      "tags": ["finish", "goal"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [1100.0, 100.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "finish_line.png",
+            "color": [0.0, 1.0, 0.0, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 0
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Rectangle",
+              "width": 100.0,
+              "height": 20.0
+            },
+            "is_sensor": true,
+            "friction": 0.0,
+            "restitution": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Obstacle1",
+      "tags": ["obstacle"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [600.0, 200.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "rock.png",
+            "color": [0.5, 0.5, 0.5, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Circle",
+              "radius": 30.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.8
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Static",
+            "mass": 0.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Obstacle2",
+      "tags": ["obstacle"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [900.0, 350.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Sprite": {
+          "type": "Sprite",
+          "data": {
+            "texture": "rock.png",
+            "color": [0.5, 0.5, 0.5, 1.0],
+            "flip_x": false,
+            "flip_y": false,
+            "layer": 1
+          }
+        },
+        "Collider": {
+          "type": "Collider",
+          "data": {
+            "shape": {
+              "shape_type": "Circle",
+              "radius": 30.0
+            },
+            "is_sensor": false,
+            "friction": 1.0,
+            "restitution": 0.8
+          }
+        },
+        "RigidBody": {
+          "type": "RigidBody",
+          "data": {
+            "body_type": "Static",
+            "mass": 0.0,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Timer_Display",
+      "tags": ["ui", "timer"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [100.0, 650.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Text": {
+          "type": "Text",
+          "data": {
+            "content": "Time: 0.0s",
+            "font": "default",
+            "size": 24.0,
+            "color": [1.0, 1.0, 1.0, 1.0],
+            "alignment": "Left"
+          }
+        }
+      }
+    },
+    {
+      "name": "Lap_Display",
+      "tags": ["ui", "lap"],
+      "components": {
+        "Transform": {
+          "type": "Transform",
+          "data": {
+            "position": [100.0, 600.0],
+            "rotation": 0.0,
+            "scale": [1.0, 1.0]
+          }
+        },
+        "Text": {
+          "type": "Text",
+          "data": {
+            "content": "Checkpoints: 0/2",
+            "font": "default",
+            "size": 20.0,
+            "color": [1.0, 1.0, 0.0, 1.0],
+            "alignment": "Left"
+          }
+        }
+      }
+    }
+  ],
+  "resources": {
+    "GameState": {
+      "type": "GameState",
+      "data": {
+        "score": 0,
+        "level": 1,
+        "lives": 1,
+        "time_remaining": 60.0
+      }
+    },
+    "RaceTimer": {
+      "type": "SpawnTimer",
+      "data": {
+        "interval": 0.1,
+        "next_spawn": 0.1,
+        "entity_template": "TimerUpdate"
+      }
+    }
+  },
+  "scripts": [
+    {
+      "id": "car_accelerate",
+      "name": "Car Accelerate",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "W"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player_Car",
+            "force": [0.0, 300.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "car_brake",
+      "name": "Car Brake",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "S"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player_Car",
+            "force": [0.0, -200.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "car_steer_left",
+      "name": "Car Steer Left",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "A"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player_Car",
+            "force": [-150.0, 0.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "car_steer_right",
+      "name": "Car Steer Right",
+      "script_type": "EventHandler",
+      "triggers": [
+        {
+          "type": "KeyPressed",
+          "data": {
+            "key": "D"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ApplyForce",
+          "data": {
+            "entity": "Player_Car",
+            "force": [150.0, 0.0]
+          }
+        }
+      ]
+    },
+    {
+      "id": "checkpoint1_reached",
+      "name": "Checkpoint 1 Reached",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player_Car",
+            "entity_b": "Checkpoint1"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 1
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "checkpoint.wav",
+            "volume": 0.8
+          }
+        },
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Checkpoint 1!",
+            "duration": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "checkpoint2_reached",
+      "name": "Checkpoint 2 Reached",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player_Car",
+            "entity_b": "Checkpoint2"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "UpdateScore",
+          "data": {
+            "change": 1
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "checkpoint.wav",
+            "volume": 0.8
+          }
+        },
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Checkpoint 2!",
+            "duration": 1.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "finish_line_reached",
+      "name": "Finish Line",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player_Car",
+            "entity_b": "Finish_Line"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Race Finished!",
+            "duration": 3.0
+          }
+        },
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "race_finish.wav",
+            "volume": 1.0
+          }
+        },
+        {
+          "type": "ChangeLevel",
+          "data": {
+            "level": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "obstacle_collision",
+      "name": "Hit Obstacle",
+      "script_type": "Collision",
+      "triggers": [
+        {
+          "type": "Collision",
+          "data": {
+            "entity_a": "Player_Car",
+            "entity_b": "Obstacle1"
+          }
+        }
+      ],
+      "actions": [
+        {
+          "type": "PlaySound",
+          "data": {
+            "clip": "crash.wav",
+            "volume": 0.9
+          }
+        },
+        {
+          "type": "ShowText",
+          "data": {
+            "message": "Ouch!",
+            "duration": 1.0
+          }
+        }
+      ]
+    }
+  ]
+}

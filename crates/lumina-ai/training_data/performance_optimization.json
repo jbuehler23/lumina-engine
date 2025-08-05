@@ -1,0 +1,198 @@
+[
+  {
+    "prompt": "Optimize a particle system that's causing frame drops with thousands of particles",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "CPU and GPU bound",
+          "primary_issues": [
+            "Individual particle updates on CPU",
+            "Excessive draw calls",
+            "No spatial culling",
+            "Memory fragmentation from dynamic allocation"
+          ]
+        },
+        "optimization_strategies": {
+          "compute_shader_migration": {
+            "description": "Move particle simulation to GPU compute shaders",
+            "implementation": {
+              "compute_dispatch": "Use workgroups of 64 particles",
+              "memory_layout": "Structure of Arrays (SoA) for better cache coherency",
+              "update_frequency": "Run compute shader once per frame"
+            },
+            "expected_improvement": "3-5x performance gain"
+          },
+          "instanced_rendering": {
+            "description": "Render all particles in single draw call",
+            "implementation": {
+              "vertex_buffer": "Shared quad mesh with instanced transforms",
+              "texture_atlas": "Pack particle textures into single atlas",
+              "sorting": "Depth sort only when necessary for transparency"
+            },
+            "expected_improvement": "2-3x rendering performance"
+          },
+          "spatial_optimization": {
+            "description": "Cull particles outside view frustum",
+            "implementation": {
+              "culling_method": "Hierarchical spatial grid",
+              "update_frequency": "Update spatial structure every 4 frames",
+              "early_exit": "Skip update for distant particle systems"
+            },
+            "expected_improvement": "30-50% CPU reduction"
+          },
+          "memory_pooling": {
+            "description": "Pre-allocate particle memory pools",
+            "implementation": {
+              "pool_size": "Allocate for maximum expected particles",
+              "reuse_strategy": "Ring buffer for particle lifecycle",
+              "alignment": "Cache-line aligned structures"
+            },
+            "expected_improvement": "Eliminate GC pressure and allocation overhead"
+          }
+        },
+        "code_example": {
+          "compute_shader": "// Particle update compute shader\n#version 450\nlayout(local_size_x = 64) in;\n\nlayout(binding = 0) buffer ParticleBuffer {\n  vec4 positions[];\n  vec4 velocities[];\n  float lifetimes[];\n};\n\nvoid main() {\n  uint index = gl_GlobalInvocationID.x;\n  if (index >= positions.length()) return;\n  \n  // Update position with velocity\n  positions[index].xyz += velocities[index].xyz * dt;\n  \n  // Apply gravity\n  velocities[index].y -= 9.81 * dt;\n  \n  // Update lifetime\n  lifetimes[index] -= dt;\n}",
+          "culling_system": "struct ParticleSystem {\n  spatial_grid: SpatialGrid<ParticleChunk>,\n  view_frustum: Frustum,\n  \n  fn update_visible_particles(&mut self) {\n    let visible_chunks = self.spatial_grid\n      .query_frustum(&self.view_frustum);\n    \n    for chunk in visible_chunks {\n      chunk.update_particles();\n    }\n  }\n}"
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Analyze and fix poor performance in a large open world with streaming issues",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "Memory and I/O bound",
+          "primary_issues": [
+            "Synchronous asset loading causing hitches",
+            "Excessive memory usage from loaded chunks",
+            "No LOD system for distant objects",
+            "Inefficient spatial queries for large datasets"
+          ]
+        },
+        "optimization_strategies": {
+          "streaming_system": {
+            "description": "Implement asynchronous world streaming",
+            "implementation": {
+              "chunk_management": {
+                "chunk_size": "256x256 world units",
+                "load_radius": "3 chunks around player",
+                "unload_radius": "5 chunks from player",
+                "preload_direction": "Predict movement and preload ahead"
+              },
+              "async_loading": {
+                "loading_thread": "Dedicated background thread for I/O",
+                "memory_staging": "Load into staging buffer before main thread",
+                "priority_system": "Prioritize chunks by distance and visibility"
+              }
+            },
+            "expected_improvement": "Eliminate loading hitches"
+          },
+          "level_of_detail": {
+            "description": "Distance-based quality reduction",
+            "implementation": {
+              "mesh_lod": {
+                "lod_levels": 4,
+                "transition_distances": [50, 150, 500, 1500],
+                "transition_method": "Alpha blending between LODs"
+              },
+              "texture_streaming": {
+                "mip_bias": "Adjust based on distance and screen size",
+                "streaming_budget": "64MB texture memory budget",
+                "priority_scoring": "Screen coverage * importance factor"
+              }
+            },
+            "expected_improvement": "50-70% memory reduction, 2x rendering performance"
+          },
+          "spatial_optimization": {
+            "description": "Efficient spatial data structures",
+            "implementation": {
+              "octree_structure": {
+                "max_depth": 8,
+                "objects_per_node": 32,
+                "update_frequency": "Only when objects move significantly"
+              },
+              "query_optimization": {
+                "frustum_culling": "Hierarchical frustum culling with octree",
+                "distance_culling": "Skip expensive operations for distant objects",
+                "temporal_coherency": "Cache query results between frames"
+              }
+            },
+            "expected_improvement": "90% reduction in unnecessary object processing"
+          }
+        },
+        "implementation_priority": [
+          "1. Implement basic async streaming system",
+          "2. Add mesh LOD system for major objects",
+          "3. Optimize spatial queries with octree",
+          "4. Add texture streaming and memory management",
+          "5. Fine-tune parameters based on profiling"
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Fix memory leaks and optimize garbage collection in a complex game system",
+    "expected_output": {
+      "optimization_analysis": {
+        "memory_analysis": {
+          "leak_sources": [
+            "Event listeners not properly unsubscribed",
+            "Circular references in object graphs",
+            "Cached data structures growing unbounded",
+            "Texture resources not released after level transitions"
+          ],
+          "gc_pressure_sources": [
+            "Frequent small allocations in game loop",
+            "String concatenation in hot paths",
+            "Temporary collections created each frame",
+            "Boxing of value types in generic containers"
+          ]
+        },
+        "optimization_strategies": {
+          "memory_leak_fixes": {
+            "event_system_cleanup": {
+              "implementation": "Implement IDisposable pattern for event subscriptions",
+              "code_pattern": "using var subscription = eventBus.Subscribe<GameEvent>(handler);",
+              "automatic_cleanup": "Use weak references for long-lived subscribers"
+            },
+            "object_pooling": {
+              "pooled_objects": ["Projectiles", "ParticleEmitters", "UI Elements", "Audio Sources"],
+              "pool_management": "Pre-allocated pools with configurable sizes",
+              "lifecycle_management": "Reset() method for proper object reuse"
+            },
+            "resource_tracking": {
+              "reference_counting": "Track texture and mesh usage across scenes",
+              "automatic_unloading": "Unload unused resources after 30 seconds",
+              "memory_budgets": "Set maximum memory limits per resource type"
+            }
+          },
+          "gc_optimization": {
+            "allocation_reduction": {
+              "string_pooling": "Use StringBuilder and string interning",
+              "collection_reuse": "Reuse List<T> and Dictionary<K,V> instances",
+              "value_type_optimization": "Use structs instead of classes where appropriate"
+            },
+            "generational_gc_tuning": {
+              "gen0_optimization": "Reduce short-lived allocations",
+              "gen1_management": "Batch operations to reduce mid-lived objects",
+              "gen2_prevention": "Avoid long-lived temporary objects"
+            }
+          }
+        },
+        "monitoring_setup": {
+          "memory_profiling": {
+            "tools": ["Built-in profiler", "Custom memory tracker"],
+            "metrics": ["Peak memory usage", "Allocation rate", "GC frequency"],
+            "alerting": "Log warnings when memory usage exceeds thresholds"
+          },
+          "performance_tracking": {
+            "frame_time_budget": "16.67ms target (60 FPS)",
+            "gc_time_budget": "Max 2ms per frame for GC",
+            "memory_budget": "Platform-specific limits (mobile: 512MB, desktop: 2GB)"
+          }
+        }
+      }
+    }
+  }
+]

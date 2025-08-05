@@ -1,0 +1,49 @@
+[package]
+name = "lumina-ai"
+version = "0.1.0"
+edition = "2021"
+description = "AI integration layer for Lumina Engine - text-to-game generation"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core dependencies
+anyhow.workspace = true
+thiserror.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+uuid.workspace = true
+log.workspace = true
+futures.workspace = true
+
+# Math
+glam.workspace = true
+
+# HTTP client for AI API calls
+reqwest = { version = "0.11", features = ["json", "stream"] }
+tokio = { version = "1.0", features = ["full"] }
+
+# Template engine for prompt generation
+handlebars = "4.4"
+
+# Time handling for assets
+chrono = { version = "0.4", features = ["serde"] }
+
+# Training and fine-tuning (optional dependencies) - Ollama-based training
+serde_yaml = { version = "0.9", optional = true }
+rand = { version = "0.8", optional = true }
+
+# Internal dependencies
+lumina-ecs = { path = "../lumina-ecs" }
+lumina-core = { path = "../lumina-core" }
+# lumina-render = { path = "../lumina-render" }  # Temporarily disabled due to lumina-ui issues
+
+[features]
+default = ["ollama"]
+openai = []
+anthropic = []
+ollama = []
+local = []
+training = ["serde_yaml", "rand"]
+
+[dev-dependencies]
+tokio-test = "0.4"

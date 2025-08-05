@@ -10,6 +10,7 @@ pub struct AssetBrowser {
 }
 
 impl AssetBrowser {
+    /// Create a new asset browser
     pub fn new() -> Self {
         Self { id: WidgetId::new() }
     }
@@ -26,5 +27,5 @@ impl Widget for AssetBrowser {
         }
     }
     fn handle_input(&mut self, _input: &InputEvent) -> InputResponse { InputResponse::NotHandled }
-    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect) {}
+    fn render(&self, _renderer: &mut UiRenderer, _bounds: Rect, _queue: &wgpu::Queue, _theme: &crate::Theme) {}
 }

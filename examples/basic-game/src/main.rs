@@ -1,12 +1,21 @@
-use lumina_core::{
-    app::{App, AppRunner},
-    engine::{Engine, EngineConfig},
-    input::Key,
-    math::Vec2,
-    Result,
-};
-use lumina_ecs::{EcsSystemRunner, World, make_system};
+//! Basic Game Example - Lumina Engine (Updated Architecture)
+//! 
+//! This example demonstrates the updated ECS architecture with proper
+//! separation of concerns using individual crates:
+//! - lumina-ecs: Entity-Component-System 
+//! - lumina-input: Input handling
+//! - lumina-render: Rendering pipeline
+//! - lumina-core: ECS app runner
 
+use lumina_core::{ecs_app::{EcsAppRunner, EcsApp, WindowConfig}, Result};
+use lumina_ecs::World;
+use lumina_input::ButtonInput;
+use lumina_render::RenderConfig;
+use lumina_ui::Theme;
+use glam::Vec2;
+use winit::{event::WindowEvent, dpi::LogicalSize};
+
+// Game Components using proper ECS patterns
 #[derive(Debug, Clone)]
 struct Position(Vec2);
 
@@ -19,138 +28,200 @@ struct Player {
 }
 
 struct BasicGameApp {
-    ecs: Option<EcsSystemRunner>,
+    frame_count: u64,
 }
 
 impl BasicGameApp {
     fn new() -> Self {
-        Self { ecs: None }
+        Self { frame_count: 0 }
     }
 }
 
-impl App for BasicGameApp {
-    fn initialize(&mut self, engine: &mut Engine) -> Result<()> {
-        println!("🎮 Initializing Basic Game");
+impl EcsApp for BasicGameApp {
+    fn window_config(&self) -> WindowConfig {
+        WindowConfig {
+            title: "Basic Game - Lumina Engine (Modern ECS)".to_string(),
+            size: LogicalSize::new(800, 600),
+            resizable: true,
+        }
+    }
+
+    fn render_config(&self) -> RenderConfig {
+        RenderConfig::default()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::default()
+    }
+
+    fn setup(&mut self, world: &mut World) -> Result<()> {
+        log::info!("🎮 Setting up Basic Game with ECS architecture");
         
-        let mut ecs = EcsSystemRunner::new();
-        
-        let world = ecs.world().clone();
+        // Create a player entity with Position, Velocity, and Player components
         world.spawn()
             .with(Position(Vec2::new(100.0, 100.0)))
             .with(Velocity(Vec2::ZERO))
             .with(Player { speed: 200.0 })
             .build(&world);
         
-        ecs.add_system(make_system(player_movement_system));
-        ecs.add_system(make_system(movement_system));
-        ecs.add_system(make_system(debug_system));
+        // Add keyboard input resource for WASD/Arrow key controls
+        if !world.has_resource::<ButtonInput<winit::keyboard::PhysicalKey>>() {
+            world.add_resource(ButtonInput::<winit::keyboard::PhysicalKey>::default());
+        }
         
-        engine.add_system(ecs)?;
-        
-        println!("✅ Basic Game initialized successfully!");
+        log::info!("✅ Basic Game initialized successfully with modern ECS!");
         Ok(())
     }
 
-    fn update(&mut self, engine: &mut Engine) -> Result<()> {
-        let input = &engine.context().input;
+    fn update(&mut self, world: &mut World) -> Result<()> {
+        self.frame_count += 1;
         
-        if input.is_key_just_pressed(&Key::Escape) {
-            println!("👋 Goodbye!");
-            engine.stop()?;
+        // Get delta time (simplified)
+        let dt = 1.0 / 60.0; // Assume 60 FPS
+        
+        // Player movement system using lumina-input
+        self.player_movement_system(world, dt)?;
+        
+        // Movement system
+        self.movement_system(world, dt)?;
+        
+        // Debug system (every 60 frames)
+        if self.frame_count % 60 == 0 {
+            self.debug_system(world)?;
         }
         
         Ok(())
     }
 
-    fn shutdown(&mut self, _engine: &mut Engine) -> Result<()> {
-        println!("🔚 Basic Game shutdown");
+    fn handle_event(&mut self, world: &mut World, event: &WindowEvent) -> Result<bool> {
+        match event {
+            WindowEvent::KeyboardInput { event, .. } => {
+                // Update keyboard input state using lumina-input
+                world.with_resource_mut::<ButtonInput<winit::keyboard::PhysicalKey>, _>(|mut keyboard_input_opt| {
+                    if let Some(keyboard) = keyboard_input_opt.as_mut() {
+                        match event.state {
+                            winit::event::ElementState::Pressed => {
+                                keyboard.press(event.physical_key);
+                            }
+                            winit::event::ElementState::Released => {
+                                keyboard.release(event.physical_key);
+                            }
+                        }
+                    }
+                });
+                
+                // Handle ESC to quit
+                if let winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::Escape) = event.physical_key {
+                    if event.state == winit::event::ElementState::Pressed {
+                        log::info!("👋 Goodbye! (ESC pressed)");
+                        return Ok(false); // Exit game
+                    }
+                }
+            }
+            WindowEvent::CloseRequested => {
+                log::info!("🔚 Window close requested");
+                return Ok(false); // Exit game
+            }
+            _ => {}
+        }
+        
+        Ok(true) // Continue running
+    }
+
+    fn shutdown(&mut self, _world: &mut World) -> Result<()> {
+        log::info!("🔚 Basic Game shutdown with modern ECS");
         Ok(())
     }
 }
 
-fn player_movement_system(world: &World, context: &lumina_core::engine::SystemContext) -> Result<()> {
-    let input = &context.input;
-    let time = context.time.read();
-    let dt = time.delta_seconds();
-    
-    // Simple approach - find entities with both Player and Velocity components
-    for (entity, player) in world.query::<Player>() {
-        world.with_component_mut::<Velocity, ()>(entity, |velocity_opt| {
-            if let Some(velocity) = velocity_opt {
-                let mut vel = Vec2::ZERO;
-                
-                if input.is_key_pressed(&Key::W) || input.is_key_pressed(&Key::ArrowUp) {
-                    vel.y -= 1.0;
+impl BasicGameApp {
+    fn player_movement_system(&self, world: &mut World, dt: f32) -> Result<()> {
+        world.with_resource::<ButtonInput<winit::keyboard::PhysicalKey>, _>(|keyboard_input_opt| {
+            if let Some(keyboard) = keyboard_input_opt {
+                // Find entities with both Player and Velocity components
+                for (entity, player) in world.query::<Player>() {
+                    world.with_component_mut::<Velocity, ()>(entity, |velocity_opt| {
+                        if let Some(velocity) = velocity_opt {
+                            let mut vel = Vec2::ZERO;
+                            
+                            // WASD controls
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyW)) {
+                                vel.y -= 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyS)) {
+                                vel.y += 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyA)) {
+                                vel.x -= 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::KeyD)) {
+                                vel.x += 1.0;
+                            }
+                            
+                            // Arrow key controls (alternative)
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowUp)) {
+                                vel.y -= 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowDown)) {
+                                vel.y += 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowLeft)) {
+                                vel.x -= 1.0;
+                            }
+                            if keyboard.pressed(winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::ArrowRight)) {
+                                vel.x += 1.0;
+                            }
+                            
+                            if vel.length() > 0.0 {
+                                vel = vel.normalize() * player.speed;
+                            }
+                            
+                            velocity.0 = vel;
+                        }
+                    });
                 }
-                if input.is_key_pressed(&Key::S) || input.is_key_pressed(&Key::ArrowDown) {
-                    vel.y += 1.0;
-                }
-                if input.is_key_pressed(&Key::A) || input.is_key_pressed(&Key::ArrowLeft) {
-                    vel.x -= 1.0;
-                }
-                if input.is_key_pressed(&Key::D) || input.is_key_pressed(&Key::ArrowRight) {
-                    vel.x += 1.0;
-                }
-                
-                if vel.length() > 0.0 {
-                    vel = vel.normalize() * player.speed;
-                }
-                
-                velocity.0 = vel;
             }
         });
+        
+        Ok(())
     }
-    
-    Ok(())
-}
 
-fn movement_system(world: &World, context: &lumina_core::engine::SystemContext) -> Result<()> {
-    let time = context.time.read();
-    let dt = time.delta_seconds();
-    
-    // Update positions based on velocities
-    for (entity, velocity) in world.query::<Velocity>() {
-        world.with_component_mut::<Position, ()>(entity, |position_opt| {
-            if let Some(position) = position_opt {
-                position.0 += velocity.0 * dt;
-            }
-        });
+    fn movement_system(&self, world: &mut World, dt: f32) -> Result<()> {
+        // Update positions based on velocities
+        for (entity, velocity) in world.query::<Velocity>() {
+            world.with_component_mut::<Position, ()>(entity, |position_opt| {
+                if let Some(position) = position_opt {
+                    position.0 += velocity.0 * dt;
+                }
+            });
+        }
+        
+        Ok(())
     }
-    
-    Ok(())
-}
 
-fn debug_system(world: &World, context: &lumina_core::engine::SystemContext) -> Result<()> {
-    let time = context.time.read();
-    
-    if time.frame_count() % 60 == 0 {
+    fn debug_system(&self, world: &mut World) -> Result<()> {
         for (entity, position) in world.query::<Position>() {
             if world.has_component::<Player>(entity) {
-                println!("Player position: ({:.1}, {:.1})", position.0.x, position.0.y);
+                log::info!("🎮 Player position: ({:.1}, {:.1})", position.0.x, position.0.y);
             }
         }
+        
+        Ok(())
     }
-    
-    Ok(())
 }
 
-fn main() -> Result<()> {
-    let config = EngineConfig {
-        window_title: "Basic Game - Lumina Engine".to_string(),
-        window_width: 800,
-        window_height: 600,
-        vsync: true,
-        max_fps: Some(60),
-        enable_audio: true,
-        enable_physics: false,
-        enable_scripting: false,
-    };
-
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Initialize logging
+    env_logger::init();
+    
+    log::info!("🚀 Starting Basic Game with Modern ECS Architecture");
+    log::info!("Controls: WASD or Arrow Keys to move, ESC to quit");
+    log::info!("Architecture: lumina-ecs + lumina-input + lumina-render + lumina-ui + lumina-core");
+    
+    // Create and run the game
     let app = BasicGameApp::new();
-    let runner = AppRunner::with_config(app, config);
+    let runner = EcsAppRunner::new(app);
     
-    println!("🚀 Starting Basic Game");
-    println!("Controls: WASD or Arrow Keys to move, ESC to quit");
-    
-    runner.run()
+    runner.run().await
 }

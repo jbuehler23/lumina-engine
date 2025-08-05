@@ -12,16 +12,23 @@ pub mod theming;
 pub mod input;
 pub mod editor;
 pub mod error;
+pub mod easy_api;
+pub mod app;
+pub mod ecs_integration;
 
 #[cfg(target_arch = "wasm32")]
 pub mod web;
 
 // Re-export commonly used types  
-pub use widgets::{Button, Panel, Text, TextInput, Canvas, Container};
-pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign};
+pub use widgets::{Panel, Text, TextInput, Canvas, Container, Draggable};
+pub use widgets::button::Button;
+pub use layout::{LayoutConstraints, LayoutEngine, Alignment, HorizontalAlign, VerticalAlign, containers::*};
 pub use theming::Theme;
-pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler};
+pub use input::{InputEvent, InputResponse, MouseButton, KeyCode, Modifiers, InputHandler, DragData};
 pub use error::{UiError, UiResult};
+pub use easy_api::{UiBuilder, Color, ButtonStyle, Direction, Alignment as EasyAlignment};
+pub use app::{UiApp, UiApplication, UiAppConfig, run_ui_app};
+pub use ecs_integration::{EcsUiApp, create_simple_ecs_ui_example, example_components};
 
 // Re-export rendering types from lumina-render
 pub use lumina_render::{UiRenderer, Rect};
@@ -82,7 +89,7 @@ impl Default for WidgetId {
 }
 
 /// Core trait that all UI widgets must implement
-pub trait Widget: std::fmt::Debug {
+pub trait Widget: std::fmt::Debug + Send + Sync {
     /// Get the unique ID of this widget
     fn id(&self) -> WidgetId;
     
@@ -96,7 +103,7 @@ pub trait Widget: std::fmt::Debug {
     fn handle_input(&mut self, input: &InputEvent) -> InputResponse;
     
     /// Render the widget
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect);
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue, theme: &Theme);
     
     /// Get child widgets
     fn children(&self) -> Vec<WidgetId> {
@@ -300,16 +307,156 @@ impl UiFramework {
         // Clear layout cache
         self.state.layout_cache.clear();
         
-        // Layout root widgets
-        for &root_id in &self.state.root_widgets.clone() {
-            self.layout_widget(root_id, available_space);
-        }
+        // Layout root widgets with improved spacing
+        self.layout_root_widgets(available_space);
         
         self.state.needs_render = true;
     }
     
+    /// Layout root widgets with better positioning logic
+    fn layout_root_widgets(&mut self, available_space: Vec2) {
+        let root_widgets = self.state.root_widgets.clone();
+        
+        if root_widgets.is_empty() {
+            return;
+        }
+        
+        // For now, use a simple grid-like layout for root widgets
+        // In a full editor, we'd have a proper docking system
+        let padding = 12.0;
+        let menu_height = 60.0;
+        let bottom_panel_height = 200.0;
+        
+        for (index, &root_id) in root_widgets.iter().enumerate() {
+            if let Some(_widget) = self.state.widgets.get_mut(&root_id) {
+                let layout_result = match index {
+                    // Menu bar - spans the top
+                    0 => {
+                        let bounds = Rect::new(
+                            padding,
+                            padding,
+                            available_space.x - padding * 2.0,
+                            menu_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Left panel
+                    1 => {
+                        let panel_width = 350.0;
+                        let bounds = Rect::new(
+                            padding,
+                            menu_height + padding * 2.0,
+                            panel_width,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Center panel (scene)
+                    2 => {
+                        let left_width = 350.0;
+                        let right_width = 350.0;
+                        let bounds = Rect::new(
+                            left_width + padding * 2.0,
+                            menu_height + padding * 2.0,
+                            available_space.x - left_width - right_width - padding * 4.0,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Right panel
+                    3 => {
+                        let panel_width = 350.0;
+                        let bounds = Rect::new(
+                            available_space.x - panel_width - padding,
+                            menu_height + padding * 2.0,
+                            panel_width,
+                            available_space.y - menu_height - bottom_panel_height - padding * 4.0
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Bottom left panel (console)
+                    4 => {
+                        let left_width = available_space.x * 0.6;
+                        let bounds = Rect::new(
+                            padding,
+                            available_space.y - bottom_panel_height - padding,
+                            left_width - padding,
+                            bottom_panel_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    },
+                    // Bottom right panel (visual scripting)
+                    _ => {
+                        let left_width = available_space.x * 0.6;
+                        let bounds = Rect::new(
+                            left_width + padding,
+                            available_space.y - bottom_panel_height - padding,
+                            available_space.x - left_width - padding * 2.0,
+                            bottom_panel_height
+                        );
+                        layout::LayoutResult {
+                            bounds,
+                            overflow: false,
+                            content_size: bounds.size,
+                        }
+                    }
+                };
+                
+                self.state.layout_cache.insert(root_id, layout_result.clone());
+                
+                // Layout children within the parent bounds
+                if let Some(children) = self.state.hierarchy.get(&root_id).cloned() {
+                    let parent_bounds = layout_result.bounds;
+                    let mut y_offset = 10.0; // Start with padding from top
+                    
+                    for child_id in children {
+                        if let Some(child_widget) = self.state.widgets.get_mut(&child_id) {
+                            // Layout child within parent's content area
+                            let available_space = Vec2::new(parent_bounds.size.x - 20.0, parent_bounds.size.y - y_offset);
+                            let mut child_layout = child_widget.layout(available_space);
+                            
+                            // Position child relative to parent with vertical stacking
+                            child_layout.bounds.position.x = parent_bounds.position.x + 10.0; // Left padding
+                            child_layout.bounds.position.y = parent_bounds.position.y + y_offset;
+                            
+                            self.state.layout_cache.insert(child_id, child_layout.clone());
+                            
+                            // Move y_offset down for next child
+                            y_offset += child_layout.bounds.size.y + 5.0; // Child height + spacing
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Mark the UI as needing a re-render
+    pub fn mark_needs_render(&mut self) {
+        self.state.needs_render = true;
+    }
+    
     /// Render the entire UI
-    pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, queue: &wgpu::Queue) {
+    pub fn render<'a>(&'a mut self, render_pass: &mut wgpu::RenderPass<'a>, device: &wgpu::Device, queue: &wgpu::Queue) {
         if !self.state.needs_render {
             return;
         }
@@ -322,35 +469,36 @@ impl UiFramework {
         let root_widgets = self.state.root_widgets.clone();
         let layout_cache = self.state.layout_cache.clone();
         let hierarchy = self.state.hierarchy.clone();
+        let theme = self.theme.clone();
         
         // Begin rendering
         self.renderer.as_mut().unwrap().begin_frame(queue);
         
         // Render all widgets
         for root_id in root_widgets {
-            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy);
+            self.render_widget_hierarchy(root_id, &layout_cache, &hierarchy, queue, &theme);
         }
         
         // End rendering and submit draw commands to render pass
         let renderer = self.renderer.as_mut().unwrap();
-        renderer.end_frame(queue);
-        renderer.submit_to_render_pass(render_pass);
+        let _ = renderer.end_frame(device, queue);
+        let _ = renderer.submit_to_render_pass(render_pass);
         
         self.state.needs_render = false;
     }
     
     /// Render a widget and its children recursively using cached data
-    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>) {
+    fn render_widget_hierarchy(&mut self, widget_id: WidgetId, layout_cache: &std::collections::HashMap<WidgetId, layout::LayoutResult>, hierarchy: &std::collections::HashMap<WidgetId, Vec<WidgetId>>, queue: &wgpu::Queue, theme: &Theme) {
         if let Some(layout) = layout_cache.get(&widget_id) {
             if let Some(widget) = self.state.widgets.get(&widget_id) {
                 if let Some(renderer) = &mut self.renderer {
-                    widget.render(renderer, layout.bounds);
+                    widget.render(renderer, layout.bounds, queue, theme);
                 }
                 
                 // Render children
                 if let Some(children) = hierarchy.get(&widget_id) {
                     for &child_id in children {
-                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy);
+                        self.render_widget_hierarchy(child_id, layout_cache, hierarchy, queue, theme);
                     }
                 }
             }
@@ -378,20 +526,5 @@ impl UiFramework {
         None
     }
     
-    /// Layout a specific widget
-    fn layout_widget(&mut self, widget_id: WidgetId, available_space: Vec2) {
-        if let Some(widget) = self.state.widgets.get_mut(&widget_id) {
-            let layout_result = widget.layout(available_space);
-            self.state.layout_cache.insert(widget_id, layout_result.clone());
-            
-            // Layout children
-            let layout_bounds_size = layout_result.bounds.size;
-            if let Some(children) = self.state.hierarchy.get(&widget_id).cloned() {
-                for child_id in children {
-                    self.layout_widget(child_id, layout_bounds_size);
-                }
-            }
-        }
-    }
     
 }

@@ -1,0 +1,244 @@
+[
+  {
+    "prompt": "Create a physics-based platformer with realistic momentum and gravity mechanics",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Physics Platformer",
+          "description": "A realistic physics-based platformer with momentum conservation and variable gravity",
+          "physics_settings": {
+            "gravity": -9.81,
+            "air_resistance": 0.02,
+            "ground_friction": 0.8,
+            "bounce_damping": 0.6
+          }
+        },
+        "entities": [
+          {
+            "name": "Player",
+            "components": {
+              "Transform": {"position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "RigidBody": {"mass": 70, "drag": 0.1, "angular_drag": 0.05},
+              "Collider": {"shape": "Capsule", "height": 1.8, "radius": 0.3},
+              "PlayerController": {
+                "move_speed": 8.0,
+                "jump_force": 15.0,
+                "air_control": 0.3,
+                "coyote_time": 0.1,
+                "jump_buffer": 0.1
+              }
+            },
+            "tags": ["player", "physics"]
+          },
+          {
+            "name": "MovingPlatform",
+            "components": {
+              "Transform": {"position": [10, 2, 0], "rotation": [0, 0, 0, 1], "scale": [4, 0.5, 1]},
+              "RigidBody": {"mass": 500, "kinematic": true},
+              "Collider": {"shape": "Box", "size": [4.0, 0.5, 1.0]},
+              "PathFollower": {
+                "path": [[10, 2, 0], [16, 2, 0], [16, 6, 0], [10, 6, 0]],
+                "speed": 2.0,
+                "loop": true,
+                "ease_type": "smooth"
+              }
+            },
+            "tags": ["platform", "moving", "physics"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Design a tower defense game with unique elemental tower types and enemy resistances",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Elemental Tower Defense",
+          "description": "Strategic tower defense with elemental damage types and enemy resistances"
+        },
+        "entities": [
+          {
+            "name": "FireTower",
+            "components": {
+              "Transform": {"position": [5, 0, 5], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "Tower": {
+                "range": 3.5,
+                "damage": 45,
+                "fire_rate": 1.2,
+                "element": "Fire",
+                "cost": 150,
+                "upgrade_cost": 200
+              },
+              "StatusEffect": {
+                "burn_damage": 5,
+                "burn_duration": 3.0,
+                "apply_chance": 0.3
+              }
+            },
+            "tags": ["tower", "fire", "defensive"]
+          },
+          {
+            "name": "IceEnemy",
+            "components": {
+              "Transform": {"position": [-10, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "Enemy": {
+                "health": 120,
+                "speed": 2.5,
+                "reward": 25,
+                "resistances": {"Ice": 0.2, "Fire": 1.8},
+                "immunities": ["Freeze"]
+              },
+              "PathFollower": {
+                "path": [[-10, 0, 0], [0, 0, 0], [10, 0, 0], [20, 0, 10]],
+                "speed": 2.5
+              }
+            },
+            "tags": ["enemy", "ice", "resistant"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Create a space shooter with different weapon systems and enemy formation patterns",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Advanced Space Combat",
+          "description": "Space shooter with multiple weapon systems and intelligent enemy formations"
+        },
+        "entities": [
+          {
+            "name": "PlayerShip",
+            "components": {
+              "Transform": {"position": [0, -8, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "PlayerController": {"speed": 8.0, "boost_multiplier": 1.5, "boost_duration": 2.0},
+              "WeaponSystem": {
+                "primary_weapon": "RapidFire",
+                "secondary_weapon": "Missiles",
+                "special_weapon": "LaserBeam",
+                "fire_modes": ["Single", "Burst", "Spread"]
+              },
+              "Health": {"current": 100, "maximum": 100, "shields": 50}
+            },
+            "tags": ["player", "ship", "combat"]
+          },
+          {
+            "name": "EnemyFormation",
+            "components": {
+              "Transform": {"position": [0, 10, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "FormationController": {
+                "formation_type": "VFormation",
+                "ship_count": 5,
+                "spacing": 2.0,
+                "move_pattern": "Sine",
+                "attack_pattern": "Coordinated"
+              },
+              "AIBehavior": {
+                "state": "Formation",
+                "aggression": 0.7,
+                "coordination": 0.9
+              }
+            },
+            "tags": ["enemy", "formation", "ai"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Design a puzzle game with multiple interconnected mechanics and progressive difficulty",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "Mechanical Puzzles",
+          "description": "Complex puzzle mechanics with gears, switches, and timing elements"
+        },
+        "entities": [
+          {
+            "name": "ColoredSwitch",
+            "components": {
+              "Transform": {"position": [2, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "Switch": {
+                "color": "Red",
+                "requires_key": true,
+                "activation_time": 1.5,
+                "cooldown": 0.5
+              },
+              "Trigger": {
+                "conditions": ["PlayerHasRedKey", "SwitchNotCooldown"],
+                "actions": ["ActivateRedMechanism", "PlaySwitchSound"]
+              }
+            },
+            "tags": ["puzzle", "switch", "interactive"]
+          },
+          {
+            "name": "TimedGearSystem",
+            "components": {
+              "Transform": {"position": [8, 3, 0], "rotation": [0, 0, 0, 1], "scale": [2, 2, 1]},
+              "GearMechanism": {
+                "rotation_speed": 45.0,
+                "connected_gears": ["Gear2", "Gear3"],
+                "power_source": "RedSwitch",
+                "gear_ratio": 2.5
+              },
+              "Timer": {
+                "duration": 10.0,
+                "auto_restart": false,
+                "on_complete": "DeactivateSystem"
+              }
+            },
+            "tags": ["puzzle", "mechanical", "timed"]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "prompt": "Create an RPG character system with classes, skills, and equipment progression",
+    "expected_output": {
+      "scene": {
+        "metadata": {
+          "name": "RPG Character System",
+          "description": "Comprehensive RPG system with character progression and equipment"
+        },
+        "entities": [
+          {
+            "name": "PlayerCharacter",
+            "components": {
+              "Transform": {"position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1]},
+              "CharacterStats": {
+                "level": 1,
+                "experience": 0,
+                "experience_to_next": 1000,
+                "class": "Warrior",
+                "attributes": {
+                  "strength": 15,
+                  "dexterity": 12,
+                  "intelligence": 8,
+                  "vitality": 14,
+                  "luck": 10
+                }
+              },
+              "SkillTree": {
+                "available_points": 0,
+                "skills": {
+                  "Sword_Mastery": {"level": 0, "max_level": 10, "cost_per_level": 1},
+                  "Heavy_Armor": {"level": 0, "max_level": 5, "cost_per_level": 2},
+                  "Battle_Rage": {"level": 0, "max_level": 3, "cost_per_level": 3}
+                }
+              },
+              "Equipment": {
+                "weapon": {"id": "iron_sword", "stats": {"damage": 25, "speed": 1.2}},
+                "armor": {"id": "leather_armor", "stats": {"defense": 8, "weight": 15}},
+                "accessory": null
+              }
+            },
+            "tags": ["player", "rpg", "character"]
+          }
+        ]
+      }
+    }
+  }
+]

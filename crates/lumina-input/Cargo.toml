@@ -1,0 +1,23 @@
+[package]
+name = "lumina-input"
+version = "0.1.0"
+edition = "2021"
+description = "Input handling system for Lumina Engine, inspired by Bevy's input architecture"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core dependencies
+glam.workspace = true
+winit.workspace = true
+log.workspace = true
+thiserror.workspace = true
+
+# Serialization for input mapping/binding
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[features]
+default = []
+serialization = ["serde"]
+
+[dev-dependencies]
+env_logger = "0.10"

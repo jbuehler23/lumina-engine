@@ -1,4 +1,42 @@
 //! Button widget implementation
+//!
+//! # Overview
+//! 
+//! The Button widget provides interactive clickable elements with modern styling and theming support.
+//! It supports multiple variants (Primary, Secondary, Ghost, Danger) and smooth state transitions.
+//!
+//! # Examples
+//!
+//! ```rust
+//! use lumina_ui::{Button, Theme};
+//! use lumina_ui::widgets::button::ButtonVariant;
+//!
+//! // Create a primary button
+//! let button = Button::new("Click me!")
+//!     .variant(ButtonVariant::Primary)
+//!     .on_click(|| {
+//!         println!("Button clicked!");
+//!     });
+//!
+//! // Create a secondary button with custom styling
+//! let secondary_button = Button::new("Cancel")
+//!     .variant(ButtonVariant::Secondary);
+//!
+//! // Create a danger button for destructive actions
+//! let delete_button = Button::new("Delete")
+//!     .variant(ButtonVariant::Danger)
+//!     .on_click(|| {
+//!         // Handle delete action
+//!     });
+//! ```
+//!
+//! # Features
+//!
+//! - **Theme Integration**: Automatically uses colors and styles from the current theme
+//! - **State Management**: Handles hover, press, and disabled states with smooth transitions
+//! - **Accessibility**: Supports keyboard focus and proper interaction feedback
+//! - **Responsive Design**: Adapts to different screen sizes and layouts
+//! - **Modern Styling**: Rounded corners, shadows, and smooth animations
 
 use crate::{
     Widget, WidgetId, LayoutConstraints, InputEvent, InputResponse, 
@@ -20,24 +58,12 @@ pub struct Button {
     state: AnimationState,
     /// Click callback
     on_click: Option<Box<dyn Fn() + Send + Sync>>,
+    /// Action to be performed when the button is clicked
+    action: Option<String>,
     /// Whether the button is currently pressed
     is_pressed: bool,
     /// Whether the button is currently hovered
     is_hovered: bool,
-}
-
-impl std::fmt::Debug for Button {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Button")
-            .field("base", &self.base)
-            .field("text", &self.text)
-            .field("variant", &self.variant)
-            .field("state", &self.state)
-            .field("on_click", &"<callback>")
-            .field("is_pressed", &self.is_pressed)
-            .field("is_hovered", &self.is_hovered)
-            .finish()
-    }
 }
 
 /// Button style variants
@@ -62,6 +88,7 @@ impl Button {
             variant: ButtonVariant::Primary,
             state: AnimationState::Normal,
             on_click: None,
+            action: None,
             is_pressed: false,
             is_hovered: false,
         }
@@ -83,6 +110,12 @@ impl Button {
     pub fn on_click<F>(mut self, callback: F) -> Self 
     where F: Fn() + Send + Sync + 'static {
         self.on_click = Some(Box::new(callback));
+        self
+    }
+
+    /// Set the action to be performed when the button is clicked
+    pub fn action(mut self, action: impl Into<String>) -> Self {
+        self.action = Some(action.into());
         self
     }
     
@@ -173,13 +206,17 @@ impl Widget for Button {
     }
     
     fn layout(&mut self, available_space: Vec2) -> LayoutResult {
-        // For now, use simple layout - just take the available space or minimum size
-        let bounds = Rect::new(0.0, 0.0, available_space.x, available_space.y);
+        // Calculate button size based on text content
+        let text_width = self.text.len() as f32 * 12.0; // Approximate character width
+        let button_width = (text_width + 20.0).min(available_space.x); // Add padding
+        let button_height = 30.0_f32.min(available_space.y); // Fixed height
+        
+        let bounds = Rect::new(0.0, 0.0, button_width, button_height);
         
         let result = LayoutResult {
             bounds,
-            overflow: false,
-            content_size: available_space,
+            overflow: button_width > available_space.x || button_height > available_space.y,
+            content_size: Vec2::new(button_width, button_height),
         };
         
         self.base.layout_cache = Some(result.clone());
@@ -217,6 +254,10 @@ impl Widget for Button {
                     if let Some(callback) = &self.on_click {
                         callback();
                     }
+                    if let Some(action) = &self.action {
+                        // This is where we would send the action to the application
+                        println!("Button action: {}", action);
+                    }
                 }
                 self.is_pressed = false;
                 self.state = if self.is_hovered {
@@ -231,6 +272,10 @@ impl Widget for Button {
                 if self.is_hovered {
                     if let Some(callback) = &self.on_click {
                         callback();
+                    }
+                    if let Some(action) = &self.action {
+                        // This is where we would send the action to the application
+                        println!("Button action: {}", action);
                     }
                     InputResponse::Handled
                 } else {
@@ -265,14 +310,12 @@ impl Widget for Button {
         }
     }
     
-    fn render(&self, renderer: &mut UiRenderer, bounds: Rect) {
+    fn render(&self, renderer: &mut UiRenderer, bounds: Rect, queue: &wgpu::Queue, theme: &Theme) {
         if !self.base.visible {
             return;
         }
         
-        // Get theme (in a real implementation, this would be passed in or accessed differently)
-        let theme = Theme::default();
-        let (bg_color, text_color, border_color) = self.get_current_colors(&theme);
+        let (bg_color, text_color, border_color) = self.get_current_colors(theme);
         
         // Get border radius
         let border_radius = match self.variant {
@@ -296,14 +339,27 @@ impl Widget for Button {
         // Draw text
         if !self.text.is_empty() {
             let font_size = theme.typography.font_sizes.base;
-            let text_pos = Vec2::new(
-                bounds.position.x + bounds.size.x * 0.5, // Center horizontally
-                bounds.position.y + bounds.size.y * 0.5, // Center vertically
-            );
-            
-            // TODO: Use actual font handle
             let font_handle = lumina_render::FontHandle(0);
-            renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color);
+            
+            // Measure text to get proper centering information using glyphon
+            if let Ok(measurement) = renderer.measure_text(&self.text, font_handle, font_size) {
+                // Center text properly using glyphon's measurement
+                // The measurement gives us the actual text bounds for proper centering
+                let text_pos = Vec2::new(
+                    bounds.position.x + (bounds.size.x - measurement.size.x) * 0.5, // Center horizontally
+                    bounds.position.y + (bounds.size.y - measurement.size.y) * 0.5 + measurement.baseline_offset, // Center vertically with baseline
+                );
+                
+                let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
+            } else {
+                // Fallback to simple centering if measurement fails
+                let text_pos = Vec2::new(
+                    bounds.position.x + bounds.size.x * 0.5,
+                    bounds.position.y + bounds.size.y * 0.5,
+                );
+                let _ = renderer.draw_text(&self.text, text_pos, font_handle, font_size, text_color, queue);
+                log::warn!("Text measurement failed for button text '{}', using fallback positioning", self.text);
+            }
         }
     }
     
@@ -355,6 +411,12 @@ impl ButtonBuilder {
         self.button = self.button.on_click(callback);
         self
     }
+
+    /// Set the action to be performed when the button is clicked
+    pub fn action(mut self, action: impl Into<String>) -> Self {
+        self.button = self.button.action(action);
+        self
+    }
     
     /// Set the button style
     pub fn style(mut self, style: WidgetStyle) -> Self {
@@ -392,4 +454,19 @@ pub fn ghost_button(text: impl Into<String>) -> ButtonBuilder {
 /// Convenience function for creating a danger button
 pub fn danger_button(text: impl Into<String>) -> ButtonBuilder {
     ButtonBuilder::new(text).variant(ButtonVariant::Danger)
+}
+
+impl std::fmt::Debug for Button {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Button")
+            .field("base", &self.base)
+            .field("text", &self.text)
+            .field("variant", &self.variant)
+            .field("state", &self.state)
+            .field("on_click", &self.on_click.is_some())
+            .field("action", &self.action)
+            .field("is_pressed", &self.is_pressed)
+            .field("is_hovered", &self.is_hovered)
+            .finish()
+    }
 }

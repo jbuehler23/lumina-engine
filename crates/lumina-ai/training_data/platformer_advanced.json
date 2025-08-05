@@ -1,0 +1,31 @@
+{
+  "prompt": "Create an advanced platformer with moving platforms, enemies with AI, and complex level design",
+  "expected_output": {
+    "scene": {
+      "metadata": {
+        "name": "Advanced Platformer",
+        "description": "A sophisticated platformer game with moving platforms and intelligent enemies"
+      },
+      "entities": [
+        {
+          "name": "Player",
+          "components": {
+            "Transform": { "position": [0, 0, 0], "rotation": [0, 0, 0, 1], "scale": [1, 1, 1] },
+            "Player": { "health": 100, "speed": 5.0 },
+            "Collider": { "shape": "Box", "size": [1.0, 2.0, 1.0] }
+          },
+          "tags": ["player"]
+        },
+        {
+          "name": "MovingPlatform",
+          "components": {
+            "Transform": { "position": [10, 0, 0], "rotation": [0, 0, 0, 1], "scale": [4, 0.5, 1] },
+            "Collider": { "shape": "Box", "size": [4.0, 0.5, 1.0] },
+            "Movement": { "pattern": "Linear", "speed": 2.0, "waypoints": [[10, 0, 0], [15, 0, 0]] }
+          },
+          "tags": ["platform", "moving"]
+        }
+      ]
+    }
+  }
+}

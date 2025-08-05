@@ -7,7 +7,6 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 # Core engine dependencies
-lumina-core = { path = "../lumina-core" }
 lumina-ecs = { path = "../lumina-ecs" }
 
 # Graphics and rendering
@@ -20,9 +19,8 @@ bytemuck = { workspace = true }
 glam = { workspace = true }
 image = { workspace = true }
 
-# Font rendering
-fontdue = { workspace = true }
-ttf-parser = { workspace = true }
+# Font rendering with glyphon for better WGPU integration
+# glyphon = { workspace = true }
 
 # Error handling and logging
 anyhow = { workspace = true }

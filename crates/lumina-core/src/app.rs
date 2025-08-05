@@ -1,11 +1,15 @@
 use crate::{engine::{Engine, EngineConfig, System}, Result};
 
+/// DEPRECATED: Use EcsAppRunner for new projects
+#[deprecated(note = "Use EcsAppRunner for new projects - see examples/pong")]
 pub trait App {
     fn initialize(&mut self, engine: &mut Engine) -> Result<()>;
     fn update(&mut self, engine: &mut Engine) -> Result<()>;
     fn shutdown(&mut self, engine: &mut Engine) -> Result<()>;
 }
 
+/// DEPRECATED: Use EcsAppRunner for new projects
+#[deprecated(note = "Use EcsAppRunner for new projects - see examples/pong")]
 pub struct AppRunner {
     app: Box<dyn App>,
     engine: Engine,
@@ -94,23 +98,9 @@ impl App for BasicApp {
         Ok(())
     }
 
-    fn update(&mut self, engine: &mut Engine) -> Result<()> {
-        use crate::input::Key;
-        use crate::event::MouseButton;
-        
-        let should_stop = engine.context().input.is_key_just_pressed(&Key::Escape);
-        let mouse_clicked = engine.context().input.is_mouse_button_just_pressed(MouseButton::Left);
-        let mouse_pos = engine.context().input.mouse_position();
-        
-        if should_stop {
-            log::info!("Escape pressed, stopping engine");
-            engine.stop()?;
-        }
-
-        if mouse_clicked {
-            log::info!("Mouse clicked at ({}, {})", mouse_pos.x, mouse_pos.y);
-        }
-
+    fn update(&mut self, _engine: &mut Engine) -> Result<()> {
+        // DEPRECATED: Use lumina-input with EcsAppRunner instead
+        // This is a stub to make compilation work
         Ok(())
     }
 

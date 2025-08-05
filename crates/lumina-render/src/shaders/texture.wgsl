@@ -42,6 +42,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let texture_color = textureSample(texture_data, texture_sampler, input.tex_coords);
-    return texture_color * input.color;
+    // Sample from R8Unorm font atlas - use red channel as alpha for text rendering
+    let alpha = textureSample(texture_data, texture_sampler, input.tex_coords).r;
+    // Return color with alpha modulated by glyph coverage
+    return vec4<f32>(input.color.rgb, input.color.a * alpha);
 }

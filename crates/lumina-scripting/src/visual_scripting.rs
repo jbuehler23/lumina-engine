@@ -267,15 +267,15 @@ impl VisualScriptExecutor {
             NodeType::OnStart => {
                 // Script execution starts here
             },
-            NodeType::MoveTowards { target, speed } => {
+            NodeType::MoveTowards { target: _, speed: _ } => {
                 // Move the target object towards a direction at given speed
                 // This would interface with the transform component
             },
-            NodeType::PlaySound(sound_path) => {
+            NodeType::PlaySound(_sound_path) => {
                 // Play audio file
                 // This would interface with the audio system
             },
-            NodeType::If { condition } => {
+            NodeType::If { condition: _ } => {
                 // Evaluate condition and branch execution
                 // This would control which connected nodes execute next
             },

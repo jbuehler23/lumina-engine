@@ -3,32 +3,32 @@
 use lumina_ui::{
     UiFramework, Theme, 
     Button, Panel, Text, 
-    InputEvent, InputHandler, KeyCode, MouseButton, Modifiers,
+    InputEvent, KeyCode, MouseButton, Modifiers,
 };
-use lumina_ui::button::ButtonVariant;
-use lumina_render::{UiRenderer, Renderer, RenderConfig};
+use lumina_ui::widgets::button::ButtonVariant;
+use lumina_render::{UiRenderer};
 use winit::{
-    event::{Event, WindowEvent, KeyboardInput, ElementState, VirtualKeyCode},
+    event::{Event, WindowEvent, ElementState},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
-use wgpu::util::DeviceExt;
 use std::sync::Arc;
 
-struct BasicUiApp {
+struct BasicUiApp<'a> {
     ui_framework: UiFramework,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'a>,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
+    window: Arc<winit::window::Window>,
     // UI state
     counter: i32,
     button_clicked: bool,
 }
 
-impl BasicUiApp {
-    async fn new(window: &winit::window::Window) -> Self {
+impl<'a> BasicUiApp<'a> {
+    async fn new(window: Arc<winit::window::Window>) -> Self {
         let size = window.inner_size();
         
         // Initialize WGPU
@@ -37,7 +37,7 @@ impl BasicUiApp {
             ..Default::default()
         });
         
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
+        let surface = instance.create_surface(window.clone()).unwrap();
         
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -82,7 +82,7 @@ impl BasicUiApp {
         
         // Create UI renderer and framework
         let ui_renderer = UiRenderer::new(&device, &queue, config.clone()).await.unwrap();
-        let theme = Theme::default();
+        let theme = Theme::dark();
         let mut ui_framework = UiFramework::new(theme);
         ui_framework.set_renderer(ui_renderer);
         
@@ -116,6 +116,7 @@ impl BasicUiApp {
             queue,
             config,
             size,
+            window,
             counter: 0,
             button_clicked: false,
         }
@@ -169,38 +170,35 @@ impl BasicUiApp {
                 self.ui_framework.handle_input(input_event);
                 true
             }
-            WindowEvent::KeyboardInput { 
-                input: KeyboardInput { 
-                    state, 
-                    virtual_keycode: Some(keycode), 
-                    .. 
-                }, 
-                .. 
-            } => {
-                let key = match keycode {
-                    VirtualKeyCode::Space => KeyCode::Space,
-                    VirtualKeyCode::Return => KeyCode::Enter,
-                    VirtualKeyCode::Escape => KeyCode::Escape,
-                    VirtualKeyCode::A => KeyCode::A,
-                    VirtualKeyCode::D => KeyCode::D,
-                    VirtualKeyCode::W => KeyCode::W,
-                    VirtualKeyCode::S => KeyCode::S,
-                    _ => return false,
-                };
-                
-                let input_event = match state {
-                    ElementState::Pressed => InputEvent::KeyDown {
-                        key,
-                        modifiers: Modifiers::default(),
-                    },
-                    ElementState::Released => InputEvent::KeyUp {
-                        key,
-                        modifiers: Modifiers::default(),
-                    },
-                };
-                
-                self.ui_framework.handle_input(input_event);
-                true
+            WindowEvent::KeyboardInput { event: key_event, .. } => {
+                if let winit::keyboard::PhysicalKey::Code(keycode) = key_event.physical_key {
+                    let key = match keycode {
+                        winit::keyboard::KeyCode::Space => KeyCode::Space,
+                        winit::keyboard::KeyCode::Enter => KeyCode::Enter,
+                        winit::keyboard::KeyCode::Escape => KeyCode::Escape,
+                        winit::keyboard::KeyCode::KeyA => KeyCode::A,
+                        winit::keyboard::KeyCode::KeyD => KeyCode::D,
+                        winit::keyboard::KeyCode::KeyW => KeyCode::W,
+                        winit::keyboard::KeyCode::KeyS => KeyCode::S,
+                        _ => return false,
+                    };
+                    
+                    let input_event = match key_event.state {
+                        ElementState::Pressed => InputEvent::KeyDown {
+                            key,
+                            modifiers: Modifiers::default(),
+                        },
+                        ElementState::Released => InputEvent::KeyUp {
+                            key,
+                            modifiers: Modifiers::default(),
+                        },
+                    };
+                    
+                    self.ui_framework.handle_input(input_event);
+                    true
+                } else {
+                    false
+                }
             }
             _ => false,
         }
@@ -222,7 +220,7 @@ impl BasicUiApp {
         });
         
         {
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &view,
@@ -241,10 +239,10 @@ impl BasicUiApp {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+
+            // Render UI
+            self.ui_framework.render(&mut render_pass, &self.queue);
         }
-        
-        // Render UI
-        self.ui_framework.render(&self.queue);
         
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
@@ -253,53 +251,44 @@ impl BasicUiApp {
     }
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     env_logger::init();
     
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
+    let event_loop = EventLoop::new().unwrap();
+    let window = Arc::new(WindowBuilder::new()
         .with_title("Lumina UI Framework - Basic Example")
         .with_inner_size(winit::dpi::LogicalSize::new(800, 600))
         .build(&event_loop)
-        .unwrap();
+        .unwrap());
     
-    let mut app = BasicUiApp::new(&window).await;
+    let mut app = pollster::block_on(BasicUiApp::new(window.clone()));
     
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
-        
+    event_loop.run(move |event, elwt| {
         match event {
             Event::WindowEvent {
                 ref event,
                 window_id,
-            } if window_id == window.id() => {
+            } if window_id == app.window.id() => {
                 if !app.input(event) {
                     match event {
-                        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                        WindowEvent::CloseRequested => elwt.exit(),
                         WindowEvent::Resized(physical_size) => {
                             app.resize(*physical_size);
                         }
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                            app.resize(**new_inner_size);
+                        WindowEvent::RedrawRequested => {
+                            app.update();
+                            match app.render() {
+                                Ok(_) => {}
+                                Err(wgpu::SurfaceError::Lost) => app.resize(app.size),
+                                Err(wgpu::SurfaceError::OutOfMemory) => elwt.exit(),
+                                Err(e) => eprintln!("{:?}", e),
+                            }
                         }
                         _ => {}
                     }
                 }
             }
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                app.update();
-                match app.render() {
-                    Ok(_) => {}
-                    Err(wgpu::SurfaceError::Lost) => app.resize(app.size),
-                    Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
-                    Err(e) => eprintln!("{:?}", e),
-                }
-            }
-            Event::MainEventsCleared => {
-                // window.request_redraw(); // Not available in current winit version
-            }
             _ => {}
         }
-    });
+    }).unwrap();
 }

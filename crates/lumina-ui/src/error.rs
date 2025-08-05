@@ -19,11 +19,17 @@ pub enum UiError {
     
     /// Widget not found
     #[error("Widget not found: {id:?}")]
-    WidgetNotFound { id: crate::WidgetId },
+    WidgetNotFound { 
+        /// The ID of the widget that was not found
+        id: crate::WidgetId 
+    },
     
     /// Invalid widget hierarchy
     #[error("Invalid widget hierarchy: {reason}")]
-    InvalidHierarchy { reason: String },
+    InvalidHierarchy { 
+        /// The reason for the hierarchy error
+        reason: String 
+    },
     
     /// Font loading errors
     #[error("Font error: {0}")]
@@ -67,7 +73,10 @@ pub enum LayoutError {
     
     /// Invalid constraints
     #[error("Invalid layout constraints: {reason}")]
-    InvalidConstraints { reason: String },
+    InvalidConstraints { 
+        /// The reason for the constraint error
+        reason: String 
+    },
     
     /// Layout calculation overflow
     #[error("Layout calculation overflow")]
@@ -75,7 +84,12 @@ pub enum LayoutError {
     
     /// Insufficient space for required content
     #[error("Insufficient space: required {required}, available {available}")]
-    InsufficientSpace { required: f32, available: f32 },
+    InsufficientSpace { 
+        /// Required space amount
+        required: f32, 
+        /// Available space amount
+        available: f32 
+    },
 }
 
 /// Input handling errors

@@ -340,18 +340,18 @@ impl Theme {
     pub fn dark() -> Self {
         Self {
             colors: ColorPalette {
-                primary: Vec4::new(0.4, 0.5, 0.9, 1.0),     // #667eea
-                secondary: Vec4::new(0.46, 0.29, 0.64, 1.0), // #764ba2
-                accent: Vec4::new(0.0, 0.8, 0.6, 1.0),       // #00cc99
+                primary: Vec4::new(0.28, 0.53, 0.96, 1.0),     // Modern blue #4788f5
+                secondary: Vec4::new(0.48, 0.42, 0.84, 1.0),   // Purple accent #7b6bd6
+                accent: Vec4::new(0.15, 0.82, 0.61, 1.0),      // Modern teal #26d19c
                 background: BackgroundColors {
-                    primary: Vec4::new(0.06, 0.06, 0.14, 1.0),   // #0f0f23
-                    secondary: Vec4::new(0.1, 0.1, 0.18, 1.0),    // #1a1a2e
-                    tertiary: Vec4::new(0.15, 0.15, 0.25, 1.0),   // #26263f
+                    primary: Vec4::new(0.11, 0.11, 0.13, 1.0),     // VS Code dark #1c1c21
+                    secondary: Vec4::new(0.15, 0.15, 0.17, 1.0),   // Panel background #26262b
+                    tertiary: Vec4::new(0.19, 0.19, 0.22, 1.0),    // Elevated surfaces #303037
                 },
                 surface: SurfaceColors {
-                    default: Vec4::new(0.1, 0.1, 0.18, 1.0),      // #1a1a2e
-                    elevated: Vec4::new(0.15, 0.15, 0.25, 1.0),   // #26263f
-                    overlay: Vec4::new(0.2, 0.2, 0.3, 0.95),      // #333344 with alpha
+                    default: Vec4::new(0.15, 0.15, 0.17, 1.0),     // Panel background #26262b
+                    elevated: Vec4::new(0.19, 0.19, 0.22, 1.0),    // Elevated surfaces #303037
+                    overlay: Vec4::new(0.23, 0.23, 0.26, 0.95),    // Modal backgrounds #3a3a42
                 },
                 text: TextColors {
                     primary: Vec4::new(1.0, 1.0, 1.0, 1.0),       // #ffffff
@@ -420,33 +420,33 @@ impl Theme {
                 button: ButtonTheme {
                     primary: ButtonVariant {
                         default: ButtonStateColors {
-                            background: Vec4::new(0.4, 0.5, 0.9, 1.0),
-                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.4, 0.5, 0.9, 1.0),
+                            background: Vec4::new(0.28, 0.53, 0.96, 1.0),     // Primary blue
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),             // White text
+                            border: Vec4::new(0.28, 0.53, 0.96, 1.0),        // Same as bg
                         },
                         hovered: ButtonStateColors {
-                            background: Vec4::new(0.35, 0.45, 0.85, 1.0),
+                            background: Vec4::new(0.32, 0.57, 0.98, 1.0),     // Lighter blue
                             text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.35, 0.45, 0.85, 1.0),
+                            border: Vec4::new(0.32, 0.57, 0.98, 1.0),
                         },
                         pressed: ButtonStateColors {
-                            background: Vec4::new(0.3, 0.4, 0.8, 1.0),
+                            background: Vec4::new(0.24, 0.49, 0.94, 1.0),     // Darker blue
                             text: Vec4::new(1.0, 1.0, 1.0, 1.0),
-                            border: Vec4::new(0.3, 0.4, 0.8, 1.0),
+                            border: Vec4::new(0.24, 0.49, 0.94, 1.0),
                         },
                         disabled: ButtonStateColors {
-                            background: Vec4::new(0.2, 0.2, 0.3, 1.0),
-                            text: Vec4::new(0.5, 0.5, 0.5, 1.0),
-                            border: Vec4::new(0.2, 0.2, 0.3, 1.0),
+                            background: Vec4::new(0.19, 0.19, 0.22, 1.0),     // Disabled surface
+                            text: Vec4::new(0.5, 0.5, 0.5, 1.0),             // Disabled text
+                            border: Vec4::new(0.19, 0.19, 0.22, 1.0),
                         },
                         border_radius: 6.0,
                         padding: [8.0, 16.0, 8.0, 16.0],
                     },
                     secondary: ButtonVariant {
                         default: ButtonStateColors {
-                            background: Vec4::new(0.15, 0.15, 0.25, 1.0),
-                            text: Vec4::new(0.8, 0.8, 0.8, 1.0),
-                            border: Vec4::new(0.3, 0.3, 0.4, 1.0),
+                            background: Vec4::new(0.19, 0.19, 0.22, 1.0),     // Elevated surface
+                            text: Vec4::new(0.9, 0.9, 0.9, 1.0),             // Light text
+                            border: Vec4::new(0.35, 0.35, 0.40, 1.0),        // Subtle border
                         },
                         hovered: ButtonStateColors {
                             background: Vec4::new(0.2, 0.2, 0.3, 1.0),
@@ -576,8 +576,244 @@ impl Theme {
     
     /// Create a modern light theme
     pub fn light() -> Self {
-        // For now, return dark theme - implement light theme later
-        Self::dark()
+        Self {
+            colors: ColorPalette {
+                primary: Vec4::new(0.28, 0.36, 0.85, 1.0),     // #475ce6
+                secondary: Vec4::new(0.42, 0.24, 0.58, 1.0),   // #6b3d94
+                accent: Vec4::new(0.0, 0.7, 0.5, 1.0),         // #00b380
+                background: BackgroundColors {
+                    primary: Vec4::new(1.0, 1.0, 1.0, 1.0),        // #ffffff
+                    secondary: Vec4::new(0.98, 0.98, 0.98, 1.0),   // #fafafa
+                    tertiary: Vec4::new(0.95, 0.95, 0.95, 1.0),    // #f3f3f3
+                },
+                surface: SurfaceColors {
+                    default: Vec4::new(1.0, 1.0, 1.0, 1.0),        // #ffffff
+                    elevated: Vec4::new(1.0, 1.0, 1.0, 1.0),       // #ffffff
+                    overlay: Vec4::new(1.0, 1.0, 1.0, 0.95),       // #ffffff with alpha
+                },
+                text: TextColors {
+                    primary: Vec4::new(0.1, 0.1, 0.1, 1.0),        // #1a1a1a
+                    secondary: Vec4::new(0.4, 0.4, 0.4, 1.0),      // #666666
+                    disabled: Vec4::new(0.7, 0.7, 0.7, 1.0),       // #b3b3b3
+                    inverse: Vec4::new(1.0, 1.0, 1.0, 1.0),        // #ffffff
+                },
+                border: BorderColors {
+                    default: Vec4::new(0.85, 0.85, 0.85, 1.0),     // #d9d9d9
+                    focused: Vec4::new(0.28, 0.36, 0.85, 1.0),     // #475ce6
+                    error: Vec4::new(0.9, 0.2, 0.2, 1.0),          // #e63333
+                },
+                status: StatusColors {
+                    success: Vec4::new(0.0, 0.7, 0.3, 1.0),        // #00b34d
+                    warning: Vec4::new(0.9, 0.5, 0.0, 1.0),        // #e68000
+                    error: Vec4::new(0.9, 0.2, 0.2, 1.0),          // #e63333
+                    info: Vec4::new(0.0, 0.5, 0.8, 1.0),           // #0080cc
+                },
+            },
+            typography: Typography {
+                font_families: FontFamilies {
+                    primary: "Inter".to_string(),
+                    secondary: "Inter".to_string(),
+                    monospace: "JetBrains Mono".to_string(),
+                },
+                font_sizes: FontSizes {
+                    xs: 10.0,
+                    sm: 12.0,
+                    base: 14.0,
+                    lg: 16.0,
+                    xl: 18.0,
+                    display1: 32.0,
+                    display2: 24.0,
+                    display3: 20.0,
+                },
+                font_weights: FontWeights {
+                    light: 300,
+                    normal: 400,
+                    medium: 500,
+                    bold: 700,
+                },
+                line_heights: LineHeights {
+                    tight: 1.2,
+                    normal: 1.5,
+                    loose: 1.8,
+                },
+            },
+            spacing: SpacingScale {
+                values: vec![0.0, 4.0, 8.0, 12.0, 16.0, 24.0, 32.0, 48.0, 64.0, 96.0],
+            },
+            animations: AnimationSettings {
+                durations: AnimationDurations {
+                    instant: 0.0,
+                    fast: 0.15,
+                    normal: 0.3,
+                    slow: 0.5,
+                },
+                easing: AnimationEasing {
+                    linear: EasingCurve { control_points: [0.0, 0.0, 1.0, 1.0] },
+                    ease_in: EasingCurve { control_points: [0.42, 0.0, 1.0, 1.0] },
+                    ease_out: EasingCurve { control_points: [0.0, 0.0, 0.58, 1.0] },
+                    ease_in_out: EasingCurve { control_points: [0.42, 0.0, 0.58, 1.0] },
+                },
+            },
+            components: ComponentStyles {
+                button: ButtonTheme {
+                    primary: ButtonVariant {
+                        default: ButtonStateColors {
+                            background: Vec4::new(0.28, 0.36, 0.85, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.28, 0.36, 0.85, 1.0),
+                        },
+                        hovered: ButtonStateColors {
+                            background: Vec4::new(0.24, 0.32, 0.8, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.24, 0.32, 0.8, 1.0),
+                        },
+                        pressed: ButtonStateColors {
+                            background: Vec4::new(0.2, 0.28, 0.75, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.2, 0.28, 0.75, 1.0),
+                        },
+                        disabled: ButtonStateColors {
+                            background: Vec4::new(0.85, 0.85, 0.85, 1.0),
+                            text: Vec4::new(0.7, 0.7, 0.7, 1.0),
+                            border: Vec4::new(0.85, 0.85, 0.85, 1.0),
+                        },
+                        border_radius: 6.0,
+                        padding: [8.0, 16.0, 8.0, 16.0],
+                    },
+                    secondary: ButtonVariant {
+                        default: ButtonStateColors {
+                            background: Vec4::new(0.98, 0.98, 0.98, 1.0),
+                            text: Vec4::new(0.2, 0.2, 0.2, 1.0),
+                            border: Vec4::new(0.85, 0.85, 0.85, 1.0),
+                        },
+                        hovered: ButtonStateColors {
+                            background: Vec4::new(0.95, 0.95, 0.95, 1.0),
+                            text: Vec4::new(0.1, 0.1, 0.1, 1.0),
+                            border: Vec4::new(0.8, 0.8, 0.8, 1.0),
+                        },
+                        pressed: ButtonStateColors {
+                            background: Vec4::new(0.9, 0.9, 0.9, 1.0),
+                            text: Vec4::new(0.2, 0.2, 0.2, 1.0),
+                            border: Vec4::new(0.75, 0.75, 0.75, 1.0),
+                        },
+                        disabled: ButtonStateColors {
+                            background: Vec4::new(0.95, 0.95, 0.95, 1.0),
+                            text: Vec4::new(0.7, 0.7, 0.7, 1.0),
+                            border: Vec4::new(0.9, 0.9, 0.9, 1.0),
+                        },
+                        border_radius: 6.0,
+                        padding: [8.0, 16.0, 8.0, 16.0],
+                    },
+                    ghost: ButtonVariant {
+                        default: ButtonStateColors {
+                            background: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                            text: Vec4::new(0.4, 0.4, 0.4, 1.0),
+                            border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        },
+                        hovered: ButtonStateColors {
+                            background: Vec4::new(0.95, 0.95, 0.95, 0.8),
+                            text: Vec4::new(0.1, 0.1, 0.1, 1.0),
+                            border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        },
+                        pressed: ButtonStateColors {
+                            background: Vec4::new(0.9, 0.9, 0.9, 0.9),
+                            text: Vec4::new(0.2, 0.2, 0.2, 1.0),
+                            border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        },
+                        disabled: ButtonStateColors {
+                            background: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                            text: Vec4::new(0.8, 0.8, 0.8, 1.0),
+                            border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        },
+                        border_radius: 6.0,
+                        padding: [8.0, 16.0, 8.0, 16.0],
+                    },
+                    danger: ButtonVariant {
+                        default: ButtonStateColors {
+                            background: Vec4::new(0.9, 0.2, 0.2, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.9, 0.2, 0.2, 1.0),
+                        },
+                        hovered: ButtonStateColors {
+                            background: Vec4::new(0.8, 0.15, 0.15, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.8, 0.15, 0.15, 1.0),
+                        },
+                        pressed: ButtonStateColors {
+                            background: Vec4::new(0.7, 0.1, 0.1, 1.0),
+                            text: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                            border: Vec4::new(0.7, 0.1, 0.1, 1.0),
+                        },
+                        disabled: ButtonStateColors {
+                            background: Vec4::new(0.9, 0.85, 0.85, 1.0),
+                            text: Vec4::new(0.7, 0.6, 0.6, 1.0),
+                            border: Vec4::new(0.9, 0.85, 0.85, 1.0),
+                        },
+                        border_radius: 6.0,
+                        padding: [8.0, 16.0, 8.0, 16.0],
+                    },
+                },
+                text_input: TextInputTheme {
+                    default: TextInputState {
+                        background: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                        border: Vec4::new(0.85, 0.85, 0.85, 1.0),
+                        text: Vec4::new(0.1, 0.1, 0.1, 1.0),
+                        placeholder: Vec4::new(0.6, 0.6, 0.6, 1.0),
+                    },
+                    focused: TextInputState {
+                        background: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                        border: Vec4::new(0.28, 0.36, 0.85, 1.0),
+                        text: Vec4::new(0.1, 0.1, 0.1, 1.0),
+                        placeholder: Vec4::new(0.5, 0.5, 0.5, 1.0),
+                    },
+                    error: TextInputState {
+                        background: Vec4::new(1.0, 0.98, 0.98, 1.0),
+                        border: Vec4::new(0.9, 0.2, 0.2, 1.0),
+                        text: Vec4::new(0.1, 0.1, 0.1, 1.0),
+                        placeholder: Vec4::new(0.7, 0.4, 0.4, 1.0),
+                    },
+                    disabled: TextInputState {
+                        background: Vec4::new(0.95, 0.95, 0.95, 1.0),
+                        border: Vec4::new(0.9, 0.9, 0.9, 1.0),
+                        text: Vec4::new(0.7, 0.7, 0.7, 1.0),
+                        placeholder: Vec4::new(0.8, 0.8, 0.8, 1.0),
+                    },
+                    border_radius: 4.0,
+                    padding: [8.0, 12.0, 8.0, 12.0],
+                },
+                panel: PanelTheme {
+                    default: PanelStyle {
+                        background: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                        border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        border_width: 0.0,
+                        border_radius: 8.0,
+                        shadow: Some(ShadowStyle {
+                            offset: [0.0, 1.0],
+                            blur_radius: 3.0,
+                            color: Vec4::new(0.0, 0.0, 0.0, 0.1),
+                        }),
+                    },
+                    elevated: PanelStyle {
+                        background: Vec4::new(1.0, 1.0, 1.0, 1.0),
+                        border: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        border_width: 0.0,
+                        border_radius: 8.0,
+                        shadow: Some(ShadowStyle {
+                            offset: [0.0, 4.0],
+                            blur_radius: 16.0,
+                            color: Vec4::new(0.0, 0.0, 0.0, 0.15),
+                        }),
+                    },
+                    outlined: PanelStyle {
+                        background: Vec4::new(0.0, 0.0, 0.0, 0.0),
+                        border: Vec4::new(0.85, 0.85, 0.85, 1.0),
+                        border_width: 1.0,
+                        border_radius: 8.0,
+                        shadow: None,
+                    },
+                },
+            },
+        }
     }
     
     /// Get a spacing value by index
