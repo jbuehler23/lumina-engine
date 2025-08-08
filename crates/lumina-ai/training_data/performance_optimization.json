@@ -194,5 +194,261 @@
         }
       }
     }
+  },
+  {
+    "prompt": "Optimize rendering performance for a complex 3D scene with many dynamic objects",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "GPU and draw call bound",
+          "primary_issues": [
+            "Too many individual draw calls",
+            "Overdraw from transparent objects",
+            "Expensive shader operations",
+            "Inefficient state changes between draws"
+          ]
+        },
+        "optimization_strategies": {
+          "draw_call_batching": {
+            "description": "Reduce draw calls through batching and instancing",
+            "implementation": {
+              "static_batching": "Combine static meshes into larger vertex buffers",
+              "dynamic_batching": "Group similar objects for batched rendering",
+              "gpu_instancing": "Use instanced rendering for repeated objects",
+              "indirect_drawing": "Use GPU-driven rendering for large object counts"
+            },
+            "expected_improvement": "5-10x reduction in draw calls"
+          },
+          "occlusion_culling": {
+            "description": "Skip rendering objects not visible to camera",
+            "implementation": {
+              "frustum_culling": "Hierarchical view frustum culling",
+              "occlusion_queries": "GPU occlusion queries for complex scenes",
+              "portal_culling": "Indoor scene portal-based culling",
+              "temporal_coherency": "Reuse visibility results across frames"
+            },
+            "expected_improvement": "30-60% reduction in rendered objects"
+          },
+          "shader_optimization": {
+            "description": "Optimize shader performance and reduce complexity",
+            "implementation": {
+              "shader_variants": "Use simpler shaders for distant objects",
+              "unified_shaders": "Reduce shader switching overhead",
+              "compute_optimization": "Move expensive calculations to compute shaders",
+              "precision_optimization": "Use appropriate precision (mediump vs highp)"
+            },
+            "expected_improvement": "20-40% GPU performance gain"
+          },
+          "transparency_optimization": {
+            "description": "Reduce overdraw from transparent objects",
+            "implementation": {
+              "depth_sorting": "Back-to-front sorting for transparency",
+              "early_z_rejection": "Use depth pre-pass for opaque objects",
+              "alpha_to_coverage": "Use A2C for vegetation and particles",
+              "temporal_reprojection": "Reuse transparent object data across frames"
+            },
+            "expected_improvement": "2-3x improvement in transparency performance"
+          }
+        },
+        "profiling_approach": {
+          "gpu_profiling": "Use GPU profiler to identify bottlenecks",
+          "draw_call_analysis": "Profile draw call patterns and state changes",
+          "fill_rate_testing": "Test overdraw with wireframe and depth complexity views",
+          "memory_bandwidth": "Monitor texture and vertex buffer access patterns"
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Fix stuttering and frame drops in a physics-heavy game with many colliding objects",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "CPU physics bound",
+          "primary_issues": [
+            "Broad-phase collision detection inefficiency",
+            "Too many active physics bodies",
+            "Expensive narrow-phase collision tests",
+            "Synchronous physics updates blocking rendering"
+          ]
+        },
+        "optimization_strategies": {
+          "collision_optimization": {
+            "description": "Optimize collision detection pipeline",
+            "implementation": {
+              "spatial_hashing": "Use spatial hash grid for broad-phase detection",
+              "sleeping_bodies": "Put stationary objects to sleep",
+              "collision_layers": "Use collision layers to filter unnecessary tests",
+              "continuous_collision": "Use swept collision for fast-moving objects only"
+            },
+            "expected_improvement": "3-5x collision detection performance"
+          },
+          "physics_threading": {
+            "description": "Parallelize physics computations",
+            "implementation": {
+              "worker_threads": "Distribute physics work across CPU cores",
+              "async_physics": "Run physics on separate thread from rendering",
+              "job_system": "Use job-based parallelism for physics tasks",
+              "temporal_splitting": "Split physics timestep when needed"
+            },
+            "expected_improvement": "2-4x physics throughput on multi-core systems"
+          },
+          "simulation_quality": {
+            "description": "Balance simulation quality with performance",
+            "implementation": {
+              "adaptive_timestep": "Adjust physics timestep based on complexity",
+              "solver_iterations": "Reduce constraint solver iterations for distant objects",
+              "shape_approximation": "Use simpler collision shapes for complex meshes",
+              "level_of_detail": "Reduce physics fidelity for distant objects"
+            },
+            "expected_improvement": "40-60% physics CPU reduction"
+          },
+          "memory_optimization": {
+            "description": "Optimize physics memory access patterns",
+            "implementation": {
+              "data_layout": "Use Structure of Arrays for better cache coherency",
+              "memory_pooling": "Pre-allocate physics object pools",
+              "garbage_reduction": "Minimize temporary allocations in physics loop",
+              "batch_processing": "Process similar physics objects together"
+            },
+            "expected_improvement": "20-30% performance gain from better cache usage"
+          }
+        },
+        "debugging_tools": {
+          "physics_visualizer": "Render collision shapes and contact points",
+          "performance_counters": "Track collision tests, active bodies, contacts",
+          "frame_profiler": "Profile physics vs rendering time distribution",
+          "memory_tracker": "Monitor physics memory allocation patterns"
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Optimize loading times and reduce hitches in a mobile game with complex assets",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "I/O and memory bound",
+          "primary_issues": [
+            "Large texture files causing memory spikes",
+            "Synchronous asset loading blocking main thread",
+            "Uncompressed audio files taking too much space",
+            "Shader compilation causing frame drops"
+          ]
+        },
+        "optimization_strategies": {
+          "asset_streaming": {
+            "description": "Stream assets asynchronously to avoid hitches",
+            "implementation": {
+              "background_loading": "Load assets on background thread",
+              "priority_queues": "Prioritize critical assets for gameplay",
+              "progressive_loading": "Load low-res versions first, then high-res",
+              "memory_budgets": "Enforce strict memory limits per asset type"
+            },
+            "expected_improvement": "Eliminate 90% of loading hitches"
+          },
+          "texture_optimization": {
+            "description": "Reduce texture memory usage and loading time",
+            "implementation": {
+              "compression_formats": "Use platform-native compression (ASTC, BC7)",
+              "mipmap_streaming": "Stream texture mipmaps based on distance",
+              "texture_atlasing": "Pack small textures into atlases",
+              "resolution_scaling": "Adjust texture resolution based on device capability"
+            },
+            "expected_improvement": "50-70% reduction in texture memory and loading time"
+          },
+          "audio_optimization": {
+            "description": "Optimize audio file sizes and streaming",
+            "implementation": {
+              "compression": "Use OGG Vorbis or AAC compression",
+              "audio_streaming": "Stream music, load SFX into memory",
+              "quality_tiers": "Use different quality levels per device",
+              "spatial_culling": "Unload audio for distant or inactive sources"
+            },
+            "expected_improvement": "60-80% reduction in audio memory usage"
+          },
+          "shader_precompilation": {
+            "description": "Precompile shaders to avoid runtime hitches",
+            "implementation": {
+              "shader_warmup": "Compile all shaders during loading screen",
+              "variant_reduction": "Minimize shader variants using uber-shaders",
+              "async_compilation": "Compile shaders on background thread when possible",
+              "shader_caching": "Cache compiled shaders to disk"
+            },
+            "expected_improvement": "Eliminate shader compilation hitches"
+          }
+        },
+        "mobile_specific": {
+          "memory_warnings": "Handle low memory warnings gracefully",
+          "thermal_throttling": "Reduce quality when device overheats",
+          "battery_optimization": "Balance performance with battery life",
+          "device_profiling": "Profile on representative low-end devices"
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Optimize AI performance in a strategy game with hundreds of units making decisions",
+    "expected_output": {
+      "optimization_analysis": {
+        "problem_identification": {
+          "bottleneck_type": "CPU AI computation bound",
+          "primary_issues": [
+            "Pathfinding calculations every frame for all units",
+            "Complex decision trees evaluated too frequently",
+            "No spatial optimization for AI queries",
+            "Expensive line-of-sight calculations"
+          ]
+        },
+        "optimization_strategies": {
+          "pathfinding_optimization": {
+            "description": "Optimize pathfinding for large numbers of units",
+            "implementation": {
+              "hierarchical_pathfinding": "Use HPA* for long-distance paths",
+              "path_caching": "Cache and reuse similar paths",
+              "flow_fields": "Use flow fields for group movement",
+              "async_pathfinding": "Calculate paths over multiple frames"
+            },
+            "expected_improvement": "5-10x pathfinding performance"
+          },
+          "ai_scheduling": {
+            "description": "Distribute AI computations across time",
+            "implementation": {
+              "time_slicing": "Process AI units in batches per frame",
+              "priority_system": "Update important units more frequently",
+              "level_of_detail": "Reduce AI complexity for off-screen units",
+              "state_caching": "Cache AI decisions and reuse when valid"
+            },
+            "expected_improvement": "Smooth frame times with large unit counts"
+          },
+          "spatial_optimization": {
+            "description": "Use spatial data structures for AI queries",
+            "implementation": {
+              "spatial_partitioning": "Use quadtree or grid for unit queries",
+              "influence_maps": "Pre-calculate strategic information",
+              "visibility_caching": "Cache line-of-sight results",
+              "proximity_culling": "Skip AI for units far from action"
+            },
+            "expected_improvement": "3-5x improvement in AI query performance"
+          },
+          "decision_optimization": {
+            "description": "Optimize AI decision-making processes",
+            "implementation": {
+              "behavior_trees": "Use efficient behavior tree implementation",
+              "state_machines": "Use hierarchical state machines for complex behaviors",
+              "utility_ai": "Use utility-based AI for dynamic decision making",
+              "multi_threading": "Parallelize independent AI calculations"
+            },
+            "expected_improvement": "2-3x AI decision performance"
+          }
+        },
+        "profiling_metrics": {
+          "ai_cpu_time": "Track AI computation time per frame",
+          "pathfinding_requests": "Monitor pathfinding request frequency",
+          "decision_complexity": "Profile AI decision tree depth and branches",
+          "memory_usage": "Track AI data structure memory consumption"
+        }
+      }
+    }
   }
 ]

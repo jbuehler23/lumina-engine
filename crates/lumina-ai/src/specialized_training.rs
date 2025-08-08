@@ -173,7 +173,7 @@ impl SpecializedModelTrainer {
             specialization: crate::training::ModelSpecialization::default(),
         };
 
-        let trainer = ModelTrainer::new(training_config, dataset.clone());
+        let trainer = ModelTrainer::new_with_name(training_config, dataset.clone(), model_config.model_name.clone());
         let trained_model = trainer.train().await?;
 
         // Generate Ollama Modelfile

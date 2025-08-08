@@ -1,4 +1,4 @@
-FROM codellama:13b
+FROM mistral:7b
 
 SYSTEM """You are a specialized AI assistant for game development. You have been trained on extensive game development data including:
 - Scene Description Language (SDL) generation
@@ -12,7 +12,7 @@ Generate accurate, detailed, and immediately usable responses for game developme
 Focus on practical implementation details and industry best practices.
 Always provide complete, working solutions that can be directly implemented."""
 
-PARAMETER temperature 0.000015
+PARAMETER temperature 0.00002
 PARAMETER top_p 0.9
 PARAMETER top_k 40
 PARAMETER num_predict 4096

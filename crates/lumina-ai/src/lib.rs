@@ -18,6 +18,9 @@ pub mod training;
 #[cfg(feature = "training")]
 pub mod specialized_training;
 
+#[cfg(feature = "training")]
+pub mod enhanced_training;
+
 pub use scene_description::{SceneDescription, EntityDescription, ComponentDescription};
 pub use prompt_engine::{PromptEngine, PromptTemplate, GamePrompt};
 pub use ai_client::{AiClient, AiProvider, GenerationRequest, GenerationResponse};
@@ -36,6 +39,12 @@ pub use training::{
 pub use specialized_training::{
     SpecializedModelTrainer, SpecializedTrainingConfig, ModelSpecialty,
     ModelConfig, ModelTrainingParams, GlobalTrainingSettings
+};
+
+#[cfg(feature = "training")]
+pub use enhanced_training::{
+    EnhancedTrainingOrchestrator, TrainingProgressTracker, ModelProgress,
+    TrainingStage, DatasetValidationResult, ValidationError, ValidationErrorType
 };
 
 use anyhow::Result;

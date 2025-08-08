@@ -106,6 +106,7 @@ pub struct TrainingDatasetBuilder {
 pub struct ModelTrainer {
     config: TrainingConfig,
     dataset: Vec<TrainingExample>,
+    desired_model_name: Option<String>,
 }
 
 impl TrainingDatasetBuilder {
@@ -152,7 +153,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add platformer game examples
-    fn add_platformer_examples(&mut self) -> Result<()> {
+    pub fn add_platformer_examples(&mut self) -> Result<()> {
         let examples = vec![
             (
                 "Create a simple platformer where the player jumps on platforms to collect coins",
@@ -185,7 +186,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add shooter game examples
-    fn add_shooter_examples(&mut self) -> Result<()> {
+    pub fn add_shooter_examples(&mut self) -> Result<()> {
         let examples = vec![
             (
                 "Create a top-down space shooter with enemies and bullets",
@@ -213,7 +214,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add puzzle game examples
-    fn add_puzzle_examples(&mut self) -> Result<()> {
+    pub fn add_puzzle_examples(&mut self) -> Result<()> {
         let examples = vec![
             (
                 "Design a block-pushing puzzle game with multiple levels",
@@ -236,7 +237,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add RPG examples
-    fn add_rpg_examples(&mut self) -> Result<()> {
+    pub fn add_rpg_examples(&mut self) -> Result<()> {
         let examples = vec![
             (
                 "Create a simple RPG with a player character, NPCs, and combat",
@@ -259,7 +260,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add racing game examples
-    fn add_racing_examples(&mut self) -> Result<()> {
+    pub fn add_racing_examples(&mut self) -> Result<()> {
         let examples = vec![
             (
                 "Make a top-down racing game with a track and checkpoints",
@@ -282,7 +283,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add comprehensive game mechanics examples
-    fn add_comprehensive_game_mechanics(&mut self) -> Result<()> {
+    pub fn add_comprehensive_game_mechanics(&mut self) -> Result<()> {
         let content = include_str!("../training_data/comprehensive_game_mechanics.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse comprehensive game mechanics data")?;
@@ -295,7 +296,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "comprehensive_mechanics".to_string(),
                         difficulty: DifficultyLevel::Advanced,
                         metadata: HashMap::new(),
@@ -307,7 +308,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add advanced SDL patterns examples
-    fn add_advanced_sdl_patterns(&mut self) -> Result<()> {
+    pub fn add_advanced_sdl_patterns(&mut self) -> Result<()> {
         let content = include_str!("../training_data/advanced_sdl_patterns.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse advanced SDL patterns data")?;
@@ -320,7 +321,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "advanced_sdl".to_string(),
                         difficulty: DifficultyLevel::Expert,
                         metadata: HashMap::new(),
@@ -332,7 +333,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add performance optimization examples
-    fn add_performance_optimization_examples(&mut self) -> Result<()> {
+    pub fn add_performance_optimization_examples(&mut self) -> Result<()> {
         let content = include_str!("../training_data/performance_optimization.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse performance optimization data")?;
@@ -345,7 +346,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "performance_optimization".to_string(),
                         difficulty: DifficultyLevel::Expert,
                         metadata: HashMap::new(),
@@ -357,7 +358,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add game design patterns examples
-    fn add_game_design_patterns(&mut self) -> Result<()> {
+    pub fn add_game_design_patterns(&mut self) -> Result<()> {
         let content = include_str!("../training_data/game_design_patterns.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse game design patterns data")?;
@@ -370,7 +371,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "design_patterns".to_string(),
                         difficulty: DifficultyLevel::Advanced,
                         metadata: HashMap::new(),
@@ -382,7 +383,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add asset specification examples
-    fn add_asset_specification_examples(&mut self) -> Result<()> {
+    pub fn add_asset_specification_examples(&mut self) -> Result<()> {
         let content = include_str!("../training_data/asset_specifications.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse asset specifications data")?;
@@ -395,7 +396,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "asset_specifications".to_string(),
                         difficulty: DifficultyLevel::Intermediate,
                         metadata: HashMap::new(),
@@ -407,7 +408,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add scripting patterns examples
-    fn add_scripting_patterns_examples(&mut self) -> Result<()> {
+    pub fn add_scripting_patterns_examples(&mut self) -> Result<()> {
         let content = include_str!("../training_data/scripting_patterns.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse scripting patterns data")?;
@@ -420,7 +421,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "scripting_patterns".to_string(),
                         difficulty: DifficultyLevel::Advanced,
                         metadata: HashMap::new(),
@@ -432,7 +433,7 @@ impl TrainingDatasetBuilder {
     }
 
     /// Add deployment strategies examples
-    fn add_deployment_strategies_examples(&mut self) -> Result<()> {
+    pub fn add_deployment_strategies_examples(&mut self) -> Result<()> {
         let content = include_str!("../training_data/deployment_strategies.json");
         let examples: serde_json::Value = serde_json::from_str(content)
             .context("Failed to parse deployment strategies data")?;
@@ -445,7 +446,7 @@ impl TrainingDatasetBuilder {
                 ) {
                     self.add_example(TrainingExample {
                         prompt: prompt.to_string(),
-                        expected_output: serde_json::to_string_pretty(expected_output)?,
+                        expected_output: serde_json::to_string(expected_output)?,
                         category: "deployment_strategies".to_string(),
                         difficulty: DifficultyLevel::Expert,
                         metadata: HashMap::new(),
@@ -573,7 +574,12 @@ pub struct TrainingDatasetMetadata {
 impl ModelTrainer {
     /// Create a new model trainer
     pub fn new(config: TrainingConfig, dataset: Vec<TrainingExample>) -> Self {
-        Self { config, dataset }
+        Self { config, dataset, desired_model_name: None }
+    }
+
+    /// Create a new model trainer with a specific model name
+    pub fn new_with_name(config: TrainingConfig, dataset: Vec<TrainingExample>, model_name: String) -> Self {
+        Self { config, dataset, desired_model_name: Some(model_name) }
     }
 
     /// Start model training
@@ -683,9 +689,11 @@ PARAMETER repeat_penalty 1.1
 
     /// Execute actual Ollama training/fine-tuning
     async fn execute_ollama_training(&self, training_file: &std::path::Path, modelfile_path: &std::path::Path) -> Result<String> {
-        let model_name = format!("lumina-gamedev-{}", 
-            Utc::now().format("%Y%m%d-%H%M")
-        );
+        let model_name = self.desired_model_name.clone().unwrap_or_else(|| {
+            format!("lumina-gamedev-{}", 
+                Utc::now().format("%Y%m%d-%H%M")
+            )
+        });
         
         info!("Starting Ollama fine-tuning for model: {}", model_name);
         

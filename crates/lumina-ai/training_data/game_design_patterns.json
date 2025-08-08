@@ -237,5 +237,268 @@
         }
       }
     }
+  },
+  {
+    "prompt": "Design a difficulty system that adapts to player skill while maintaining challenge",
+    "expected_output": {
+      "adaptive_difficulty_design": {
+        "core_principles": {
+          "invisible_adaptation": "Changes should feel natural, not artificial",
+          "player_agency": "Players should feel in control of their challenge level",
+          "skill_recognition": "System accurately assesses player competency",
+          "fair_progression": "Difficulty increases match skill development"
+        },
+        "measurement_systems": {
+          "performance_metrics": {
+            "completion_time": "Track how quickly players complete challenges",
+            "death_frequency": "Monitor failure rates and retry patterns",
+            "resource_efficiency": "Measure optimal use of game mechanics",
+            "exploration_thoroughness": "Track player discovery and experimentation rates"
+          },
+          "behavioral_analysis": {
+            "learning_curve_tracking": "Monitor how quickly players master new mechanics",
+            "stress_indicators": "Detect when players are overwhelmed or bored",
+            "engagement_patterns": "Track session length and return frequency",
+            "help_seeking_behavior": "Monitor use of hints and assistance features"
+          },
+          "skill_categorization": {
+            "mechanical_skill": "Reaction time, precision, execution ability",
+            "strategic_thinking": "Planning, resource management, tactical decisions",
+            "problem_solving": "Puzzle solving, pattern recognition, creativity",
+            "knowledge_retention": "Memory of game systems and world information"
+          }
+        },
+        "adaptation_mechanisms": {
+          "dynamic_scaling": {
+            "enemy_adjustments": {
+              "health_scaling": "Subtle health modifications based on player performance",
+              "ai_behavior": "More or less aggressive AI based on player skill",
+              "attack_patterns": "Simpler or more complex attack sequences",
+              "reaction_times": "AI response speed adjustments"
+            },
+            "resource_availability": {
+              "item_drop_rates": "Increase helpful items for struggling players",
+              "currency_bonuses": "Economic assistance for players having difficulty",
+              "checkpoint_frequency": "More frequent saves for less skilled players",
+              "healing_accessibility": "Adjust availability of recovery options"
+            },
+            "environmental_assistance": {
+              "platform_forgiveness": "Slightly larger collision boxes for struggling players",
+              "timing_windows": "Extended reaction windows for precise actions",
+              "visual_assistance": "Enhanced highlighting of important interactive elements",
+              "audio_cues": "Additional sound feedback for critical game events"
+            }
+          },
+          "content_adaptation": {
+            "optional_challenges": {
+              "bonus_objectives": "Extra challenges for skilled players",
+              "alternative_routes": "Harder paths with better rewards",
+              "mastery_demonstrations": "Optional skill showcases with recognition",
+              "speed_run_support": "Tools and metrics for competitive play"
+            },
+            "accessibility_options": {
+              "difficulty_presets": "Clear difficulty options with detailed descriptions",
+              "granular_controls": "Individual adjustment of specific challenge aspects",
+              "assist_modes": "Optional aids that don't compromise core experience",
+              "reversible_choices": "Ability to change difficulty settings mid-game"
+            }
+          }
+        },
+        "player_communication": {
+          "feedback_systems": {
+            "performance_recognition": "Acknowledge when players overcome challenges",
+            "improvement_suggestions": "Gentle hints for skill development",
+            "difficulty_explanation": "Transparent communication about challenge scaling",
+            "choice_consequences": "Clear explanation of difficulty setting impacts"
+          },
+          "customization_interface": {
+            "preference_learning": "System learns player preferences over time",
+            "manual_overrides": "Players can adjust automatic adaptations",
+            "difficulty_preview": "Show examples of what each setting entails",
+            "granular_control": "Separate sliders for different challenge aspects"
+          }
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Create a crafting system that feels meaningful and encourages experimentation",
+    "expected_output": {
+      "crafting_system_design": {
+        "design_philosophy": {
+          "discovery_driven": "Players learn recipes through experimentation and exploration",
+          "meaningful_choices": "Each crafting decision should have strategic implications",
+          "resource_respect": "Materials should feel valuable and decisions impactful",
+          "creative_expression": "Allow players to develop personal crafting strategies"
+        },
+        "recipe_discovery": {
+          "experimentation_mechanics": {
+            "logical_combinations": "Sensible ingredient combinations yield expected results",
+            "partial_success_feedback": "Failed attempts provide clues for improvement",
+            "quality_variation": "Same recipe can yield different quality results",
+            "serendipitous_discovery": "Occasional unexpected beneficial outcomes"
+          },
+          "knowledge_acquisition": {
+            "npc_teaching": "NPCs share recipes in exchange for favors or items",
+            "book_learning": "Recipe books found in the world contain crafting knowledge",
+            "observation_learning": "Watch NPCs craft to learn their techniques",
+            "cultural_exchange": "Different regions have unique crafting traditions"
+          },
+          "progression_gates": {
+            "skill_requirements": "Advanced recipes require demonstrated crafting competency",
+            "tool_dependencies": "Better equipment enables more complex creations",
+            "knowledge_prerequisites": "Some recipes build on understanding of simpler ones",
+            "material_accessibility": "Rare ingredients gate powerful creations"
+          }
+        },
+        "crafting_mechanics": {
+          "quality_systems": {
+            "material_quality": "Better base materials yield superior final products",
+            "skill_influence": "Player crafting skill affects outcome quality",
+            "tool_bonuses": "Higher quality tools improve crafting results",
+            "environmental_factors": "Crafting location can influence results"
+          },
+          "process_complexity": {
+            "multi_stage_crafting": "Complex items require multiple crafting steps",
+            "timing_elements": "Some recipes require precise timing or sequencing",
+            "failure_consequences": "Failed crafting attempts consume some but not all materials",
+            "mastery_benefits": "Experienced crafters can create superior versions"
+          },
+          "customization_options": {
+            "material_substitution": "Alternative materials create variations in final product",
+            "enhancement_systems": "Ways to improve or modify existing crafted items",
+            "personalization": "Opportunities to add unique touches to crafted items",
+            "specialization_paths": "Focus on specific crafting disciplines for unique benefits"
+          }
+        },
+        "economic_integration": {
+          "market_dynamics": {
+            "supply_demand_balancing": "Crafted items should have meaningful place in game economy",
+            "regional_specialization": "Different areas excel at different crafting types",
+            "seasonal_variations": "Some materials and recipes vary with in-game time",
+            "player_driven_markets": "Crafters can influence market prices through their choices"
+          },
+          "resource_management": {
+            "storage_challenges": "Managing inventory space adds strategic decisions",
+            "preservation_systems": "Some materials degrade over time without proper care",
+            "transportation_costs": "Moving materials and products has associated costs",
+            "batch_processing": "Efficiency gains from crafting multiple items together"
+          }
+        },
+        "player_motivation": {
+          "progression_satisfaction": {
+            "visible_improvement": "Clear advancement in crafting capabilities over time",
+            "mastery_recognition": "Other players and NPCs acknowledge crafting expertise",
+            "unique_capabilities": "Master crafters can create items unavailable elsewhere",
+            "creative_fulfillment": "Satisfaction from creating useful and beautiful items"
+          },
+          "social_integration": {
+            "collaborative_projects": "Some items require multiple crafters working together",
+            "knowledge_sharing": "Players can teach each other recipes and techniques",
+            "reputation_systems": "Build reputation as a master crafter in specific disciplines",
+            "guild_contributions": "Crafting can contribute to group goals and achievements"
+          }
+        }
+      }
+    }
+  },
+  {
+    "prompt": "Design a narrative choice system that creates meaningful consequences and replayability",
+    "expected_output": {
+      "narrative_choice_design": {
+        "choice_philosophy": {
+          "consequence_clarity": "Players should understand potential outcomes of major decisions",
+          "delayed_impact": "Some consequences unfold over time rather than immediately",
+          "moral_complexity": "Avoid simple good/evil choices in favor of nuanced dilemmas",
+          "player_expression": "Choices should reflect different valid character philosophies"
+        },
+        "choice_architecture": {
+          "decision_categories": {
+            "immediate_tactical": {
+              "scope": "Affect current scene or encounter",
+              "consequences": "Visible within minutes of choice",
+              "examples": ["Dialog responses", "Combat approaches", "Problem-solving methods"],
+              "replay_impact": "Create different moment-to-moment experiences"
+            },
+            "relationship_defining": {
+              "scope": "Affect relationships with NPCs and factions",
+              "consequences": "Influence available allies, enemies, and story paths",
+              "examples": ["Trust/betrayal decisions", "Loyalty demonstrations", "Value alignments"],
+              "replay_impact": "Access different character interactions and story branches"
+            },
+            "world_shaping": {
+              "scope": "Permanently alter game world state",
+              "consequences": "Change available locations, NPCs, and future story possibilities",
+              "examples": ["Faction warfare outcomes", "Settlement survival", "Resource allocation"],
+              "replay_impact": "Fundamentally different world states in subsequent playthroughs"
+            }
+          },
+          "choice_presentation": {
+            "information_availability": {
+              "partial_knowledge": "Players rarely have complete information when deciding",
+              "character_expertise": "Player character's skills influence available information",
+              "investigation_rewards": "Players who explore thoroughly get better choice context",
+              "uncertainty_acceptance": "Some outcomes should be unpredictable even with full information"
+            },
+            "option_design": {
+              "voice_variety": "Different choices reflect different character personalities",
+              "competency_demonstration": "Choices let players show character skills and knowledge",
+              "emotional_spectrum": "Options span different emotional approaches to situations",
+              "creative_solutions": "Include unexpected or innovative approaches when possible"
+            }
+          }
+        },
+        "consequence_systems": {
+          "immediate_feedback": {
+            "reaction_changes": "NPC responses shift based on player choices",
+            "environmental_changes": "World state visibly reflects player decisions",
+            "skill_applications": "Choices lead to different skill usage opportunities",
+            "resource_implications": "Decisions affect available resources and options"
+          },
+          "long_term_ramifications": {
+            "story_branching": {
+              "exclusive_content": "Choices lock out certain story paths while opening others",
+              "character_availability": "Some NPCs become unavailable based on earlier decisions",
+              "ending_variations": "Multiple distinct endings based on accumulated choices",
+              "epilogue_consequences": "Post-game content reflects player's decision history"
+            },
+            "world_persistence": {
+              "location_changes": "Settlements and regions evolve based on player actions",
+              "economic_shifts": "Trade routes and resource availability affected by choices",
+              "political_evolution": "Power structures change in response to player decisions",
+              "cultural_influence": "Player actions influence world culture and values"
+            }
+          }
+        },
+        "replayability_design": {
+          "discovery_incentives": {
+            "hidden_consequences": "Some choice outcomes only become clear in subsequent playthroughs",
+            "alternative_perspectives": "Different character builds reveal new aspects of choices",
+            "completionist_rewards": "Additional content available only through specific choice combinations",
+            "easter_eggs": "Special content for players who make unexpected choice sequences"
+          },
+          "narrative_variations": {
+            "character_archetypes": "Different viable character philosophies lead to different experiences",
+            "faction_loyalties": "Multiple factions offer distinct but equally valid story paths",
+            "moral_frameworks": "Consistent application of different ethical systems yields different outcomes",
+            "strategic_approaches": "Different problem-solving philosophies create varied gameplay experiences"
+          }
+        },
+        "player_agency_preservation": {
+          "meaningful_options": {
+            "viable_alternatives": "All major choices should have reasonable justification",
+            "outcome_respect": "No choice should be obviously 'wrong' or lead to game over",
+            "player_competency": "Choices assume player character is competent in their role",
+            "creative_acknowledgment": "Recognize and reward creative interpretations of situations"
+          },
+          "consequence_ownership": {
+            "clear_causality": "Players should understand how their choices led to outcomes",
+            "responsibility_acceptance": "Avoid blaming players for unforeseeable consequences",
+            "learning_opportunities": "Failed outcomes should teach rather than punish",
+            "redemption_possibilities": "Provide opportunities to recover from poor decisions"
+          }
+        }
+      }
+    }
   }
 ]
