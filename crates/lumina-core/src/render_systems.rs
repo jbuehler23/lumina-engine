@@ -672,3 +672,5 @@ pub struct Renderable {
     pub size: Vec2,
     pub color: Vec4,
 }
+
+impl lumina_ecs::Component for Renderable {}

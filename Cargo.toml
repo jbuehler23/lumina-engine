@@ -3,12 +3,12 @@ members = [
     "crates/lumina-core",
     "crates/lumina-ecs",
     "crates/lumina-render",
-    "crates/lumina-scripting",
     "crates/lumina-input",
-    "crates/lumina-editor",
+    # "crates/lumina-editor",  # Temporarily disabled
     "crates/lumina-ui",
     "crates/lumina-web-editor",
-    "crates/lumina-ai"
+    "crates/lumina-ai",
+    "crates/lumina-game-wasm"
 ]
 resolver = "2"
 
@@ -63,10 +63,12 @@ pollster = "0.3"
 
 # Web support
 wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
 web-sys = "0.3"
 js-sys = "0.3"
 console_error_panic_hook = "0.1"
 wee_alloc = "0.4"
+serde-wasm-bindgen = "0.4"
 
 # AI integration
 reqwest = { version = "0.11", features = ["json", "stream"] }
@@ -87,8 +89,8 @@ categories = ["game-development", "graphics", "multimedia"]
 lumina-core = { path = "crates/lumina-core" }
 lumina-ecs = { path = "crates/lumina-ecs" }
 lumina-render = { path = "crates/lumina-render" }
-lumina-scripting = { path = "crates/lumina-scripting" }
-lumina-editor = { path = "crates/lumina-editor" }
+# lumina-scripting removed
+# lumina-editor = { path = "crates/lumina-editor" }
 lumina-ai = { path = "crates/lumina-ai" }
 
 # Example dependencies
@@ -118,21 +120,13 @@ path = "src/runtime.rs"
 # Examples - demonstrating engine capabilities
 
 [[example]]
-name = "ai_game_generator"
-path = "examples/ai_game_generator.rs"
+name = "working_platformer"
+path = "examples/working_platformer.rs"
 
 [[example]]
-name = "train_gamedev_model"
-path = "examples/train_gamedev_model.rs"
+name = "interactive_platformer"
+path = "examples/interactive_platformer.rs"
 
 [[example]]
-name = "create_specialized_datasets"
-path = "examples/create_specialized_datasets.rs"
-
-[[example]]
-name = "train_all_models"
-path = "examples/train_all_models.rs"
-
-[[example]]
-name = "test_model_pipeline"
-path = "examples/test_model_pipeline.rs"
+name = "pong"
+path = "examples/pong/main.rs"

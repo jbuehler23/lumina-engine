@@ -1,15 +1,19 @@
 pub mod component;
+pub mod components_2d;
 pub mod entity;
 pub mod query;
 pub mod resource;
 pub mod system;
+pub mod systems;
 pub mod world;
 
 pub use component::*;
+pub use components_2d::*;
 pub use entity::*;
 pub use query::*;
 pub use resource::*;
 pub use system::*;
+pub use systems::*;
 pub use world::*;
 
 // Copied from lumina-core to avoid circular dependency
@@ -76,9 +80,17 @@ macro_rules! define_handle {
 
 define_handle!(Entity);
 
-pub trait Component: Send + Sync + 'static {}
+impl Entity {
+    pub fn from_raw(id: u64) -> Self {
+        Self(id as u32)
+    }
+    
+    pub fn id(&self) -> u32 {
+        self.0
+    }
+}
 
-impl<T: Send + Sync + 'static> Component for T {}
+pub trait Component: Send + Sync + 'static {}
 
 // BitSet utility copied from lumina-core to avoid circular dependency
 #[derive(Debug, Clone)]

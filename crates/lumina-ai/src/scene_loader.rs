@@ -1,47 +1,34 @@
-//! Scene loader that converts SDL (Scene Description Language) into ECS entities
+//! Scene loader that converts simplified SDL into ECS entities
 //! 
 //! This module bridges the gap between AI-generated scene descriptions and
-//! the Lumina Engine's ECS system.
+//! the Lumina Engine's ECS system, now using 2D-focused components.
 
 use std::collections::HashMap;
-use anyhow::{Result, Context, anyhow};
-use log::{info, warn, error};
-use glam::Vec2;
+use anyhow::{Result, Context};
+use log::{info, warn};
+use serde_json::Value;
 
-use lumina_ecs::{World, Entity};
-// use lumina_core::components::*; // Removed: module does not exist
+use lumina_ecs::{World, Entity, Transform2D, Sprite, RigidBody2D, Collider2D, 
+    CharacterController2D, Camera2D, Trigger, Tilemap, ScriptTag, BodyType, CollisionShape,
+    InputMap, InputState};
 
-use crate::scene_description::{
-    SceneDescription, EntityDescription, ComponentDescription, 
-    ColliderShape, RigidBodyType, TextAlignment, ScriptDescription,
-    TriggerDescription, ActionDescription
-};
+use crate::scene_description::{SceneDescription, Entity as SDL_Entity, ComponentData};
 
 /// Scene loader that converts SDL to ECS entities
 pub struct SceneLoader {
     /// Entity name to Entity ID mapping for cross-references
     entity_map: HashMap<String, Entity>,
-    /// Pending entity references that need to be resolved
-    pending_references: Vec<PendingReference>,
-}
-
-/// Reference that needs to be resolved after all entities are created
-#[derive(Debug)]
-struct PendingReference {
-    entity: Entity,
-    component_type: String,
-    reference_name: String,
-    target_entity_name: String,
+    /// Warnings encountered during loading
+    warnings: Vec<String>,
 }
 
 /// Result of loading a scene
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SceneLoadResult {
     /// Number of entities created
     pub entities_created: usize,
-    /// Number of scripts loaded
-    pub scripts_loaded: usize,
+    /// Number of tilemaps loaded
+    pub tilemaps_loaded: usize,
     /// Warnings encountered during loading
     pub warnings: Vec<String>,
     /// Root entities (entities without parents)
@@ -49,463 +36,424 @@ pub struct SceneLoadResult {
 }
 
 impl SceneLoader {
-    /// Create a new scene loader
     pub fn new() -> Self {
         Self {
             entity_map: HashMap::new(),
-            pending_references: Vec::new(),
+            warnings: Vec::new(),
         }
     }
 
-    /// Load a scene description into the ECS world
-    pub fn load_scene(&mut self, world: &mut World, scene: SceneDescription) -> Result<SceneLoadResult> {
-        info!("Loading scene: {}", scene.metadata.name);
-        
-        let mut result = SceneLoadResult {
-            entities_created: 0,
-            scripts_loaded: 0,
-            warnings: Vec::new(),
-            root_entities: Vec::new(),
-        };
+    /// Load a complete scene into the ECS world
+    pub fn load_scene(&mut self, world: &mut World, scene: &SceneDescription) -> Result<SceneLoadResult> {
+        info!("Loading scene: {}", scene.game.name);
+
+        let mut entities_created = 0;
+        let mut tilemaps_loaded = 0;
+        let mut root_entities = Vec::new();
 
         // Clear previous state
         self.entity_map.clear();
-        self.pending_references.clear();
+        self.warnings.clear();
 
-        // Set up global scene resources
-        self.setup_scene_resources(world, &scene)?;
+        // Load the first scene (for now, we only support single scenes)
+        if let Some(first_scene) = scene.scenes.first() {
+            // Load tilemaps first
+            for tilemap_spec in &first_scene.tilemaps {
+                let entity = world.create_entity();
+                
+                // Create tilemap component
+                let tilemap = Tilemap {
+                    tileset: tilemap_spec.tileset.clone(),
+                    grid: tilemap_spec.grid.iter()
+                        .map(|row| {
+                            row.chars().enumerate().map(|(_x, ch)| {
+                                match ch {
+                                    '.' => 0u16,  // Empty
+                                    '#' => 1u16,  // Solid block
+                                    '=' => 2u16,  // Platform
+                                    _ => 0u16,
+                                }
+                            }).collect()
+                        }).collect(),
+                    tile_size: (16, 16), // Default tile size
+                };
+                
+                world.add_component(entity, tilemap);
+                world.add_component(entity, Transform2D::default());
+                world.add_component(entity, ScriptTag::new(vec!["tilemap"]));
 
-        // Create all entities first (so we can reference them)
-        for entity_desc in &scene.entities {
-            let entity = self.create_entity(world, entity_desc)?;
-            self.entity_map.insert(entity_desc.name.clone(), entity);
-            result.entities_created += 1;
-        }
-
-        // Add components to entities
-        for entity_desc in &scene.entities {
-            if let Some(&entity) = self.entity_map.get(&entity_desc.name) {
-                self.add_entity_components(world, entity, entity_desc, &mut result.warnings)?;
+                tilemaps_loaded += 1;
+                root_entities.push(entity);
+                info!("Created tilemap entity using tileset: {}", tilemap_spec.tileset);
             }
+
+            // Load entities
+            for entity_desc in &first_scene.entities {
+                match self.create_entity(world, entity_desc) {
+                    Ok(entity) => {
+                        entities_created += 1;
+                        root_entities.push(entity);
+                        info!("Created entity: {}", entity_desc.name);
+                    }
+                    Err(e) => {
+                        warn!("Failed to create entity '{}': {}", entity_desc.name, e);
+                        self.warnings.push(format!("Failed to create entity '{}': {}", entity_desc.name, e));
+                    }
+                }
+            }
+        } else {
+            warn!("No scenes found in SceneDescription");
         }
 
-        // Resolve pending entity references
-        self.resolve_pending_references(world, &mut result.warnings)?;
+        info!("Scene loading complete. Entities: {}, Tilemaps: {}", entities_created, tilemaps_loaded);
 
-        // Load scripts and game logic
-        for script in &scene.scripts {
-            self.load_script(world, script, &mut result.warnings)?;
-            result.scripts_loaded += 1;
-        }
-
-        // Identify root entities (entities that aren't children of others)
-        result.root_entities = self.entity_map.values().copied().collect();
-
-        info!("Scene loaded successfully: {} entities, {} scripts", 
-              result.entities_created, result.scripts_loaded);
-
-        Ok(result)
+        Ok(SceneLoadResult {
+            entities_created,
+            tilemaps_loaded,
+            warnings: self.warnings.clone(),
+            root_entities,
+        })
     }
 
-    /// Set up global scene resources
-    fn setup_scene_resources(&self, world: &mut World, scene: &SceneDescription) -> Result<()> {
-        // Set up physics configuration
-        if scene.metadata.physics.enabled {
-            // Physics setup would go here when physics system is implemented
-            info!("Physics enabled with gravity: {:?}", scene.metadata.physics.gravity);
-        }
-
-        // Set up audio configuration  
-        if scene.metadata.audio.enabled {
-            // Audio setup would go here when audio system is implemented
-            info!("Audio enabled with master volume: {}", scene.metadata.audio.master_volume);
-        }
-
-        // Set up scene metadata as a resource
-        world.add_resource(SceneLoaderMetadata {
-            name: scene.metadata.name.clone(),
-            description: scene.metadata.description.clone(),
-            background_color: scene.metadata.background_color,
-        });
-
-        Ok(())
-    }
-
-    /// Create an entity in the ECS world
-    fn create_entity(&self, world: &mut World, entity_desc: &EntityDescription) -> Result<Entity> {
-        let entity = world.spawn().build(world);
+    /// Create a single entity from SDL description
+    fn create_entity(&mut self, world: &mut World, entity_desc: &SDL_Entity) -> Result<Entity> {
+        let entity = world.create_entity();
         
-        // Add tags as components if they represent special entity types
-        for tag in &entity_desc.tags {
-            match tag.as_str() {
-                "player" => {
-                    // Player tag handling would go here
-                }
-                "enemy" => {
-                    // Enemy tag handling would go here  
-                }
-                "collectible" => {
-                    // Collectible tag handling would go here
-                }
-                _ => {
-                    // Generic tag handling
-                }
-            }
+        // Store entity mapping for references
+        self.entity_map.insert(entity_desc.name.clone(), entity);
+
+        // Add script tags for organization
+        let tag_strings: Vec<&str> = entity_desc.tags.iter().map(|s| s.as_str()).collect();
+        world.add_component(entity, ScriptTag::new(tag_strings));
+
+        // Process components
+        for (comp_name, comp_data) in &entity_desc.components {
+            self.add_component(world, entity, comp_name, comp_data)
+                .with_context(|| format!("Adding component '{}' to entity '{}'", comp_name, entity_desc.name))?;
         }
 
         Ok(entity)
     }
 
-    /// Add components to an entity based on its description
-    fn add_entity_components(
-        &mut self, 
-        world: &mut World, 
-        entity: Entity, 
-        entity_desc: &EntityDescription,
-        warnings: &mut Vec<String>
-    ) -> Result<()> {
-        
-        for (component_name, component_desc) in &entity_desc.components {
-            match self.create_component(component_desc, &entity_desc.name, warnings) {
-                Ok(Some(component)) => {
-                    self.add_component_to_entity(world, entity, component_name, component)?;
-                }
-                Ok(None) => {
-                    // Component was handled elsewhere or is a reference
-                }
-                Err(e) => {
-                    let warning = format!("Failed to create component '{}' for entity '{}': {}", 
-                                        component_name, entity_desc.name, e);
-                    warnings.push(warning);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Create a component from its description
-    fn create_component(
-        &mut self, 
-        component_desc: &ComponentDescription, 
-        entity_name: &str,
-        warnings: &mut Vec<String>
-    ) -> Result<Option<Box<dyn std::any::Any>>> {
-        
-        match component_desc {
-            ComponentDescription::Transform { position, rotation, scale } => {
-                Ok(Some(Box::new(Transform {
-                    translation: Vec2::new(position[0], position[1]),
-                    rotation: *rotation,
-                    scale: Vec2::new(scale[0], scale[1]),
-                })))
-            }
-            
-            ComponentDescription::Sprite { texture, color, flip_x, flip_y, layer } => {
-                Ok(Some(Box::new(Sprite {
-                    texture_path: texture.clone(),
-                    color: [color[0], color[1], color[2], color[3]],
-                    flip_x: *flip_x,
-                    flip_y: *flip_y,
-                    layer: *layer,
-                })))
-            }
-
-            ComponentDescription::Player { speed, jump_force, health, max_health } => {
-                Ok(Some(Box::new(Player {
-                    speed: *speed,
-                    jump_force: *jump_force,
-                    health: *health,
-                    max_health: *max_health,
-                })))
-            }
-
-            ComponentDescription::Velocity { linear, angular } => {
-                Ok(Some(Box::new(Velocity {
-                    linear: Vec2::new(linear[0], linear[1]),
-                    angular: *angular,
-                })))
-            }
-
-            ComponentDescription::Health { current, maximum } => {
-                Ok(Some(Box::new(Health {
-                    current: *current,
-                    maximum: *maximum,
-                })))
-            }
-
-            ComponentDescription::Collider { shape, is_sensor, friction, restitution } => {
-                let collider_shape = match shape {
-                    ColliderShape::Rectangle { width, height } => {
-                        ColliderShapeType::Rectangle { width: *width, height: *height }
-                    }
-                    ColliderShape::Circle { radius } => {
-                        ColliderShapeType::Circle { radius: *radius }
-                    }
-                    ColliderShape::Capsule { height, radius } => {
-                        ColliderShapeType::Capsule { height: *height, radius: *radius }
-                    }
-                };
-
-                Ok(Some(Box::new(Collider {
-                    shape: collider_shape,
-                    is_sensor: *is_sensor,
-                    friction: *friction,
-                    restitution: *restitution,
-                })))
-            }
-
-            ComponentDescription::Text { content, font, size, color, alignment } => {
-                let text_align = match alignment {
-                    TextAlignment::Left => TextAlign::Left,
-                    TextAlignment::Center => TextAlign::Center,
-                    TextAlignment::Right => TextAlign::Right,
-                };
-
-                Ok(Some(Box::new(Text {
-                    content: content.clone(),
-                    font: font.clone(),
-                    size: *size,
-                    color: [color[0], color[1], color[2], color[3]],
-                    alignment: text_align,
-                })))
-            }
-
-            // Components that require entity references are handled as pending
-            ComponentDescription::Camera { target, .. } => {
-                if let Some(target_name) = target {
-                    self.pending_references.push(PendingReference {
-                        entity: Entity::from(0), // Will be filled in later
-                        component_type: "Camera".to_string(),
-                        reference_name: "target".to_string(),
-                        target_entity_name: target_name.clone(),
-                    });
-                }
-                
-                Ok(Some(Box::new(Camera {
-                    target: None, // Will be resolved later
-                    size: component_desc.get_camera_size().unwrap_or(10.0),
-                    smooth_follow: component_desc.get_camera_smooth_follow().unwrap_or(false),
-                })))
-            }
-
-            // Add more component types as needed
-            _ => {
-                warnings.push(format!("Unsupported component type for entity '{}'", entity_name));
-                Ok(None)
-            }
-        }
-    }
-
-    /// Add a component to an entity (type-erased)
-    fn add_component_to_entity(
-        &self,
-        world: &mut World,
-        entity: Entity,
-        component_name: &str,
-        component: Box<dyn std::any::Any>
-    ) -> Result<()> {
-        // This is a simplified version - in practice, you'd need a proper
-        // component registration system or use macros to handle this
-        
-        match component_name {
-            "Transform" => {
-                if let Ok(transform) = component.downcast::<Transform>() {
-                    world.add_component(entity, *transform);
-                }
+    /// Add a component to an entity based on component type
+    fn add_component(&mut self, world: &mut World, entity: Entity, comp_name: &str, comp_data: &ComponentData) -> Result<()> {
+        match comp_name {
+            "Transform2D" => {
+                let transform = self.parse_transform2d(&comp_data.data)?;
+                world.add_component(entity, transform);
             }
             "Sprite" => {
-                if let Ok(sprite) = component.downcast::<Sprite>() {
-                    world.add_component(entity, *sprite);
-                }
+                let sprite = self.parse_sprite(&comp_data.data)?;
+                world.add_component(entity, sprite);
             }
-            "Player" => {
-                if let Ok(player) = component.downcast::<Player>() {
-                    world.add_component(entity, *player);
-                }
+            "RigidBody2D" => {
+                let rigidbody = self.parse_rigidbody2d(&comp_data.data)?;
+                world.add_component(entity, rigidbody);
             }
-            "Velocity" => {
-                if let Ok(velocity) = component.downcast::<Velocity>() {
-                    world.add_component(entity, *velocity);
-                }
+            "Collider2D" => {
+                let collider = self.parse_collider2d(&comp_data.data)?;
+                world.add_component(entity, collider);
             }
-            "Health" => {
-                if let Ok(health) = component.downcast::<Health>() {
-                    world.add_component(entity, *health);
-                }
+            "CharacterController2D" => {
+                let controller = self.parse_character_controller2d(&comp_data.data)?;
+                world.add_component(entity, controller);
             }
-            "Collider" => {
-                if let Ok(collider) = component.downcast::<Collider>() {
-                    world.add_component(entity, *collider);
-                }
+            "Camera2D" => {
+                let camera = self.parse_camera2d(&comp_data.data)?;
+                world.add_component(entity, camera);
             }
-            "Text" => {
-                if let Ok(text) = component.downcast::<Text>() {
-                    world.add_component(entity, *text);
-                }
+            "Trigger" => {
+                let trigger = self.parse_trigger(&comp_data.data)?;
+                world.add_component(entity, trigger);
             }
-            "Camera" => {
-                if let Ok(camera) = component.downcast::<Camera>() {
-                    world.add_component(entity, *camera);
-                }
+            "InputMap" => {
+                let input_map = self.parse_input_map(&comp_data.data)?;
+                world.add_component(entity, input_map);
+            }
+            "InputState" => {
+                let input_state = self.parse_input_state(&comp_data.data)?;
+                world.add_component(entity, input_state);
             }
             _ => {
-                return Err(anyhow!("Unknown component type: {}", component_name));
+                warn!("Unknown component type: {}", comp_name);
+                self.warnings.push(format!("Unknown component type: {}", comp_name));
             }
         }
 
         Ok(())
     }
 
-    /// Resolve pending entity references
-    fn resolve_pending_references(&mut self, world: &mut World, warnings: &mut Vec<String>) -> Result<()> {
-        for reference in &self.pending_references {
-            if let Some(&target_entity) = self.entity_map.get(&reference.target_entity_name) {
-                // Update the component with the resolved entity reference
-                match reference.component_type.as_str() {
-                    "Camera" => {
-                        // Update camera target - this would need proper implementation
-                        // based on your ECS system's capabilities
-                    }
-                    _ => {
-                        warnings.push(format!("Cannot resolve reference for component type: {}", 
-                                            reference.component_type));
-                    }
+    // Component parsers
+
+    fn parse_transform2d(&self, data: &Value) -> Result<Transform2D> {
+        let pos = data["pos"].as_array()
+            .and_then(|arr| Some([arr[0].as_f64()? as f32, arr[1].as_f64()? as f32]))
+            .unwrap_or([0.0, 0.0]);
+        
+        let rot = data["rot"].as_f64().unwrap_or(0.0) as f32;
+        
+        let scale = data["scale"].as_array()
+            .and_then(|arr| Some([arr[0].as_f64()? as f32, arr[1].as_f64()? as f32]))
+            .unwrap_or([1.0, 1.0]);
+
+        Ok(Transform2D {
+            pos: glam::Vec2::from_array(pos),
+            rot,
+            scale: glam::Vec2::from_array(scale),
+        })
+    }
+
+    fn parse_sprite(&self, data: &Value) -> Result<Sprite> {
+        let atlas_id = data["atlas_id"].as_str()
+            .unwrap_or("missing_sprite").to_string();
+        
+        let frame = data["frame"].as_u64().unwrap_or(0) as u16;
+        
+        let color = data["color"].as_array()
+            .and_then(|arr| Some([
+                arr[0].as_f64()? as f32,
+                arr[1].as_f64()? as f32,
+                arr[2].as_f64()? as f32,
+                arr[3].as_f64()? as f32,
+            ]))
+            .unwrap_or([1.0, 1.0, 1.0, 1.0]);
+
+        let flip_x = data["flip_x"].as_bool().unwrap_or(false);
+        let flip_y = data["flip_y"].as_bool().unwrap_or(false);
+        let layer = data["layer"].as_i64().unwrap_or(0) as i32;
+
+        Ok(Sprite {
+            atlas_id,
+            frame,
+            color,
+            flip_x,
+            flip_y,
+            layer,
+        })
+    }
+
+    fn parse_rigidbody2d(&self, data: &Value) -> Result<RigidBody2D> {
+        let kind = match data["kind"].as_str().unwrap_or("Dynamic") {
+            "Static" => BodyType::Static,
+            "Kinematic" => BodyType::Kinematic,
+            _ => BodyType::Dynamic,
+        };
+
+        let vel = data["vel"].as_array()
+            .and_then(|arr| Some([arr[0].as_f64()? as f32, arr[1].as_f64()? as f32]))
+            .unwrap_or([0.0, 0.0]);
+
+        let mass = data["mass"].as_f64().unwrap_or(1.0) as f32;
+        let linear_damping = data["linear_damping"].as_f64().unwrap_or(0.1) as f32;
+        let angular_damping = data["angular_damping"].as_f64().unwrap_or(0.5) as f32;
+        let fixed_rotation = data["fixed_rotation"].as_bool().unwrap_or(true);
+
+        Ok(RigidBody2D {
+            kind,
+            vel: glam::Vec2::from_array(vel),
+            mass,
+            linear_damping,
+            angular_damping,
+            fixed_rotation,
+        })
+    }
+
+    fn parse_collider2d(&self, data: &Value) -> Result<Collider2D> {
+        let shape = if let Some(shape_data) = data.get("shape") {
+            if let Some(aabb_data) = shape_data.get("AABB") {
+                CollisionShape::AABB {
+                    width: aabb_data["width"].as_f64().unwrap_or(16.0) as f32,
+                    height: aabb_data["height"].as_f64().unwrap_or(16.0) as f32,
+                }
+            } else if let Some(circle_data) = shape_data.get("Circle") {
+                CollisionShape::Circle {
+                    radius: circle_data["radius"].as_f64().unwrap_or(8.0) as f32,
                 }
             } else {
-                warnings.push(format!("Could not resolve entity reference: {}", 
-                                    reference.target_entity_name));
+                CollisionShape::AABB { width: 16.0, height: 16.0 }
             }
-        }
+        } else {
+            CollisionShape::AABB { width: 16.0, height: 16.0 }
+        };
 
-        Ok(())
-    }
-
-    /// Load a script into the game logic system
-    fn load_script(&self, world: &mut World, script: &ScriptDescription, warnings: &mut Vec<String>) -> Result<()> {
-        // This would integrate with the scripting system when implemented
-        info!("Loading script: {} ({})", script.name, script.id);
+        let is_sensor = data["is_sensor"].as_bool().unwrap_or(false);
+        let friction = data["friction"].as_f64().unwrap_or(0.8) as f32;
+        let restitution = data["restitution"].as_f64().unwrap_or(0.0) as f32;
         
-        // For now, just log the script information
-        for trigger in &script.triggers {
-            info!("  Trigger: {:?}", trigger);
-        }
-        
-        for action in &script.actions {
-            info!("  Action: {:?}", action);
-        }
+        let collision_layers = data["collision_layers"].as_array()
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_else(|| vec!["solid".to_string()]);
 
-        Ok(())
-    }
-}
-
-// Helper trait for extracting component-specific data
-trait ComponentDescriptionHelper {
-    fn get_camera_size(&self) -> Option<f32>;
-    fn get_camera_smooth_follow(&self) -> Option<bool>;
-}
-
-impl ComponentDescriptionHelper for ComponentDescription {
-    fn get_camera_size(&self) -> Option<f32> {
-        match self {
-            ComponentDescription::Camera { size, .. } => Some(*size),
-            _ => None,
-        }
+        Ok(Collider2D {
+            shape,
+            is_sensor,
+            friction,
+            restitution,
+            collision_layers,
+        })
     }
 
-    fn get_camera_smooth_follow(&self) -> Option<bool> {
-        match self {
-            ComponentDescription::Camera { smooth_follow, .. } => Some(*smooth_follow),
-            _ => None,
-        }
+    fn parse_character_controller2d(&self, data: &Value) -> Result<CharacterController2D> {
+        let speed = data["speed"].as_f64().unwrap_or(200.0) as f32;
+        let jump_power = data["jump_power"].as_f64().unwrap_or(500.0) as f32;
+        let coyote_time_ms = data["coyote_time_ms"].as_u64().unwrap_or(100) as u32;
+        let is_grounded = data["is_grounded"].as_bool().unwrap_or(false);
+        let jump_buffer_time = data["jump_buffer_time"].as_f64().unwrap_or(0.15) as f32;
+
+        Ok(CharacterController2D {
+            speed,
+            jump_power,
+            coyote_time_ms,
+            is_grounded,
+            jump_buffer_time,
+            coyote_timer: 0.0,
+            jump_buffer_timer: 0.0,
+            jump_consumed: false,
+        })
     }
-}
 
-/// Scene metadata resource
-#[derive(Debug, Clone)]
-pub struct SceneLoaderMetadata {
-    pub name: String,
-    pub description: String,
-    pub background_color: [f32; 4],
-}
+    fn parse_camera2d(&self, data: &Value) -> Result<Camera2D> {
+        let follow = data["follow"].as_str().map(|s| s.to_string());
+        let zoom = data["zoom"].as_f64().unwrap_or(1.0) as f32;
+        let smooth_follow = data["smooth_follow"].as_bool().unwrap_or(true);
+        let look_ahead = data["look_ahead"].as_f64().unwrap_or(100.0) as f32;
 
-// Placeholder component types - these would be defined in lumina-core
-#[derive(Debug, Clone)]
-pub struct Transform {
-    pub translation: Vec2,
-    pub rotation: f32,
-    pub scale: Vec2,
-}
+        Ok(Camera2D {
+            follow,
+            zoom,
+            smooth_follow,
+            look_ahead,
+        })
+    }
 
-#[derive(Debug, Clone)]
-pub struct Sprite {
-    pub texture_path: String,
-    pub color: [f32; 4],
-    pub flip_x: bool,
-    pub flip_y: bool,
-    pub layer: i32,
-}
+    fn parse_trigger(&self, data: &Value) -> Result<Trigger> {
+        let on_enter = data["on_enter"].as_str().map(|s| s.to_string());
+        let on_exit = data["on_exit"].as_str().map(|s| s.to_string());
 
-#[derive(Debug, Clone)]
-pub struct Player {
-    pub speed: f32,
-    pub jump_force: f32,
-    pub health: i32,
-    pub max_health: i32,
-}
+        Ok(Trigger {
+            on_enter,
+            on_exit,
+        })
+    }
 
-#[derive(Debug, Clone)]
-pub struct Velocity {
-    pub linear: Vec2,
-    pub angular: f32,
-}
+    fn parse_input_map(&self, data: &Value) -> Result<InputMap> {
+        let move_left = data["move_left"]
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect();
 
-#[derive(Debug, Clone)]
-pub struct Health {
-    pub current: i32,
-    pub maximum: i32,
-}
+        let move_right = data["move_right"]
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect();
 
-#[derive(Debug, Clone)]
-pub struct Collider {
-    pub shape: ColliderShapeType,
-    pub is_sensor: bool,
-    pub friction: f32,
-    pub restitution: f32,
-}
+        let jump = data["jump"]
+            .as_array()
+            .unwrap_or(&Vec::new())
+            .iter()
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
+            .collect();
 
-#[derive(Debug, Clone)]
-pub enum ColliderShapeType {
-    Rectangle { width: f32, height: f32 },
-    Circle { radius: f32 },
-    Capsule { height: f32, radius: f32 },
-}
+        let enabled = data["enabled"].as_bool().unwrap_or(true);
 
-#[derive(Debug, Clone)]
-pub struct Text {
-    pub content: String,
-    pub font: String,
-    pub size: f32,
-    pub color: [f32; 4],
-    pub alignment: TextAlign,
-}
+        Ok(InputMap {
+            move_left,
+            move_right,
+            jump,
+            enabled,
+        })
+    }
 
-#[derive(Debug, Clone)]
-pub enum TextAlign {
-    Left,
-    Center,
-    Right,
-}
+    fn parse_input_state(&self, data: &Value) -> Result<InputState> {
+        let move_horizontal = data["move_horizontal"].as_f64().unwrap_or(0.0) as f32;
+        let jump_pressed = data["jump_pressed"].as_bool().unwrap_or(false);
+        let jump_held = data["jump_held"].as_bool().unwrap_or(false);
+        let was_jump_pressed = data["was_jump_pressed"].as_bool().unwrap_or(false);
 
-#[derive(Debug, Clone)]
-pub struct Camera {
-    pub target: Option<Entity>,
-    pub size: f32,
-    pub smooth_follow: bool,
+        Ok(InputState {
+            move_horizontal,
+            jump_pressed,
+            jump_held,
+            was_jump_pressed,
+        })
+    }
 }
 
 impl Default for SceneLoader {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_scene_loading() {
+        let mut world = World::new();
+        let mut loader = SceneLoader::new();
+        
+        let scene = SceneDescription::platformer_template("Test Scene");
+        let result = loader.load_scene(&mut world, &scene).expect("Should load scene successfully");
+        
+        // Should have created entities and tilemaps
+        assert!(result.entities_created > 0);
+        assert!(result.tilemaps_loaded > 0);
+        
+        // Should have no warnings for a valid template
+        assert!(result.warnings.is_empty(), "Template should load without warnings: {:?}", result.warnings);
+    }
+
+    #[test]
+    fn test_component_parsing() {
+        let loader = SceneLoader::new();
+        
+        // Test Transform2D parsing
+        let transform_data = serde_json::json!({
+            "pos": [10.0, 20.0],
+            "rot": 45.0,
+            "scale": [2.0, 2.0]
+        });
+        
+        let transform = loader.parse_transform2d(&transform_data).expect("Should parse Transform2D");
+        assert_eq!(transform.pos.x, 10.0);
+        assert_eq!(transform.pos.y, 20.0);
+        assert_eq!(transform.rot, 45.0);
+        assert_eq!(transform.scale.x, 2.0);
+        assert_eq!(transform.scale.y, 2.0);
+    }
+
+    #[test]
+    fn test_collider_parsing() {
+        let loader = SceneLoader::new();
+        
+        // Test AABB collider parsing
+        let collider_data = serde_json::json!({
+            "shape": {
+                "AABB": { "width": 32.0, "height": 48.0 }
+            },
+            "is_sensor": false,
+            "friction": 0.8,
+            "restitution": 0.1,
+            "collision_layers": ["solid", "player"]
+        });
+        
+        let collider = loader.parse_collider2d(&collider_data).expect("Should parse Collider2D");
+        if let CollisionShape::AABB { width, height } = collider.shape {
+            assert_eq!(width, 32.0);
+            assert_eq!(height, 48.0);
+        } else {
+            panic!("Expected AABB shape");
+        }
+        
+        assert!(!collider.is_sensor);
+        assert_eq!(collider.friction, 0.8);
+        assert_eq!(collider.restitution, 0.1);
+        assert_eq!(collider.collision_layers, vec!["solid", "player"]);
     }
 }

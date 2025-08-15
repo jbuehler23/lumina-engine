@@ -145,6 +145,13 @@ impl ComponentManager {
         }
     }
 
+    pub fn get_component_mut<T: Component>(&self, entity: Entity) -> Option<&mut T> {
+        // This method cannot be safely implemented with the current design
+        // because we can't return a mutable reference from the lock.
+        // Use with_component_mut instead.
+        unimplemented!("Use with_component_mut instead for safe mutable access")
+    }
+
     pub fn remove_component<T: Component>(&self, entity: Entity) -> Option<T> {
         let type_id = TypeId::of::<T>();
         let storages = self.storages.read();

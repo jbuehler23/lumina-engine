@@ -8,7 +8,7 @@ lumina-core = { path = "../lumina-core" }
 lumina-ui = { path = "../lumina-ui" }
 lumina-render = { path = "../lumina-render" }
 lumina-ecs = { path = "../lumina-ecs" }
-lumina-scripting = { path = "../lumina-scripting" }
+# lumina-scripting removed
 
 # Core dependencies
 anyhow.workspace = true

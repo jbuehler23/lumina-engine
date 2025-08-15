@@ -85,7 +85,7 @@ impl Default for EntityManager {
 
 pub struct EntityBuilder {
     entity: Entity,
-    components: Vec<Box<dyn FnOnce(&crate::World) + Send>>,
+    components: Vec<Box<dyn FnOnce(&mut crate::World) + Send>>,
 }
 
 impl EntityBuilder {
@@ -104,7 +104,7 @@ impl EntityBuilder {
         self
     }
 
-    pub fn build(self, world: &crate::World) -> Entity {
+    pub fn build(self, world: &mut crate::World) -> Entity {
         for add_component in self.components {
             add_component(world);
         }

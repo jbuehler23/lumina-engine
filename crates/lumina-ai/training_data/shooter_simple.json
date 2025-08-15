@@ -470,7 +470,7 @@
         {
           "type": "ModifyHealth",
           "data": {
-            "entity": "entity": "Player",
+            "entity": "Player",
             "change": -1
           }
         },

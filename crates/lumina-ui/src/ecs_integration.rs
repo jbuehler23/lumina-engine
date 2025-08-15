@@ -165,6 +165,8 @@ pub fn create_simple_ecs_ui_example() -> EcsUiApp {
 
 /// Example components for demonstrating ECS integration
 pub mod example_components {
+    use lumina_ecs::Component;
+    
     /// Example player component
     #[derive(Debug, Clone)]
     pub struct Player {
@@ -177,6 +179,8 @@ pub mod example_components {
         /// Player level
         pub level: i32,
     }
+
+    impl Component for Player {}
     
     /// Example game state component
     #[derive(Debug, Clone)]
@@ -188,4 +192,6 @@ pub mod example_components {
         /// Whether the game is paused
         pub paused: bool,
     }
+
+    impl Component for GameState {}
 }

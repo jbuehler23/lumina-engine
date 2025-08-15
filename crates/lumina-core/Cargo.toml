@@ -16,7 +16,7 @@ glam.workspace = true
 parking_lot.workspace = true
 rayon.workspace = true
 smallvec.workspace = true
-lumina-scripting = { path = "../lumina-scripting" }
+# lumina-scripting removed for simplification
 lumina-render = { path = "../lumina-render" }
 lumina-ui = { path = "../lumina-ui" }
 lumina-ecs = { path = "../lumina-ecs" }

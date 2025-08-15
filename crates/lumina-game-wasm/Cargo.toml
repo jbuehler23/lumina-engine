@@ -1,0 +1,51 @@
+[package]
+name = "lumina-game-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WASM-compiled game runtime for Lumina Engine"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Core engine crates
+lumina-ecs = { path = "../lumina-ecs" }
+lumina-ai = { path = "../lumina-ai" }
+lumina-render = { path = "../lumina-render" }
+
+# WASM bindings
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+  "console",
+  "Document",
+  "Element", 
+  "HtmlCanvasElement",
+  "KeyboardEvent",
+  "MouseEvent",
+  "Window",
+  "Performance",
+  "EventTarget",
+  "Event",
+]}
+
+# Error handling and logging
+console_error_panic_hook = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+
+# Math and utilities
+glam = { workspace = true }
+anyhow = { workspace = true }
+
+# WGPU for rendering
+wgpu = { version = "26.0", features = ["webgl"] }
+bytemuck = { workspace = true, features = ["derive"] }
+pollster = { workspace = true }
+
+[features]
+default = []

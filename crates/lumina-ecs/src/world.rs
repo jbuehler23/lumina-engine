@@ -27,6 +27,16 @@ impl World {
         entity
     }
 
+    pub fn create_entity(&mut self) -> Entity {
+        self.entities.create()
+    }
+
+    pub fn add_component<T: Component>(&mut self, entity: Entity, component: T) {
+        if self.entities.is_alive(entity) {
+            self.components.add_component(entity, component);
+        }
+    }
+
     pub fn despawn(&self, entity: Entity) -> bool {
         if self.entities.destroy(entity) {
             self.components.remove_all_components(entity);
@@ -38,12 +48,6 @@ impl World {
 
     pub fn is_alive(&self, entity: Entity) -> bool {
         self.entities.is_alive(entity)
-    }
-
-    pub fn add_component<T: Component>(&self, entity: Entity, component: T) {
-        if self.entities.is_alive(entity) {
-            self.components.add_component(entity, component);
-        }
     }
 
     pub fn get_component<T: Component + Clone>(&self, entity: Entity) -> Option<T> {
@@ -125,6 +129,7 @@ impl World {
     pub fn iter_entities(&self) -> Vec<Entity> {
         self.entities.iter_alive()
     }
+
 
     pub fn clear(&self) {
         self.entities.clear();

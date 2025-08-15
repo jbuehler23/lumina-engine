@@ -24,8 +24,7 @@ pub use render_systems::Renderable;
 
 // Re-export input types from lumina-input for convenience
 pub use lumina_input as input;
-// Re-export visual scripting from lumina-scripting
-pub use lumina_scripting::*;
+// Visual scripting removed for simplification
 
 pub type Result<T> = anyhow::Result<T>;
 
